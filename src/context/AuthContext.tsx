@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   User, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   signOut as fbSignOut, 
   onAuthStateChanged 
 } from 'firebase/auth';
@@ -119,6 +121,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    // Check redirect result on mount if redirect auth was used
+    getRedirectResult(auth).catch(err => {
+      console.warn('Redirect auth result error:', err);
+    });
+
     const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
       setCurrentUser(fbUser);
       if (fbUser) {
@@ -180,9 +187,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGoogle = async () => {
     if (!isFirebaseActive) {
-      throw new Error('Firebase non è ancora configurato con credenziali valide.');
+      throw new Error('Firebase non è configurato con credenziali valide.');
     }
-    await signInWithPopup(auth, googleProvider);
+
+    try {
+      // Try popup first (fast on desktop)
+      await signInWithPopup(auth, googleProvider);
+    } catch (err: any) {
+      console.error('Google Auth Error:', err);
+      const code = err?.code || '';
+
+      if (code === 'auth/unauthorized-domain') {
+        const currentHost = window.location.hostname;
+        throw new Error(
+          'Dominio non autorizzato su Firebase: devi aggiungere "' + currentHost + '" nei Domini Autorizzati in Firebase Console -> Authentication -> Impostazioni -> Domini autorizzati.'
+        );
+      }
+
+      if (code === 'auth/operation-not-allowed') {
+        throw new Error(
+          'Provider Google non abilitato su Firebase Authentication. Vai in Firebase Console -> Authentication -> Sign-in method e attiva "Google".'
+        );
+      }
+
+      if (code === 'auth/popup-blocked' || code === 'auth/popup-closed-by-user') {
+        // Fallback to redirect on mobile or blocked popups
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch (redirectErr: any) {
+          throw new Error('Accesso con Google reindirizzato non riuscito: ' + (redirectErr.message || code));
+        }
+      }
+
+      throw new Error(err.message || ("Errore durante l'accesso Google (" + code + ")"));
+    }
   };
 
   const logout = async () => {
