@@ -32,7 +32,7 @@ function giorniOggiDomani(
   const domani = `${dom.getUTCFullYear()}-${String(dom.getUTCMonth() + 1).padStart(2, '0')}-${String(dom.getUTCDate()).padStart(2, '0')}` as DataISO;
   return ([['Oggi', oggi], ['Domani', domani]] as const).map(([etichetta, data]) => {
     const s = scomponi(data);
-    const vista = costruisciMese({ anno: s.anno, mese: s.mese }, mesi, cambi, proiezione, oggi);
+    const vista = costruisciMese({ anno: s.anno, mese: s.mese }, mesi, cambi, proiezione, oggi, false);
     const gv = vista.giorni[s.giorno - 1]!;
     return {
       etichetta,

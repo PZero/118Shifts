@@ -281,7 +281,9 @@ main#contenuto { flex: 1; outline: none; }
 .cal-giorno:hover { filter: brightness(.97); }
 .cal-giorno.selezionato { box-shadow: inset 0 0 0 2px var(--brand); z-index: 1; }
 .cal-giorno:focus-visible { outline-offset: -3px; }
-.cal-fuori { background: var(--surface-2); cursor: default; min-height: 0; }
+.cal-giorno.cal-fuori:not(.sabato):not(.festivo) { background: var(--surface-2); }
+.cal-giorno.cal-fuori .cal-testa, .cal-giorno.cal-fuori .cal-voci { opacity: .5; }
+.cal-giorno.cal-fuori.oggi .cal-testa { opacity: 1; }
 .cal-testa { display: flex; align-items: center; gap: 4px; min-height: 20px; }
 .cal-num { font-size: 13px; font-weight: 600; line-height: 1; }
 .cal-giorno.festivo .cal-num { color: var(--festivo); }

@@ -43,12 +43,16 @@ export interface GiornoVista {
   previsione?: Fascia[];
   ore: number;
   cambi: CambioDoc[];
+  /** true per i giorni dei mesi adiacenti mostrati per completare le settimane (non entrano nei conteggi). */
+  fuori?: boolean;
 }
 
 export interface MeseVista extends AnnoMese {
   chiave: string;
   tipo: TipoMese;
   giorni: GiornoVista[];
+  /** Giorni dei mesi adiacenti che completano la prima e l'ultima settimana (lun-dom). */
+  adiacenti: { prima: GiornoVista[]; dopo: GiornoVista[] };
   ore: number;
   conteggioFasce: Record<Fascia, number>;
   reperibilita: ContoReperibilita;
@@ -101,6 +105,7 @@ export function costruisciMese(
   cambi: readonly CambioDoc[],
   proiezione: RisultatoProiezione,
   oggi: DataISO,
+  conAdiacenti = true,
 ): MeseVista {
   const chiave = chiaveMese(am);
   const precedente = aggiungiMesi(am, -1);
@@ -162,6 +167,7 @@ export function costruisciMese(
     chiave,
     tipo,
     giorni,
+    adiacenti: conAdiacenti ? giorniAdiacenti(am, giorni, mesi, cambi, proiezione, oggi) : { prima: [], dopo: [] },
     ore: ore.totale,
     conteggioFasce,
     reperibilita: contaReperibilitaMese(tipo === 'reale' ? giorniCodici : {}),
@@ -171,3 +177,22 @@ export function costruisciMese(
   };
 }
 
+
+/** Giorni dei mesi vicini che completano le settimane lun-dom: stessa costruzione dei giorni normali, marcati `fuori`. */
+function giorniAdiacenti(
+  am: AnnoMese,
+  giorni: readonly GiornoVista[],
+  mesi: readonly MeseDoc[],
+  cambi: readonly CambioDoc[],
+  proiezione: RisultatoProiezione,
+  oggi: DataISO,
+): MeseVista['adiacenti'] {
+  const davanti = giorni[0]?.colonna ?? 0;
+  const dietro = (7 - ((davanti + giorni.length) % 7)) % 7;
+  const prendi = (mese: AnnoMese, scegli: (g: GiornoVista[]) => GiornoVista[]) =>
+    scegli(costruisciMese(mese, mesi, cambi, proiezione, oggi, false).giorni).map((g) => ({ ...g, fuori: true }));
+  return {
+    prima: davanti ? prendi(aggiungiMesi(am, -1), (g) => g.slice(-davanti)) : [],
+    dopo: dietro ? prendi(aggiungiMesi(am, 1), (g) => g.slice(0, dietro)) : [],
+  };
+}

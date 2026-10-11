@@ -157,6 +157,15 @@ function VistaMedico({
     setSelezionato(null);
     naviga(`${base}/${chiaveMese(am)}`);
   };
+  // Tocco su un giorno dei mesi adiacenti: si passa a quel mese con il giorno selezionato.
+  const seleziona = (data: string) => {
+    const { anno, mese } = scomponi(data);
+    if (anno === corrente.anno && mese === corrente.mese) return setSelezionato(data);
+    const am = { anno, mese };
+    if (confrontaMesi(am, limiti.primo) < 0 || confrontaMesi(am, limiti.ultimo) > 0) return;
+    setSelezionato(data);
+    naviga(`${base}/${chiaveMese(am)}`);
+  };
   const prec = aggiungiMesi(corrente, -1);
   const succ = aggiungiMesi(corrente, 1);
   const puoPrec = confrontaMesi(prec, limiti.primo) >= 0;
@@ -299,7 +308,7 @@ function VistaMedico({
 
       <div className="layout-medico">
         <div className="colonna-calendario">
-          <Calendario vista={vista} sedi={dati.sedi} nomi={nomi} selezionato={giornoSel.data} onSeleziona={setSelezionato} />
+          <Calendario vista={vista} sedi={dati.sedi} nomi={nomi} selezionato={giornoSel.data} onSeleziona={seleziona} />
           {!desktop && dettaglio}
           <Legenda />
         </div>

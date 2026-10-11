@@ -26,14 +26,13 @@ function etichettaGiorno(g: GiornoVista, sedi: Sedi, nomi: Map<string, string>):
 }
 
 export function Calendario({ vista, sedi, nomi, selezionato, onSeleziona }: Props) {
-  const vuote = vista.giorni[0]?.colonna ?? 0;
-  const coda = (7 - ((vuote + vista.giorni.length) % 7)) % 7;
+  const tutti = [...vista.adiacenti.prima, ...vista.giorni, ...vista.adiacenti.dopo];
 
   // Navigazione da tastiera tra i giorni (frecce), come in una griglia.
   const muovi = (e: React.KeyboardEvent<HTMLButtonElement>, g: GiornoVista) => {
     const passo = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
     if (!passo) return;
-    const prossimo = vista.giorni[g.giorno - 1 + passo];
+    const prossimo = g.fuori ? undefined : vista.giorni[g.giorno - 1 + passo];
     if (!prossimo) return;
     e.preventDefault();
     onSeleziona(prossimo.data);
@@ -50,15 +49,13 @@ export function Calendario({ vista, sedi, nomi, selezionato, onSeleziona }: Prop
         ))}
       </div>
       <div className="cal-griglia">
-        {Array.from({ length: vuote }, (_, i) => (
-          <div key={`v${i}`} className="cal-giorno cal-fuori" aria-hidden="true" />
-        ))}
-        {vista.giorni.map((g) => {
+        {tutti.map((g) => {
           const classi = [
             'cal-giorno',
             g.sabato ? 'sabato' : '',
             g.domenica || g.festa ? 'festivo' : '',
             g.oggi ? 'oggi' : '',
+            g.fuori ? 'cal-fuori' : '',
             g.data === selezionato ? 'selezionato' : '',
           ].join(' ');
           return (
@@ -70,7 +67,7 @@ export function Calendario({ vista, sedi, nomi, selezionato, onSeleziona }: Prop
               aria-pressed={g.data === selezionato}
               aria-current={g.oggi ? 'date' : undefined}
               aria-label={etichettaGiorno(g, sedi, nomi)}
-              tabIndex={g.data === selezionato || (!selezionato && g.giorno === 1) ? 0 : -1}
+              tabIndex={!g.fuori && (g.data === selezionato || (!selezionato && g.giorno === 1)) ? 0 : -1}
               onClick={() => onSeleziona(g.data)}
               onKeyDown={(e) => muovi(e, g)}
             >
@@ -92,9 +89,6 @@ export function Calendario({ vista, sedi, nomi, selezionato, onSeleziona }: Prop
             </button>
           );
         })}
-        {Array.from({ length: coda }, (_, i) => (
-          <div key={`c${i}`} className="cal-giorno cal-fuori" aria-hidden="true" />
-        ))}
       </div>
     </div>
   );
