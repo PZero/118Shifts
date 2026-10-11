@@ -41,3 +41,4 @@
 | 2026-10-11 | Weekend raggruppati in blocchi colorati (libero/parziale/lavorato) | Lettura immediata di ogni weekend |
 | 2026-10-11 | Hosting: `sw.js`, `index.html` e manifest senza cache | Gli aggiornamenti della PWA arrivano subito |
 | 2026-10-11 | Controllo privacy: ammesse solo email con domini riservati (`.invalid`, `.test`, `example.*`) | Dati demo realistici ma inesistenti |
+| 2026-10-11 | Condivisione del mese come immagine PNG (titolo + calendario, cambi applicati, niente nomi né ore), generata nel telefono | Condivisibile come una foto (es. WhatsApp) senza esporre dati privati |

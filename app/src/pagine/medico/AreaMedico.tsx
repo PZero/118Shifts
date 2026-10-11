@@ -13,6 +13,7 @@ import { Calendario } from './Calendario';
 import { DettaglioGiorno } from './DettaglioGiorno';
 import { DialogoCambio, type RichiestaCambio } from './DialoghiCambio';
 import { CardCambi, CardOre, CardReperibilita, CardWeekend, Legenda } from './Riepiloghi';
+import { condividiFile, creaFileCalendario } from './immagineCalendario';
 import { costruisciMese, limitiNavigazione, meseDaChiave, oggiISO } from './vista';
 
 interface Dati {
@@ -161,6 +162,30 @@ function VistaMedico({
   const puoSucc = confrontaMesi(succ, limiti.ultimo) <= 0;
   const eOggi = confrontaMesi(corrente, meseOggi) === 0;
 
+  // Immagine da condividere: pre-generata a ogni cambio di vista, così il click chiama share()
+  // subito, senza attese asincrone che su iOS farebbero perdere l'attivazione dell'utente.
+  const [pronta, setPronta] = useState<{ vista: typeof vista; file: File } | null>(null);
+  const immagine = pronta?.vista === vista ? pronta.file : null;
+  const sediImm = dati.sedi;
+  useEffect(() => {
+    if (soloLettura || vista.tipo === 'vuoto') return;
+    let attivo = true;
+    creaFileCalendario(vista, sediImm)
+      .then((file) => attivo && setPronta({ vista, file }))
+      .catch(() => undefined);
+    return () => {
+      attivo = false;
+    };
+  }, [vista, sediImm, soloLettura]);
+  const condividi = () => {
+    if (immagine) {
+      void condividiFile(immagine);
+      return;
+    }
+    // Non ancora pronta: ripiego (su iOS può ricadere nel download).
+    void creaFileCalendario(vista, dati.sedi).then(condividiFile);
+  };
+
   const salvaCambio = async (c: NuovoCambio) => {
     await servizi.aggiungiCambio(medicoId, c);
     await onCambiModificati();
@@ -210,6 +235,18 @@ function VistaMedico({
           <button type="button" className="btn btn-secondario btn-icona" onClick={() => vaiA(succ)} disabled={!puoSucc} aria-label="Mese successivo">
             <Icona nome="avanti" />
           </button>
+          {!soloLettura && (
+            <button
+              type="button"
+              className="btn btn-secondario btn-icona"
+              onClick={condividi}
+              disabled={vista.tipo === 'vuoto'}
+              aria-label="Condividi il calendario del mese"
+              title="Condividi il calendario del mese"
+            >
+              <Icona nome="condividi" />
+            </button>
+          )}
         </div>
       </div>
 
