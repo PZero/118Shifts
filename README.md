@@ -8,6 +8,29 @@
 
 ---
 
+## L'app in breve
+
+> Tutte le immagini usano la **modalità demo** con dati inventati: nessun nome o turno reale.
+
+### Su telefono
+![Pagina pubblica, calendario del mese e weekend su telefono](docs/screenshot/mobile-medico.png)
+*Pagina di accesso · calendario del mese con turni, sedi, cambi e festività · weekend raggruppati e colorati (libero, parziale, lavorato).*
+
+![Tema scuro, import Excel e calendario di un medico](docs/screenshot/mobile-gestione.png)
+*Tema scuro automatico · caricamento dell'Excel con mese di partenza e mesi già pubblicati · calendario di un medico visto dall'amministratore (senza i cambi, che sono privati).*
+
+### Su computer
+![Pagina pubblica su desktop](docs/screenshot/desktop-pubblica.png)
+
+| Calendario (tema chiaro) | Calendario (tema scuro) |
+|---|---|
+| ![Calendario desktop chiaro](docs/screenshot/desktop-calendario.png) | ![Calendario desktop scuro](docs/screenshot/desktop-calendario-scuro.png) |
+
+![Anagrafica medici](docs/screenshot/desktop-medici.png)
+*Area gestione: anagrafica dei medici con alias per abbinare le varianti del nome presenti nell'Excel; un clic sul nome apre il calendario del medico.*
+
+---
+
 ## Funzionalità (Fase 1)
 
 ### Per i medici
@@ -18,14 +41,18 @@
 - **Card ore del mese** calcolate dall'app, cambi compresi. La notte vale 4 ore sul giorno di inizio e 8 sul giorno successivo.
 - **Proiezione** della turnazione sui 12 mesi successivi (ciclo Pomeriggio → Mattino → Notte → smonto → riposo), distinta graficamente dai turni ufficiali.
 - **Cambi turno privati**: il turno ceduto resta visibile barrato con il nome del collega; il turno ricevuto è collegato al cambio e riporta chi l'ha ceduto. Visibili solo agli account del medico.
-- **Più account per medico**: un account principale (che registra i cambi) e account secondari in sola lettura.
+- **Più account per medico**: un account principale (che registra i cambi) e account secondari in sola lettura, per esempio per un familiare.
+- **Condivisione del mese come immagine**: un tocco sull'icona di condivisione crea un'immagine del calendario (titolo del mese e griglia, con i cambi già applicati) da inviare come una foto, per esempio su WhatsApp. Nessun link, nessun nome di colleghi.
+- **Tema chiaro e scuro**, automatico o a scelta.
 - **Installabile** sulla schermata Home di iPhone e Android.
 
 ### Per amministratore e delegati
 - **Approvazione degli accessi**: al primo login l'utente resta in attesa finché non viene associato a un medico.
 - **Gestione account**: associazione account–medico, account principale e secondari, disabilitazione.
 - **Importazione dell'Excel** dei turni con anteprima e segnalazione dei codici non riconosciuti prima della pubblicazione. Si sceglie un **mese di partenza** (di default il successivo): i fogli precedenti sono ignorati e ogni mese importato **sostituisce completamente** quello già pubblicato (utile per le correzioni).
-- **Delegati** nominati dall'amministratore.
+- **Mesi pubblicati**: elenco dei mesi caricati con data e numero di medici.
+- **Calendario di ogni medico** in sola lettura (senza i cambi, che restano privati).
+- **Delegati** nominati dall'amministratore. L'amministratore non è un medico e vede solo l'area di gestione.
 
 ## Sicurezza e privacy
 - Accesso **solo con account Google** (Firebase Authentication).
