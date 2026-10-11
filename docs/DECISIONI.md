@@ -42,3 +42,8 @@
 | 2026-10-11 | Hosting: `sw.js`, `index.html` e manifest senza cache | Gli aggiornamenti della PWA arrivano subito |
 | 2026-10-11 | Controllo privacy: ammesse solo email con domini riservati (`.invalid`, `.test`, `example.*`) | Dati demo realistici ma inesistenti |
 | 2026-10-11 | Condivisione del mese come immagine PNG (titolo + calendario, cambi applicati, niente nomi né ore), generata nel telefono | Condivisibile come una foto (es. WhatsApp) senza esporre dati privati |
+| 2026-10-11 | Su Firebase Hosting `authDomain` = dominio del sito (login via `/__/auth/handler` stesso dominio) | Safari blocca i dati tra domini: nella PWA iPhone il redirect perdeva il login |
+| 2026-10-11 | Staff vede il calendario di ogni medico in sola lettura, senza cambi | Controllo dell'import; i cambi restano privati |
+| 2026-10-11 | Card "Mesi pubblicati" nella pagina di import | Verifica immediata di cosa c'è nel database |
+| 2026-10-11 | Pagina pubblica: accesso in sola lettura per i familiari esplicitato | Altrimenti gli account secondari non si capiscono |
+| 2026-10-11 | Screenshot del README solo dalla demo con dati inventati | Repository pubblico |
