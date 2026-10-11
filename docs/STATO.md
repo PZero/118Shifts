@@ -18,8 +18,7 @@
 ## Prossimi passi
 1. Verificare sull'iPhone: login dalla PWA installata e condivisione immagine su WhatsApp.
 2. Verificare che la card "Mesi pubblicati" mostri i mesi importati (se vuota, ripetere l'import: è sicuro).
-3. GitHub Action per il deploy automatico su push in `main` (token nei segreti) → lavoro da telefono con Claude Code nel cloud.
-4. Approvare 1–2 medici e raccogliere riscontri.
+3. Approvare 1–2 medici e raccogliere riscontri.
 
 ## Problemi aperti
 - Significato di `C` (MC/PC/NC), `at/att`, `RE`, `E/e/Ex/EU/A/G/SC/CD/REC`: **tbd**. `RNatt` ecc.: 0 ore, tbd.
@@ -32,6 +31,7 @@
 
 ## Note tecniche
 - Test regole: Java 21 nel PATH (`JAVA_HOME` su `jdk-21`; quello di sistema è Java 11).
-- Deploy: `npm run build` in `app/` (verificare che non fallisca), poi `firebase deploy --only firestore,hosting` dalla radice.
+- Deploy hosting: automatico con GitHub Action a ogni push su `main` (test + build + deploy; segreti `VITE_FIREBASE_*` e `FIREBASE_SERVICE_ACCOUNT_SHIFTS_BE876`). Se cambia `.env`, aggiornare anche i segreti.
+- Deploy regole: manuale, `firebase deploy --only firestore` dalla radice dopo i test sull'emulatore.
 - Screenshot README: script CDP in Chrome headless sulla demo locale; solo dati inventati.
 - Scrittura/lettura del Firestore di produzione da CLI bloccata dai permessi: le operazioni in console le fa l'utente.

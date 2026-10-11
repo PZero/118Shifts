@@ -47,3 +47,5 @@
 | 2026-10-11 | Card "Mesi pubblicati" nella pagina di import | Verifica immediata di cosa c'è nel database |
 | 2026-10-11 | Pagina pubblica: accesso in sola lettura per i familiari esplicitato | Altrimenti gli account secondari non si capiscono |
 | 2026-10-11 | Screenshot del README solo dalla demo con dati inventati | Repository pubblico |
+| 2026-10-11 | Deploy hosting automatico con GitHub Action su push in `main` (test + build); niente anteprime sulle PR | Lavorare anche da remoto/cloud; le anteprime girano su domini non autorizzati al login |
+| 2026-10-11 | Regole Firestore escluse dal deploy automatico | Toccano la sicurezza: si pubblicano a mano dopo i test sull'emulatore |

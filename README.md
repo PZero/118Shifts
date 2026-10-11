@@ -121,6 +121,10 @@ npm --prefix firebase run test:rules:ui     # regole Firestore → http://localh
 ```
 Il link completo (con token di accesso locale) viene stampato nel terminale.
 
+### Deploy
+- **Hosting (automatico):** a ogni push su `main` la GitHub Action [`firebase-hosting-merge.yml`](.github/workflows/firebase-hosting-merge.yml) esegue test e build della PWA e pubblica su Firebase Hosting. La configurazione web e l'account di servizio stanno nei segreti del repository.
+- **Regole Firestore (manuale):** dopo i test sull'emulatore, `firebase deploy --only firestore` dalla radice.
+
 ## Roadmap
 - [x] Analisi del formato Excel e dei requisiti
 - [x] Modello dati e regole di sicurezza (95 test sull'emulatore)
