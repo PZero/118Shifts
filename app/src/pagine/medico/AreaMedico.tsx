@@ -153,6 +153,15 @@ function VistaMedico({
   const giornoSel =
     vista.giorni.find((g) => g.data === selezionato) ?? vista.giorni.find((g) => g.oggi) ?? vista.giorni[0]!;
 
+  // Per la card colleghi: giorno selezionato esplicitamente; senza selezione (avvio, cambio mese) è oggi.
+  const selEsplicito = selezionato ? vista.giorni.find((g) => g.data === selezionato) : undefined;
+  const vistaOggi = useMemo(
+    () => (selEsplicito ? null : costruisciMese(meseOggi, dati.mesi, dati.cambi, proiezione, oggi, false)),
+    [selEsplicito, meseOggi, dati.mesi, dati.cambi, proiezione, oggi],
+  );
+  const giornoCard = selEsplicito ?? vistaOggi!.giorni[scomponi(oggi).giorno - 1]!;
+  const pubblicatoCard = selEsplicito ? vista.tipo === 'reale' : vistaOggi!.tipo === 'reale';
+
   const vaiA = (am: AnnoMese) => {
     setSelezionato(null);
     naviga(`${base}/${chiaveMese(am)}`);
@@ -231,7 +240,7 @@ function VistaMedico({
         <div className="card-riepilogo-alto">
           <CardOggiDomani oggi={oggi} mesi={dati.mesi} cambi={dati.cambi} proiezione={proiezione} sedi={dati.sedi} nomi={nomi} />
           {principale && (
-            <CardChiConMe oggi={oggi} mesi={dati.mesi} cambi={dati.cambi} proiezione={proiezione} sedi={dati.sedi} nomi={nomi} medicoId={medicoId} />
+            <CardChiConMe oggi={oggi} giorno={giornoCard} pubblicato={pubblicatoCard} sedi={dati.sedi} nomi={nomi} medicoId={medicoId} />
           )}
         </div>
       )}

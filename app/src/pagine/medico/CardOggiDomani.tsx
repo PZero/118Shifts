@@ -1,6 +1,6 @@
 // Card in cima all'area medico: "Oggi e domani" (miei turni, cambi applicati) e
 // "Chi è di turno con me" (colleghi dal quadro del mese, solo account principali).
-import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { chiConMe, type GruppoChiConMe } from '../../domain/quadro';
 import { scomponi, type DataISO } from '../../domain/date';
 import type { RisultatoProiezione } from '../../domain/proiezione';
@@ -150,29 +150,48 @@ export function CardOggiDomani({ oggi, mesi, cambi, proiezione, sedi, nomi }: Pr
   );
 }
 
-type StatoQuadri = { stato: 'idle' | 'caricamento' } | { stato: 'errore' } | { stato: 'pronto'; quadri: Record<string, QuadroMese | null> };
+type StatoQuadro = { stato: 'idle' | 'caricamento' | 'errore' } | { stato: 'pronto'; quadro: QuadroMese | null };
 
-export function CardChiConMe({ oggi, mesi, cambi, proiezione, sedi, nomi, medicoId }: PropsComuni & { medicoId: string }) {
+interface PropsChiConMe {
+  oggi: DataISO;
+  /** Giorno selezionato nel calendario (cambi applicati). */
+  giorno: GiornoVista;
+  /** Il mese del giorno ha turni pubblicati (non solo proiezione). */
+  pubblicato: boolean;
+  sedi: Sedi;
+  nomi: Map<string, string>;
+  medicoId: string;
+}
+
+export function CardChiConMe({ oggi, giorno, pubblicato, sedi, nomi, medicoId }: PropsChiConMe) {
   const servizi = useServizi();
   const [aperto, setAperto] = useState(false);
-  const [caricati, setCaricati] = useState<StatoQuadri>({ stato: 'idle' });
+  const [stato, setStato] = useState<StatoQuadro>({ stato: 'idle' });
   const [tentativo, setTentativo] = useState(0);
-  const giorni = useMemo(() => giorniOggiDomani(oggi, mesi, cambi, proiezione), [oggi, mesi, cambi, proiezione]);
-  const chiavi = useMemo(() => [...new Set(giorni.map((g) => g.data.slice(0, 7)))], [giorni]);
+  // Cache in memoria: una lettura per mese per sessione.
+  const cache = useRef(new Map<string, QuadroMese | null>());
+  const chiave = giorno.data.slice(0, 7);
+  const codici = giorno.voci.filter((v) => v.stato !== 'ceduto').map((v) => v.codice);
 
-  // Il quadro si legge solo alla prima apertura (risparmio di letture).
   useEffect(() => {
-    if (!aperto || caricati.stato === 'pronto') return;
+    if (!aperto || !pubblicato) return;
+    if (cache.current.has(chiave)) {
+      setStato({ stato: 'pronto', quadro: cache.current.get(chiave) ?? null });
+      return;
+    }
     let attivo = true;
-    setCaricati({ stato: 'caricamento' });
-    Promise.all(chiavi.map(async (k) => [k, await servizi.quadro(k)] as const))
-      .then((r) => attivo && setCaricati({ stato: 'pronto', quadri: Object.fromEntries(r) }))
-      .catch(() => attivo && setCaricati({ stato: 'errore' }));
+    setStato({ stato: 'caricamento' });
+    servizi
+      .quadro(chiave)
+      .then((q) => {
+        cache.current.set(chiave, q);
+        if (attivo) setStato({ stato: 'pronto', quadro: q });
+      })
+      .catch(() => attivo && setStato({ stato: 'errore' }));
     return () => {
       attivo = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aperto, servizi, chiavi, tentativo]);
+  }, [aperto, pubblicato, chiave, servizi, tentativo]);
 
   const nome = (id: string) => nomi.get(id) ?? 'collega non in elenco';
   const gruppo = (g: GruppoChiConMe) => (
@@ -200,24 +219,11 @@ export function CardChiConMe({ oggi, mesi, cambi, proiezione, sedi, nomi, medico
     </div>
   );
 
-  const corpoGiorno = (g: GiornoCard) => {
-    if (!g.pubblicato) return <p className="testo-tenue">Turni non ancora pubblicati.</p>;
-    if (caricati.stato !== 'pronto') return null;
-    const quadro = caricati.quadri[g.data.slice(0, 7)];
-    if (!quadro) return <p className="testo-tenue">Disponibile dal prossimo caricamento dei turni.</p>;
-    const gruppi = chiConMe(quadro.giorni[String(Number(g.data.slice(8)))], medicoId, g.codici);
-    if (gruppi.length === 0) return <p className="testo-tenue">Sei libero.</p>;
-    return gruppi.map(gruppo);
-  };
-
-  return (
-    <CardComprimibile
-      titolo="Chi è di turno con me"
-      sottotitolo={<span className="card-riassunto">Colleghi nei tuoi turni di oggi e domani</span>}
-      aperto={aperto}
-      onToggle={() => setAperto((a) => !a)}
-    >
-      {caricati.stato === 'errore' ? (
+  const corpo = () => {
+    const nonDisp = <p className="testo-tenue">Turni dei colleghi non ancora pubblicati per questo mese</p>;
+    if (!pubblicato) return nonDisp;
+    if (stato.stato === 'errore') {
+      return (
         <div className="avviso">
           <Icona nome="info" />
           <div>
@@ -227,7 +233,7 @@ export function CardChiConMe({ oggi, mesi, cambi, proiezione, sedi, nomi, medico
               className="btn btn-secondario btn-piccolo"
               style={{ marginTop: 8 }}
               onClick={() => {
-                setCaricati({ stato: 'idle' });
+                setStato({ stato: 'idle' });
                 setTentativo((t) => t + 1);
               }}
             >
@@ -235,23 +241,34 @@ export function CardChiConMe({ oggi, mesi, cambi, proiezione, sedi, nomi, medico
             </button>
           </div>
         </div>
-      ) : caricati.stato !== 'pronto' ? (
-        <div className="scheletro" style={{ height: 64 }} aria-busy="true" aria-label="Caricamento" />
-      ) : (
-        <>
-          {giorni.map((g) => (
-            <div key={g.data} className="oggi-domani-giorno">
-              <h3 className="sottotitolo">
-                {g.etichetta} <span className="testo-tenue">· {dataEstesa(g.data)}</span>
-              </h3>
-              {corpoGiorno(g)}
-            </div>
-          ))}
-          <p className="nota">
-            <Icona nome="info" piccola /> Secondo l’Excel pubblicato: i cambi dei colleghi non sono inclusi.
-          </p>
-        </>
-      )}
+      );
+    }
+    if (stato.stato !== 'pronto') return <div className="scheletro" style={{ height: 64 }} aria-busy="true" aria-label="Caricamento" />;
+    if (!stato.quadro) return nonDisp;
+    const gruppi = chiConMe(stato.quadro.giorni[String(Number(giorno.data.slice(8)))], medicoId, codici);
+    return (
+      <>
+        {gruppi.length === 0 ? <p className="testo-tenue">Sei libero.</p> : gruppi.map(gruppo)}
+        <p className="nota">
+          <Icona nome="info" piccola /> Secondo l’Excel pubblicato: i cambi dei colleghi non sono inclusi.
+        </p>
+      </>
+    );
+  };
+
+  return (
+    <CardComprimibile
+      titolo="Chi è di turno con me"
+      sottotitolo={
+        <span className="card-riassunto">
+          {giorno.data === oggi ? 'Oggi · ' : ''}
+          {dataEstesa(giorno.data)}
+        </span>
+      }
+      aperto={aperto}
+      onToggle={() => setAperto((a) => !a)}
+    >
+      {corpo()}
     </CardComprimibile>
   );
 }
