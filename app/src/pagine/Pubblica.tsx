@@ -9,7 +9,7 @@ const FUNZIONI: { icona: NomeIcona; titolo: string; testo: string }[] = [
   { icona: 'utenti', titolo: 'Accesso per i familiari', testo: 'Puoi collegare altri account Google, per esempio di un familiare, in sola lettura: vedono turni e cambi ma non possono modificarli.' },
   { icona: 'orologio', titolo: 'Ore del mese', testo: 'Totale calcolato dall’app con i cambi inclusi. La notte conta 4 ore sul giorno e 8 sul successivo.' },
   { icona: 'stella', titolo: 'Weekend e reperibilità', testo: 'Sabati e domeniche liberi o parzialmente liberi, stato delle festività e giorni di reperibilità RM, RP, RN, RG.' },
-  { icona: 'previsione', titolo: 'Previsione', testo: 'Proiezione indicativa del ciclo P-M-N per i 12 mesi successivi all’ultimo mese pubblicato.' },
+  { icona: 'previsione', titolo: 'Previsione', testo: 'Proiezione indicativa del ciclo MP-N per i 12 mesi successivi all’ultimo mese pubblicato.' },
   { icona: 'telefono', titolo: 'Sul telefono', testo: 'Si installa sulla schermata Home di iPhone e Android e resta consultabile anche senza rete.' },
 ];
 

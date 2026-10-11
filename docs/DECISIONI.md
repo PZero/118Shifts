@@ -8,7 +8,7 @@
 | 2026-10-11 | Excel letto nel browser dell'admin (SheetJS), con anteprima | Nessun server necessario; l'admin controlla prima di pubblicare |
 | 2026-10-11 | Ore calcolate dall'app, colonna totale dell'Excel ignorata | Il conteggio deve includere i cambi |
 | 2026-10-11 | Notte: 4 h sul giorno D, 8 h sul giorno D+1 | Regola di conteggio indicata dall'utente |
-| 2026-10-11 | Proiezione con ciclo P, M, N, smonto, festa (solo P/M/N visibili) | Turnazione standard; i definitivi saranno diversi |
+| 2026-10-11 | Proiezione con ciclo MP (M+P stesso giorno), N, smonto, riposo, riposo (visibili solo MP e N) | Turnazione standard; i definitivi saranno diversi |
 | 2026-10-11 | Cambi privati, salvati su server, visibili a tutti gli account del medico | Devono vederli anche gli account secondari |
 | 2026-10-11 | Colleghi dei cambi scelti solo da elenco | Coerenza con l'anagrafica |
 | 2026-10-11 | Sedi provvisorie `Sede 1…7`, nomi in una tabella modificabile | I nomi reali non sono ancora noti |
@@ -16,7 +16,7 @@
 | 2026-10-11 | Ripartenza da zero: vecchio repository e dati Firebase eliminati | Il vecchio repository pubblico conteneva turni reali con nomi |
 | 2026-10-11 | Mai dati reali né email admin nel repository | Repository pubblico; privacy dei medici |
 | 2026-10-11 | Import Excel: admin e delegati | Richiesta dell'utente |
-| 2026-10-11 | Partenza ciclo proiezione: dall'ultimo P-M-N reale, correggibile a mano | Automatico ma con controllo |
+| 2026-10-11 | Partenza ciclo proiezione: dall'ultimo giorno MP seguito da N, correggibile a mano | Automatico ma con controllo |
 | 2026-10-11 | Admin = documento `admins/{uid}` creato a mano in console | Nessuna email nel codice |
 | 2026-10-11 | Notifiche fase 1: badge in app | Gratuito; GitHub Actions eventualmente dopo |
 | 2026-10-11 | Test delle regole automatici con emulatore locale (Java 21 installato), project id `demo-*` | Test eseguibili in autonomia senza toccare il progetto reale |
@@ -32,7 +32,7 @@
 | 2026-10-11 | Cronologia GitHub riscritta in un solo commit | Rimuovere due cognomi reali finiti negli esempi |
 | 2026-10-11 | Ogni mese importato sostituisce il precedente; indice `mesiPubblicati/{mese}` (solo admin e delegati) con i medici del mese | Serve sapere a chi cancellare i turni senza leggere tutte le raccolte; l'elenco dei medici non deve essere visibile ai medici |
 | 2026-10-11 | `caricatoIl` (ora server, validata dalle regole) in ogni mese dei turni | Il medico vede quando i suoi turni sono stati caricati |
-| 2026-10-11 | Ciclo P-M-N copiato in `turni/{medico}/meta/ciclo`, scritto in batch con `medici/{id}` | `medici/{id}` è solo staff: il medico deve poter proiettare il proprio ciclo |
+| 2026-10-11 | Ciclo MP-N copiato in `turni/{medico}/meta/ciclo`, scritto in batch con `medici/{id}` | `medici/{id}` è solo staff: il medico deve poter proiettare il proprio ciclo |
 | 2026-10-11 | Import mese per mese in batch atomica (limite 450 operazioni; oltre, indice provvisorio a unione + indice finale) | Limite Firestore di 500 operazioni per batch; un'interruzione non lascia turni non tracciati |
 | 2026-10-11 | L'amministratore non è un medico: nessun turno, vede solo l'area Gestione | Indicazione dell'utente |
 | 2026-10-11 | Import con mese di partenza (default: mese successivo); fogli precedenti ignorati | Permette correzioni di un mese senza toccare i mesi passati |

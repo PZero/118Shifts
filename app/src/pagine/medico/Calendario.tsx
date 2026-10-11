@@ -14,7 +14,7 @@ interface Props {
 function etichettaGiorno(g: GiornoVista, sedi: Sedi, nomi: Map<string, string>): string {
   const parti = [dataEstesa(g.data)];
   if (g.festa) parti.push(g.festa);
-  if (g.previsione) parti.push(`previsto ${NOME_FASCIA[g.previsione]}`);
+  if (g.previsione) parti.push(`previsto ${g.previsione.map((f) => NOME_FASCIA[f]).join(' e ')}`);
   for (const v of g.voci) {
     const e = etichettaCodice(v.info, sedi);
     if (v.stato === 'ceduto') parti.push(`${e.lunga}, ceduto a ${nomi.get(v.collegaId ?? '') ?? 'collega'}`);
@@ -87,7 +87,7 @@ export function Calendario({ vista, sedi, nomi, selezionato, onSeleziona }: Prop
                 {g.voci.map((v) => (
                   <ChipTurno key={`${v.indice}-${v.codice}`} voce={v} sedi={sedi} nomeCollega={nomi.get(v.collegaId ?? '')} esteso />
                 ))}
-                {g.previsione && <ChipPrevisione fascia={g.previsione} />}
+                {g.previsione?.map((f) => <ChipPrevisione key={f} fascia={f} />)}
               </span>
             </button>
           );

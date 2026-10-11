@@ -206,7 +206,7 @@ function ModuloMedico({ iniziale, onChiudi, onSalvato }: { iniziale: Bozza; onCh
   const salva = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!b.nome.trim()) return setErrore('Il nome è obbligatorio.');
-    if (b.cicloManuale && !b.cicloInizio) return setErrore('Per la correzione manuale indica il giorno P di riferimento.');
+    if (b.cicloManuale && !b.cicloInizio) return setErrore('Per la correzione manuale indica il giorno MP di riferimento.');
     setInvio(true);
     try {
       await servizi.salvaMedico(b);
@@ -269,7 +269,7 @@ function ModuloMedico({ iniziale, onChiudi, onSalvato }: { iniziale: Bozza; onCh
         <legend>Ancora del ciclo di previsione</legend>
         <p className="testo-tenue">
           Automatica:{' '}
-          {ancoraAuto === undefined ? 'calcolo…' : ancoraAuto ? <strong>{dataEstesa(ancoraAuto)}</strong> : 'nessuna sequenza P-M-N trovata'}
+          {ancoraAuto === undefined ? 'calcolo…' : ancoraAuto ? <strong>{dataEstesa(ancoraAuto)}</strong> : 'nessuna sequenza MP-N trovata'}
         </p>
         <label className="interruttore">
           <input type="checkbox" checked={b.cicloManuale} onChange={(e) => setB({ ...b, cicloManuale: e.target.checked })} />

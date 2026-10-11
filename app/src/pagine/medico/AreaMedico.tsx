@@ -274,7 +274,7 @@ function VistaMedico({
         <div className="avviso avviso-info">
           <Icona nome="info" />
           <span>
-            Turni <strong>previsti</strong> dal ciclo Pomeriggio–Mattino–Notte–smonto–riposo
+            Turni <strong>previsti</strong> dal ciclo Mattino+Pomeriggio–Notte–smonto–riposo–riposo
             {proiezione.ancora ? `, a partire da ${dataEstesa(proiezione.ancora)}` : ''}. Sono indicativi: i turni definitivi saranno
             diversi.
           </span>

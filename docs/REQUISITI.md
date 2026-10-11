@@ -38,9 +38,9 @@
 La notte dell'ultimo giorno del mese conta quindi 8 ore nel mese successivo.
 
 ### Proiezione
-- Ciclo di 5 giorni: **P, M, N, smonto, festa**. In proiezione si mostrano solo P, M, N.
+- Ciclo di 5 giorni, uguale per tutti i medici: **giorno 1 = M e P (stesso giorno, "MP"), giorno 2 = N, giorno 3 = smonto, giorni 4-5 = riposo**. In proiezione si mostrano solo MP (due fasce nello stesso giorno) e N.
 - È indicativa: i turni definitivi saranno diversi.
-- Punto di partenza del ciclo: ricavato dall'ultimo P-M-N reale del medico, **correggibile a mano** da admin/delegati.
+- Punto di partenza del ciclo: l'ancora è il **giorno MP**: l'ultimo giorno reale con M e P seguito da un giorno con N. Se la cadenza non è riconoscibile, è **correggibile a mano** da admin/delegati.
 
 ### Notifiche
 - In app (badge "account da approvare") + notifica push o email ad admin e delegati.

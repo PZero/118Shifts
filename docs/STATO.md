@@ -4,7 +4,7 @@
 
 ## Fatto
 - Requisiti, modello dati, decisioni (`docs/`).
-- **Logica turni** `app/src/domain/`: parser Excel, codici e sedi, anagrafica con alias, ore (solo M/P/N, notte 4+8), cambi, festività, weekend, proiezione P-M-N, reperibilità, avvisi di import. **89 test**.
+- **Logica turni** `app/src/domain/`: parser Excel, codici e sedi, anagrafica con alias, ore (solo M/P/N, notte 4+8), cambi, festività, weekend, proiezione MP-N, reperibilità, avvisi di import. **89 test**.
 - **Regole Firestore** `firebase/`: ruoli, approvazione, principale unico, `mesiPubblicati`, `caricatoIl`, `turni/{id}/meta/ciclo` leggibile dal medico. **95 test** (emulatore, Java 21).
 - **Interfaccia** completa e online:
   - medico: calendario in cima su mobile, dettaglio giorno, weekend raggruppati e colorati, ore, reperibilità, cambi, data di caricamento, **condivisione del mese come immagine PNG** (titolo + griglia, cambi applicati);

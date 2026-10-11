@@ -34,13 +34,15 @@ export function DettaglioGiorno({ giorno, sedi, nomi, puoModificare, onCedi, onR
 
         {giorno.previsione ? (
           <div className="dettaglio-lista">
-            <div className="riga-voce">
-              <ChipPrevisione fascia={giorno.previsione} esteso />
-              <div className="riga-voce-testo">
-                <strong>{NOME_FASCIA[giorno.previsione]} {ORARIO_FASCIA[giorno.previsione]}</strong>
-                <span>Previsione indicativa dal ciclo P-M-N: non è un turno pubblicato.</span>
+            {giorno.previsione.map((f) => (
+              <div className="riga-voce" key={f}>
+                <ChipPrevisione fascia={f} esteso />
+                <div className="riga-voce-testo">
+                  <strong>{NOME_FASCIA[f]} {ORARIO_FASCIA[f]}</strong>
+                  <span>Previsione indicativa dal ciclo MP-N: non è un turno pubblicato.</span>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         ) : giorno.voci.length === 0 ? (
           <p className="testo-tenue">Nessun turno in questo giorno.</p>

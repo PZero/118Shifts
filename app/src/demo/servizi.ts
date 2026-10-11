@@ -29,14 +29,14 @@ const NOMI: { id: string; nome: string; alias: string[]; scarto: number; sede: n
   { id: 'demo-7', nome: 'Viola Demo', alias: [], scarto: 1, sede: 5 },
 ];
 
-/** Ciclo inventato P-M-N-smonto-riposo, con qualche ferie e una reperibilità per il medico demo. */
+/** Ciclo inventato MP-N-smonto-riposo-riposo, con qualche ferie e una reperibilità per il medico demo. */
 function giorniDemo(am: AnnoMese, scarto: number, sede: number, ricco: boolean): Record<string, string[]> {
   const out: Record<string, string[]> = {};
   const n = giorniNelMese(am.anno, am.mese);
   const base = Math.floor(Date.UTC(am.anno, am.mese - 1, 1) / 86_400_000);
   for (let g = 1; g <= n; g++) {
-    const fascia = CICLO[(((base + g + scarto) % 5) + 5) % 5];
-    if (fascia) out[String(g)] = [`${fascia}${sede}`];
+    const fasce = CICLO[(((base + g + scarto) % 5) + 5) % 5] ?? [];
+    if (fasce.length > 0) out[String(g)] = fasce.map((f) => `${f}${sede}`);
     // Reperibilità inventate per il quadro dei colleghi (nei giorni senza turno).
     else if (scarto === 1 && sede === 5) {
       if (g % 5 === 0) out[String(g)] = ['RN'];

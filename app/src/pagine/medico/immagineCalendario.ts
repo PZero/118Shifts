@@ -40,7 +40,7 @@ function chipDelGiorno(g: MeseVista['giorni'][number], sedi: Sedi): ChipDisegno[
     const e = etichettaCodice(v.info, sedi);
     if (e.breve) out.push({ testo: e.breve, tono: e.tono, previsione: false });
   }
-  if (g.previsione) out.push({ testo: g.previsione, tono: g.previsione, previsione: true });
+  for (const f of g.previsione ?? []) out.push({ testo: f, tono: f, previsione: true });
   return out;
 }
 

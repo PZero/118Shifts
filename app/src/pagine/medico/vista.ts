@@ -40,7 +40,7 @@ export interface GiornoVista {
   festa?: string;
   oggi: boolean;
   voci: VoceVista[];
-  previsione?: Fascia;
+  previsione?: Fascia[];
   ore: number;
   cambi: CambioDoc[];
 }
@@ -90,7 +90,7 @@ function giorniPrevisti(am: AnnoMese, proiezione: RisultatoProiezione): Record<s
   const out: Record<string, string[]> = {};
   for (let g = 1; g <= giorniNelMese(am.anno, am.mese); g++) {
     const f = proiezione.turni[dataISO(am.anno, am.mese, g)];
-    if (f) out[String(g)] = [f];
+    if (f) out[String(g)] = [...f];
   }
   return out;
 }
@@ -139,7 +139,7 @@ export function costruisciMese(
     });
     const previsione = tipo === 'previsione' ? proiezione.turni[data] : undefined;
     for (const v of voci) if (v.stato !== 'ceduto' && v.info?.fascia && v.info.categoria === 'turno') conteggioFasce[v.info.fascia]++;
-    if (previsione) conteggioFasce[previsione]++;
+    if (previsione) for (const f of previsione) conteggioFasce[f]++;
     const gv: GiornoVista = {
       data,
       giorno: g,
