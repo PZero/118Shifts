@@ -4,7 +4,7 @@
 
 118Shifts è una Progressive Web App *mobile first* che trasforma il file Excel ufficiale dei turni in un calendario personale chiaro e riservato. Ogni medico vede solo i propri turni, con sedi, festività, ore del mese, cambi e proiezione della turnazione.
 
-> **Stato:** in sviluppo — Fase 1. Il repository non contiene dati reali: i turni sono caricati dagli amministratori e restano su Firebase, protetti da regole di accesso.
+> **Stato:** Fase 1 — prima versione pubblicata su Firebase Hosting, in prova. Il repository non contiene dati reali: i turni sono caricati dagli amministratori e restano su Firebase, protetti da regole di accesso.
 
 ---
 
@@ -13,7 +13,8 @@
 ### Per i medici
 - **Calendario mensile** dei propri turni — Mattino (08–14), Pomeriggio (14–20), Notte (20–08) — con la **sede** di lavoro.
 - **Weekend e festività** evidenziati con codice colore: festività nazionali e **San Giovanni Battista** (24 giugno, patrono di Genova).
-- **Card weekend liberi**: sabati e domeniche liberi o parzialmente liberi, stato delle festività del mese.
+- **Card weekend liberi**: sabato e domenica raggruppati per weekend e colorati (libero, parziale, lavorato), più lo stato delle festività del mese.
+- **Data di caricamento** dei turni di ogni mese, ben distinta dalla previsione.
 - **Card ore del mese** calcolate dall'app, cambi compresi. La notte vale 4 ore sul giorno di inizio e 8 sul giorno successivo.
 - **Proiezione** della turnazione sui 12 mesi successivi (ciclo Pomeriggio → Mattino → Notte → smonto → riposo), distinta graficamente dai turni ufficiali.
 - **Cambi turno privati**: il turno ceduto resta visibile barrato con il nome del collega; il turno ricevuto è collegato al cambio e riporta chi l'ha ceduto. Visibili solo agli account del medico.
@@ -23,7 +24,7 @@
 ### Per amministratore e delegati
 - **Approvazione degli accessi**: al primo login l'utente resta in attesa finché non viene associato a un medico.
 - **Gestione account**: associazione account–medico, account principale e secondari, disabilitazione.
-- **Importazione dell'Excel** dei turni con anteprima e segnalazione dei codici non riconosciuti prima della pubblicazione.
+- **Importazione dell'Excel** dei turni con anteprima e segnalazione dei codici non riconosciuti prima della pubblicazione. Si sceglie un **mese di partenza** (di default il successivo): i fogli precedenti sono ignorati e ogni mese importato **sostituisce completamente** quello già pubblicato (utile per le correzioni).
 - **Delegati** nominati dall'amministratore.
 
 ## Sicurezza e privacy
@@ -75,7 +76,7 @@ firebase.json        configurazione Firebase
 cd app
 npm install
 cp ../.env.example .env   # inserire la configurazione web di Firebase
-npm run dev
+npm run dev               # http://localhost:5173 — /demo mostra l'app con dati inventati (solo sviluppo)
 npm test
 
 # Regole Firestore (emulatore locale, progetto demo: non tocca i dati reali)
@@ -95,11 +96,12 @@ Il link completo (con token di accesso locale) viene stampato nel terminale.
 
 ## Roadmap
 - [x] Analisi del formato Excel e dei requisiti
-- [x] Modello dati e regole di sicurezza (78 test sull'emulatore)
-- [x] Logica turni: parser, ore, festività, proiezione (69 test)
-- [ ] Interfaccia: pagina pubblica, login, calendario, card, cambi
-- [ ] Pannello amministrazione e import Excel
-- [ ] Pubblicazione e prove con i primi medici
+- [x] Modello dati e regole di sicurezza (95 test sull'emulatore)
+- [x] Logica turni: parser, ore, festività, proiezione (89 test)
+- [x] Interfaccia: pagina pubblica, login, calendario, card, cambi
+- [x] Pannello amministrazione e import Excel con mese di partenza
+- [x] Pubblicazione su Firebase Hosting
+- [ ] Prove con i primi medici
 - [ ] Fase 2 — da definire
 
 ## Licenza

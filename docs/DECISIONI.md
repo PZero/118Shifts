@@ -35,3 +35,9 @@
 | 2026-10-11 | Ciclo P-M-N copiato in `turni/{medico}/meta/ciclo`, scritto in batch con `medici/{id}` | `medici/{id}` è solo staff: il medico deve poter proiettare il proprio ciclo |
 | 2026-10-11 | Import mese per mese in batch atomica (limite 450 operazioni; oltre, indice provvisorio a unione + indice finale) | Limite Firestore di 500 operazioni per batch; un'interruzione non lascia turni non tracciati |
 | 2026-10-11 | L'amministratore non è un medico: nessun turno, vede solo l'area Gestione | Indicazione dell'utente |
+| 2026-10-11 | Import con mese di partenza (default: mese successivo); fogli precedenti ignorati | Permette correzioni di un mese senza toccare i mesi passati |
+| 2026-10-11 | Demo `/demo` con dati inventati solo in sviluppo, esclusa dal bundle di produzione | Verifica dell'interfaccia senza Firebase e senza dati reali |
+| 2026-10-11 | Su mobile il calendario è in cima, poi weekend e festività, poi i conteggi | Il calendario è la parte più importante per il medico |
+| 2026-10-11 | Weekend raggruppati in blocchi colorati (libero/parziale/lavorato) | Lettura immediata di ogni weekend |
+| 2026-10-11 | Hosting: `sw.js`, `index.html` e manifest senza cache | Gli aggiornamenti della PWA arrivano subito |
+| 2026-10-11 | Controllo privacy: ammesse solo email con domini riservati (`.invalid`, `.test`, `example.*`) | Dati demo realistici ma inesistenti |
