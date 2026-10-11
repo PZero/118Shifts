@@ -49,3 +49,4 @@
 | 2026-10-11 | Screenshot del README solo dalla demo con dati inventati | Repository pubblico |
 | 2026-10-11 | Deploy hosting automatico con GitHub Action su push in `main` (test + build); niente anteprime sulle PR | Lavorare anche da remoto/cloud; le anteprime girano su domini non autorizzati al login |
 | 2026-10-11 | Regole Firestore escluse dal deploy automatico | Toccano la sicurezza: si pubblicano a mano dopo i test sull'emulatore |
+| 2026-10-11 | `/fine-sessione` nel cloud (senza `dati/nomi-reali.txt`): branch + Pull Request, mai push su `main` | Nel cloud il controllo dei cognomi reali salta; il merge si fa dal PC dopo il controllo |

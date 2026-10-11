@@ -10,7 +10,9 @@ Chiudiamo la sessione. Senza rileggere file che non servono:
 4. Aggiorna `README.md` (vetrina pubblica su GitHub) se sono cambiati stato, funzioni, architettura o istruzioni. Screenshot solo con dati inventati, in `docs/screenshot/`.
 5. Se ci sono test (`app/`: `npm test`; `firebase/`: `npm run test:rules`), eseguili e riporta l'esito.
 6. **Controllo prima del commit** (repository pubblico): esegui `python -I scripts/controlla-privacy.py` (deve dare 0 problemi) e verifica inoltre: nessuna chiave, token o password; nessun `.env`; nessun file Excel/CSV; **nessun dato reale** (nomi o turni dei medici); **nessuna email dell'amministratore**.
-7. Fai un commit con un messaggio che riassume la sessione e fai il push su `origin main`.
-8. Rispondimi con 5 righe al massimo: cosa è stato salvato e da dove ripartire la prossima volta.
+7. Fai un commit con un messaggio che riassume la sessione, poi:
+   - se `dati/nomi-reali.txt` **esiste** (sessione sul PC): push su `origin main`;
+   - se **manca** (sessione cloud, da web o cellulare: il controllo dei cognomi è stato saltato): **mai push su `main`**. Push su un branch `cloud/<data>-<argomento>` e apri una Pull Request verso `main`, scrivendo nella descrizione che va verificata dal PC con `python -I scripts/controlla-privacy.py` prima del merge.
+8. Rispondimi con 5 righe al massimo: cosa è stato salvato (con il link alla PR, se aperta) e da dove ripartire la prossima volta.
 
 Dopo questo comando posso chiudere la chat o usare `/clear`.
