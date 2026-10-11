@@ -1,12 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>app</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>GestioneTurni 112</title>
+    <meta name="description" content="Turni, cambi e ore dei medici del 112 di Genova." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#14467A" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0B1220" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Turni 112" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <script>
+      // Tema scelto dall'utente applicato prima del primo disegno (niente lampo di colore).
+      try {
+        var t = localStorage.getItem('tema');
+        if (t === 'chiaro') document.documentElement.dataset.theme = 'light';
+        else if (t === 'scuro') document.documentElement.dataset.theme = 'dark';
+      } catch (e) {}
+    </script>
   </head>
   <body>
+    <noscript>Per usare GestioneTurni è necessario abilitare JavaScript.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    Icona GestioneTurni (originale): pagina di calendario con tracciato ECG e croce.
+    Sorgente unica: tutte le dimensioni si generano con `npm run icone` (scripts/genera-icone.mjs).
+    Gli id "sfondo" e "simbolo" sono usati dallo script: non rinominarli.
+  -->
+  <defs>
+    <linearGradient id="g-sfondo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#14467A"/>
+      <stop offset="1" stop-color="#0B2C4F"/>
+    </linearGradient>
+    <clipPath id="clip-pagina">
+      <rect x="104" y="134" width="304" height="270" rx="34"/>
+    </clipPath>
+  </defs>
+  <rect id="sfondo" x="0" y="0" width="512" height="512" rx="112" fill="url(#g-sfondo)"/>
+  <g id="simbolo">
+    <!-- pagina del calendario -->
+    <rect x="104" y="134" width="304" height="270" rx="34" fill="#FFFFFF"/>
+    <!-- testata rossa -->
+    <rect x="104" y="134" width="304" height="70" fill="#D63447" clip-path="url(#clip-pagina)"/>
+    <!-- anelli -->
+    <rect x="168" y="104" width="30" height="64" rx="15" fill="#FFFFFF" stroke="#0B2C4F" stroke-width="10"/>
+    <rect x="314" y="104" width="30" height="64" rx="15" fill="#FFFFFF" stroke="#0B2C4F" stroke-width="10"/>
+    <!-- croce nella testata -->
+    <path d="M247 146h18v14h14v18h-14v14h-18v-14h-14v-18h14z" fill="#FFFFFF"/>
+    <!-- tracciato ECG -->
+    <polyline points="132,312 196,312 220,272 248,364 280,240 304,312 380,312"
+      fill="none" stroke="#14467A" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
