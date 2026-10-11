@@ -8,7 +8,7 @@ import { messaggioErroreGenerico } from '../../ui/errori';
 import { useMedia } from '../../ui/media';
 import { Dialogo } from '../../ui/Dialogo';
 import { Icona } from '../../ui/Icona';
-import { dataEstesa, nomeMese } from '../../ui/etichette';
+import { dataEstesa, dataNumerica, nomeMese } from '../../ui/etichette';
 import { Calendario } from './Calendario';
 import { DettaglioGiorno } from './DettaglioGiorno';
 import { DialogoCambio, type RichiestaCambio } from './DialoghiCambio';
@@ -105,6 +105,7 @@ function VistaMedico({
   );
   const limiti = useMemo(() => limitiNavigazione(dati.mesi, proiezione, meseOggi), [dati.mesi, proiezione, meseOggi]);
   const vista = useMemo(() => costruisciMese(corrente, dati.mesi, dati.cambi, proiezione, oggi), [corrente, dati, proiezione, oggi]);
+  const meseDoc = dati.mesi.find((m) => m.chiave === vista.chiave);
   const nomi = useMemo(() => new Map(dati.elenco.map((m) => [m.id, m.nome])), [dati.elenco]);
   const colleghi = useMemo(() => dati.elenco.filter((m) => m.id !== medicoId), [dati.elenco, medicoId]);
 
@@ -163,11 +164,6 @@ function VistaMedico({
           <h1 className="titolo-mese" aria-live="polite">
             {nomeMese(corrente.anno, corrente.mese)}
           </h1>
-          {vista.tipo === 'previsione' && (
-            <span className="etichetta etichetta-previsione">
-              <Icona nome="previsione" piccola /> Previsione
-            </span>
-          )}
         </div>
         <div className="barra-mese-comandi">
           {!eOggi && (
@@ -183,6 +179,17 @@ function VistaMedico({
           </button>
         </div>
       </div>
+
+      <p className="nota nota-caricamento">
+        <Icona nome={vista.tipo === 'previsione' ? 'previsione' : 'info'} piccola />{' '}
+        {vista.tipo === 'previsione'
+          ? 'Previsione'
+          : vista.tipo === 'vuoto'
+            ? 'Nessun turno pubblicato'
+            : meseDoc?.caricatoIl
+              ? `Turni caricati il ${dataNumerica(meseDoc.caricatoIl)}`
+              : 'Turni pubblicati'}
+      </p>
 
       {vista.tipo === 'previsione' && (
         <div className="avviso avviso-info">
@@ -208,25 +215,18 @@ function VistaMedico({
 
       <div className="layout-medico">
         <div className="colonna-calendario">
-          {!desktop && (
-            <div className="metriche">
-              <CardOre vista={vista} />
-              <CardReperibilita vista={vista} />
-            </div>
-          )}
           <Calendario vista={vista} sedi={dati.sedi} nomi={nomi} selezionato={giornoSel.data} onSeleziona={setSelezionato} />
-          <Legenda />
           {!desktop && dettaglio}
+          <Legenda />
         </div>
+        {/* Mobile: calendario, weekend e festività, poi i conteggi. */}
         <aside className="colonna-laterale" aria-label="Riepilogo del mese">
           {desktop && dettaglio}
-          {desktop && (
-            <div className="metriche">
-              <CardOre vista={vista} />
-              <CardReperibilita vista={vista} />
-            </div>
-          )}
           <CardWeekend vista={vista} />
+          <div className="metriche">
+            <CardOre vista={vista} />
+            <CardReperibilita vista={vista} />
+          </div>
           <CardCambi vista={vista} nomi={nomi} />
         </aside>
       </div>

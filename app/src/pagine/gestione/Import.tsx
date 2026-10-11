@@ -4,13 +4,13 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { abbinaNome, conAlias, normalizzaNome, pulisciNome, type EsitoAbbinamento } from '../../domain/anagrafica';
-import { chiaveMese, dataISO, giorniNelMese, giornoSettimana } from '../../domain/date';
+import { aggiungiMesi, chiaveMese, dataISO, giorniNelMese, giornoSettimana, type AnnoMese } from '../../domain/date';
 import type { AvvisoImport, CategoriaAvviso, FoglioMese, RisultatoImport } from '../../domain/excel';
 import { useProfilo, useServizi } from '../../sessione/contesto';
-import { SEDI_PREDEFINITE, type AvvisoSalvato, type MedicoAnagrafica, type PianoImport } from '../../servizi/tipi';
+import { SEDI_PREDEFINITE, type AvvisoSalvato, type MedicoAnagrafica, type MesePubblicato, type PianoImport } from '../../servizi/tipi';
 import { Dialogo } from '../../ui/Dialogo';
 import { messaggioErroreGenerico } from '../../ui/errori';
-import { etichettaCodice, nomeMese } from '../../ui/etichette';
+import { MESI, dataNumerica, etichettaCodice, nomeMese } from '../../ui/etichette';
 import { Icona } from '../../ui/Icona';
 
 const MAX_BYTE = 15 * 1024 * 1024;
@@ -30,6 +30,8 @@ interface NomeFile {
   chiave: string;
   nome: string;
   fogli: string[];
+  /** Chiavi "aaaa-mm" dei mesi in cui compare il nome. */
+  mesi: string[];
   esito: EsitoAbbinamento;
 }
 
@@ -51,7 +53,16 @@ function sceltaIniziale(e: EsitoAbbinamento): Scelta | undefined {
   return undefined;
 }
 
-function costruisciPiano(letto: Letto, scelte: Record<string, Scelta | undefined>) {
+interface InfoMese {
+  chiave: string;
+  /** Già pubblicato: verrà sostituito completamente. */
+  sostituito: boolean;
+  caricatoIl?: Date;
+  /** Medici presenti nel mese pubblicato ma non nel nuovo file. */
+  spariranno: number;
+}
+
+function costruisciPiano(letto: Letto, scelte: Record<string, Scelta | undefined>, meseDa: string, pubblicati: MesePubblicato[]) {
   const nuovi = new Map<string, { rif: string; nome: string }>();
   const alias = new Map<string, { medicoId: string; alias: string }>();
   const turni = new Map<string, { medico: string; chiave: string; giorni: Record<string, string[]> }>();
@@ -60,6 +71,7 @@ function costruisciPiano(letto: Letto, scelte: Record<string, Scelta | undefined
   let daRisolvere = 0;
 
   for (const n of letto.nomi) {
+    if (!n.mesi.some((k) => k >= meseDa)) continue;
     const s = scelte[n.chiave];
     if (!s) daRisolvere++;
     else if (s.tipo === 'nuovo') nuovi.set(n.chiave, { rif: `nuovo:${n.chiave}`, nome: n.nome });
@@ -71,6 +83,7 @@ function costruisciPiano(letto: Letto, scelte: Record<string, Scelta | undefined
 
   for (const f of letto.risultato.mesi) {
     const k = chiaveMese(f);
+    if (k < meseDa) continue;
     mesi.push(k);
     for (const m of f.medici) {
       const chiave = normalizzaNome(m.nome);
@@ -91,8 +104,16 @@ function costruisciPiano(letto: Letto, scelte: Record<string, Scelta | undefined
     if (a.cella) v.cella = a.cella;
     return v;
   });
-  const piano: PianoImport = { nuoviMedici: [...nuovi.values()], alias: [...alias.values()], turni: [...turni.values()], mesi, avvisi };
-  return { piano, daRisolvere, conflitti };
+  const piano: PianoImport = { nuoviMedici: [...nuovi.values()], alias: [...alias.values()], turni: [...turni.values()], mesi, avvisi, meseDa };
+  const infoMesi: InfoMese[] = mesi.map((k) => {
+    const pub = pubblicati.find((p) => p.chiave === k);
+    if (!pub) return { chiave: k, sostituito: false, spariranno: 0 };
+    const presenti = new Set(piano.turni.filter((t) => t.chiave === k).map((t) => t.medico));
+    const info: InfoMese = { chiave: k, sostituito: true, spariranno: pub.medici.filter((id) => !presenti.has(id)).length };
+    if (pub.caricatoIl) info.caricatoIl = pub.caricatoIl;
+    return info;
+  });
+  return { piano, daRisolvere, conflitti, infoMesi };
 }
 
 export function Import() {
@@ -103,10 +124,22 @@ export function Import() {
   const [errore, setErrore] = useState<string>();
   const [scelte, setScelte] = useState<Record<string, Scelta | undefined>>({});
   const [conferma, setConferma] = useState(false);
+  const [meseDa, setMeseDa] = useState<AnnoMese>(() => {
+    const o = new Date();
+    return aggiungiMesi({ anno: o.getFullYear(), mese: o.getMonth() + 1 }, 1);
+  });
+  const [pubblicati, setPubblicati] = useState<MesePubblicato[]>([]);
   const [avanzamento, setAvanzamento] = useState<{ fatto: number; totale: number } | null>(null);
 
   const letto = fase.fase === 'pronto' ? fase.letto : null;
-  const calcolo = useMemo(() => (letto ? costruisciPiano(letto, scelte) : null), [letto, scelte]);
+  const chiaveDa = chiaveMese(meseDa);
+  const calcolo = useMemo(() => (letto ? costruisciPiano(letto, scelte, chiaveDa, pubblicati) : null), [letto, scelte, chiaveDa, pubblicati]);
+  const lettoAttivo = useMemo(
+    () => (letto ? { ...letto, nomi: letto.nomi.filter((n) => n.mesi.some((k) => k >= chiaveDa)) } : null),
+    [letto, chiaveDa],
+  );
+  const mesiAttivi = letto ? letto.risultato.mesi.filter((f) => chiaveMese(f) >= chiaveDa) : [];
+  const mesiIgnorati = letto ? letto.risultato.mesi.filter((f) => chiaveMese(f) < chiaveDa) : [];
 
   const leggi = async (file: File) => {
     setErrore(undefined);
@@ -121,7 +154,13 @@ export function Import() {
     setFase({ fase: 'lettura' });
     try {
       // Il parser (e la libreria xlsx) si caricano solo quando serve.
-      const [excel, anagrafica, buffer] = await Promise.all([import('../../domain/excel'), servizi.medici(), file.arrayBuffer()]);
+      const [excel, anagrafica, buffer, gia] = await Promise.all([
+        import('../../domain/excel'),
+        servizi.medici(),
+        file.arrayBuffer(),
+        servizi.mesiPubblicati().catch(() => [] as MesePubblicato[]),
+      ]);
+      setPubblicati(gia);
       const risultato = excel.leggiExcel(buffer);
       if (risultato.mesi.length === 0) {
         setErrore('Nel file non è stato trovato nessun foglio-mese riconoscibile (es. "OTTOBRE 26").');
@@ -134,8 +173,11 @@ export function Import() {
         for (const m of f.medici) {
           const chiave = normalizzaNome(m.nome);
           const gia = nomi.get(chiave);
-          if (gia) gia.fogli.push(f.foglio);
-          else nomi.set(chiave, { chiave, nome: m.nome, fogli: [f.foglio], esito: abbinaNome(m.nome, anagrafica) });
+          if (gia) {
+            gia.fogli.push(f.foglio);
+            gia.mesi.push(chiaveMese(f));
+          }
+          else nomi.set(chiave, { chiave, nome: m.nome, fogli: [f.foglio], mesi: [chiaveMese(f)], esito: abbinaNome(m.nome, anagrafica) });
         }
       }
       const elenco = [...nomi.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'it'));
@@ -190,13 +232,17 @@ export function Import() {
         </p>
       )}
 
+      {(fase.fase === 'vuoto' || fase.fase === 'lettura' || letto) && (
+        <SceltaMeseDa valore={meseDa} onCambia={setMeseDa} disabilitato={pubblicando || fase.fase === 'lettura'} />
+      )}
+
       {(fase.fase === 'vuoto' || fase.fase === 'lettura') && (
         <div className="card card-corpo import-scelta">
           <span className="stato-icona stato-icona-info">
             <Icona nome="file" />
           </span>
           <h2>Scegli il file dei turni</h2>
-          <p className="testo-tenue">Un file .xlsx con un foglio per mese (es. “OTTOBRE 26”). I mesi già presenti saranno sostituiti.</p>
+          <p className="testo-tenue">Un file .xlsx con un foglio per mese (es. “OTTOBRE 26”). I mesi già pubblicati, dal mese scelto sopra in poi, saranno sostituiti.</p>
           <input
             ref={campoFile}
             id="file-excel"
@@ -242,12 +288,12 @@ export function Import() {
             </div>
             <dl className="import-numeri num">
               <div>
-                <dt>Mesi</dt>
-                <dd>{letto.risultato.mesi.length}</dd>
+                <dt>Mesi da pubblicare</dt>
+                <dd>{mesiAttivi.length}</dd>
               </div>
               <div>
                 <dt>Medici nel file</dt>
-                <dd>{letto.nomi.length}</dd>
+                <dd>{lettoAttivo?.nomi.length ?? 0}</dd>
               </div>
               <div>
                 <dt>Nuovi medici</dt>
@@ -260,9 +306,25 @@ export function Import() {
             </dl>
           </div>
 
-          <Abbinamenti letto={letto} scelte={scelte} onScelta={(chiave, s) => setScelte((v) => ({ ...v, [chiave]: s }))} />
+          <Abbinamenti letto={lettoAttivo ?? letto} scelte={scelte} onScelta={(chiave, s) => setScelte((v) => ({ ...v, [chiave]: s }))} />
           <AvvisiImport gruppi={letto.gruppi} />
-          <AnteprimaMesi mesi={letto.risultato.mesi} scelte={scelte} anagrafica={letto.anagrafica} />
+          <MesiDaPubblicare info={calcolo.infoMesi} />
+          {mesiAttivi.length > 0 && <AnteprimaMesi mesi={mesiAttivi} scelte={scelte} anagrafica={letto.anagrafica} />}
+          {mesiIgnorati.length > 0 && (
+            <details className="import-gruppo import-ignorati">
+              <summary>
+                <span>Fogli ignorati (prima di {nomeMese(meseDa.anno, meseDa.mese)})</span>
+                <span className="etichetta">{mesiIgnorati.length}</span>
+              </summary>
+              <ul className="elenco-semplice">
+                {mesiIgnorati.map((f) => (
+                  <li key={f.foglio}>
+                    {nomeMese(f.anno, f.mese)} <span className="testo-tenue">· foglio “{f.foglio}”, non verrà pubblicato</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
 
           {calcolo.conflitti.length > 0 && (
             <div className="avviso avviso-danger" role="alert">
@@ -289,7 +351,16 @@ export function Import() {
                   {calcolo.piano.turni.length} {calcolo.piano.turni.length === 1 ? 'riga' : 'righe'} medico-mese da pubblicare
                 </span>
               )}
-              {pubblicando && <span className="testo-tenue"> · scrittura in corso…</span>}
+              {avanzamento && (
+                <div className="avanzamento" role="progressbar" aria-valuemin={0} aria-valuemax={avanzamento.totale} aria-valuenow={avanzamento.fatto} aria-label="Avanzamento della pubblicazione">
+                  <span className="testo-tenue">
+                    Mese {Math.min(avanzamento.fatto + 1, avanzamento.totale)} di {avanzamento.totale}
+                  </span>
+                  <div className="avanzamento-barra">
+                    <div style={{ width: `${Math.round((avanzamento.fatto / Math.max(avanzamento.totale, 1)) * 100)}%` }} />
+                  </div>
+                </div>
+              )}
             </div>
             <button
               type="button"
@@ -305,7 +376,7 @@ export function Import() {
             aperto={conferma}
             titolo="Pubblicare i turni?"
             onChiudi={() => setConferma(false)}
-            descrizione={`Saranno scritti ${calcolo.piano.mesi.length} mesi per ${calcolo.piano.turni.length} righe medico-mese. I mesi già pubblicati degli stessi medici verranno sostituiti.`}
+            descrizione={`Saranno pubblicati ${calcolo.piano.mesi.length} ${calcolo.piano.mesi.length === 1 ? 'mese' : 'mesi'}, a partire da ${nomeMese(meseDa.anno, meseDa.mese)}.`}
             piede={
               <>
                 <button type="button" className="btn btn-secondario" onClick={() => setConferma(false)}>
@@ -318,6 +389,20 @@ export function Import() {
             }
           >
             <ul className="elenco-semplice">
+              <li>
+                Mesi nuovi: <strong>{calcolo.infoMesi.filter((i) => !i.sostituito).map((i) => nomeMeseDaChiave(i.chiave)).join(', ') || 'nessuno'}</strong>
+              </li>
+              <li>
+                Mesi sostituiti completamente: <strong>{calcolo.infoMesi.filter((i) => i.sostituito).map((i) => nomeMeseDaChiave(i.chiave)).join(', ') || 'nessuno'}</strong>
+              </li>
+              {calcolo.infoMesi.some((i) => i.spariranno > 0) && (
+                <li className="testo-pericolo">
+                  {calcolo.infoMesi
+                    .filter((i) => i.spariranno > 0)
+                    .map((i) => `${nomeMeseDaChiave(i.chiave)}: ${i.spariranno} ${i.spariranno === 1 ? 'medico perde' : 'medici perdono'} i turni`)
+                    .join(' · ')}
+                </li>
+              )}
               <li>{calcolo.piano.nuoviMedici.length} nuovi medici in anagrafica</li>
               <li>{calcolo.piano.alias.length} nuovi alias</li>
               <li>{letto.avvisi.length} avvisi saranno registrati con l’importazione</li>
@@ -535,6 +620,78 @@ function AnteprimaMesi({ mesi, scelte, anagrafica }: { mesi: FoglioMese[]; scelt
           })}
         </ul>
       </div>
+    </section>
+  );
+}
+
+function SceltaMeseDa({ valore, onCambia, disabilitato }: { valore: AnnoMese; onCambia: (am: AnnoMese) => void; disabilitato: boolean }) {
+  const anni = Array.from({ length: 5 }, (_, i) => valore.anno - 2 + i);
+  return (
+    <section className="card import-blocco" aria-labelledby="titolo-mese-da">
+      <div className="card-corpo">
+        <h2 id="titolo-mese-da" className="card-titolo">
+          Da quale mese pubblicare
+        </h2>
+        <p className="testo-tenue">I fogli dei mesi precedenti vengono ignorati. Ogni mese già pubblicato dal mese scelto in poi sarà sostituito.</p>
+        <div className="import-mese-da">
+          <label className="campo">
+            <span className="etichetta-campo">Mese</span>
+            <select className="select" value={valore.mese} disabled={disabilitato} onChange={(e) => onCambia({ ...valore, mese: Number(e.target.value) })}>
+              {MESI.map((m, i) => (
+                <option key={m} value={i + 1}>
+                  {m.charAt(0).toUpperCase() + m.slice(1)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="campo">
+            <span className="etichetta-campo">Anno</span>
+            <select className="select" value={valore.anno} disabled={disabilitato} onChange={(e) => onCambia({ ...valore, anno: Number(e.target.value) })}>
+              {anni.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MesiDaPubblicare({ info }: { info: InfoMese[] }) {
+  if (info.length === 0) {
+    return (
+      <p className="avviso avviso-warn">
+        <Icona nome="attenzione" /> Nessun foglio del file è dal mese di partenza in poi: scegli un mese precedente.
+      </p>
+    );
+  }
+  return (
+    <section className="import-blocco" aria-label="Mesi da pubblicare" style={{ display: 'grid', gap: 8 }}>
+      {info.map((i) =>
+        i.sostituito ? (
+          <div key={i.chiave} className="avviso avviso-warn">
+            <Icona nome="attenzione" />
+            <div>
+              <strong>{nomeMeseDaChiave(i.chiave)}</strong>: già pubblicato{i.caricatoIl ? ` il ${dataNumerica(i.caricatoIl)}` : ''}. Verrà sostituito completamente.
+              {i.spariranno > 0 && (
+                <p className="testo-pericolo">
+                  {i.spariranno} {i.spariranno === 1 ? 'medico non è più presente nel nuovo file e perderà' : 'medici non sono più presenti nel nuovo file e perderanno'} i turni di questo mese.
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p key={i.chiave} className="avviso avviso-ok">
+            <Icona nome="spunta" />
+            <span>
+              <strong>{nomeMeseDaChiave(i.chiave)}</strong>: mese nuovo.
+            </span>
+          </p>
+        ),
+      )}
     </section>
   );
 }

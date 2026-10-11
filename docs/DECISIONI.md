@@ -30,3 +30,7 @@
 | 2026-10-11 | Interfaccia professionale mobile first ma completa anche su desktop; icona tema 112 unica per PWA e schermata Home | Richiesta dell'utente |
 | 2026-10-11 | Subagenti su Sonnet, Haiku per compiti meccanici, Opus solo su richiesta | Risparmio token a parità di qualità per compiti ben definiti |
 | 2026-10-11 | Cronologia GitHub riscritta in un solo commit | Rimuovere due cognomi reali finiti negli esempi |
+| 2026-10-11 | Ogni mese importato sostituisce il precedente; indice `mesiPubblicati/{mese}` (solo admin e delegati) con i medici del mese | Serve sapere a chi cancellare i turni senza leggere tutte le raccolte; l'elenco dei medici non deve essere visibile ai medici |
+| 2026-10-11 | `caricatoIl` (ora server, validata dalle regole) in ogni mese dei turni | Il medico vede quando i suoi turni sono stati caricati |
+| 2026-10-11 | Ciclo P-M-N copiato in `turni/{medico}/meta/ciclo`, scritto in batch con `medici/{id}` | `medici/{id}` è solo staff: il medico deve poter proiettare il proprio ciclo |
+| 2026-10-11 | Import mese per mese in batch atomica (limite 450 operazioni; oltre, indice provvisorio a unione + indice finale) | Limite Firestore di 500 operazioni per batch; un'interruzione non lascia turni non tracciati |

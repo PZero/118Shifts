@@ -113,13 +113,16 @@ beforeEach(async () => {
     await s("turni/medA/mesi/2026-10", { giorni: { 1: ["M6"] }, importId: "imp1" });
     await s("turni/medB/mesi/2026-10", { giorni: { 2: ["P3"] }, importId: "imp1" });
     await s("turni/medX/mesi/2026-10", { giorni: { 3: ["N1"] }, importId: "imp1" });
+    await s("turni/medA/meta/ciclo", { cicloInizio: "2026-10-05", cicloManuale: true });
+    await s("turni/medB/meta/ciclo", { cicloManuale: false });
+    await s("mesiPubblicati/2026-10", { medici: ["medA", "medB"], caricatoIl: T0, importId: "imp1" });
     await s("cambi/medA/voci/c1", { ...cambio(), creatoIl: T0 });
     await s("elencoMedici/elenco", { medici: [{ id: "medA", nome: "Medico A" }] });
     await s("config/sedi", { 1: "Sede 1" });
   });
 });
 
-const turnoValido = { giorni: { 4: ["M2"] }, importId: "imp2" };
+const turnoValido = { giorni: { 4: ["M2"] }, importId: "imp2", caricatoIl: serverTimestamp() };
 
 describe("Admin", () => {
   it("A1 legge il proprio admins/{uid}", async () => {
@@ -465,5 +468,111 @@ describe("Unico account principale per medico", () => {
   it("Q10 delegato che è medico gestisce i propri cambi", async () => {
     await assertSucceeds(setDoc(doc(db(UID.deleg), "cambi/medB/voci/n1"), cambio()));
     await assertSucceeds(getDocs(collection(db(UID.deleg), "cambi/medB/voci")));
+  });
+});
+
+// ---------- Import: indice mesi, caricatoIl, ciclo ----------
+const indiceValido = () => ({ medici: ["medA"], caricatoIl: serverTimestamp(), importId: "imp3" });
+
+describe("Indice mesiPubblicati", () => {
+  it("I1 admin e delegato leggono e scrivono l'indice", async () => {
+    await assertSucceeds(getDoc(doc(db(UID.admin), "mesiPubblicati/2026-10")));
+    await assertSucceeds(setDoc(doc(db(UID.admin), "mesiPubblicati/2026-11"), indiceValido()));
+    await assertSucceeds(getDoc(doc(db(UID.deleg), "mesiPubblicati/2026-10")));
+    await assertSucceeds(setDoc(doc(db(UID.deleg), "mesiPubblicati/2026-10"), indiceValido()));
+  });
+  it("I2 principale e secondario non leggono ne' scrivono l'indice", async () => {
+    for (const u of [UID.princA, UID.secA]) {
+      await assertFails(getDoc(doc(db(u), "mesiPubblicati/2026-10")));
+      await assertFails(getDocs(collection(db(u), "mesiPubblicati")));
+      await assertFails(setDoc(doc(db(u), "mesiPubblicati/2026-11"), indiceValido()));
+      await assertFails(deleteDoc(doc(db(u), "mesiPubblicati/2026-10")));
+    }
+  });
+  it("I3 non autenticato e account in attesa: negato", async () => {
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "mesiPubblicati/2026-10")));
+    await assertFails(getDoc(doc(db(UID.attesa), "mesiPubblicati/2026-10")));
+  });
+  it("I4 validazione campi: mese, extra, caricatoIl falso, medici non lista", async () => {
+    const d = db(UID.admin);
+    await assertFails(setDoc(doc(d, "mesiPubblicati/2026-13"), indiceValido()));
+    await assertFails(setDoc(doc(d, "mesiPubblicati/2026-11"), { ...indiceValido(), extra: 1 }));
+    await assertFails(setDoc(doc(d, "mesiPubblicati/2026-11"), { ...indiceValido(), caricatoIl: T0 }));
+    await assertFails(setDoc(doc(d, "mesiPubblicati/2026-11"), { ...indiceValido(), medici: "medA" }));
+    await assertFails(setDoc(doc(d, "mesiPubblicati/2026-11"), { medici: ["medA"], importId: "x" }));
+  });
+  it("I5 il delegato cancella un indice", async () => {
+    await assertSucceeds(deleteDoc(doc(db(UID.deleg), "mesiPubblicati/2026-10")));
+  });
+});
+
+describe("Sostituzione del mese e caricatoIl", () => {
+  it("M1 il delegato e l'admin cancellano e sovrascrivono i mesi", async () => {
+    await assertSucceeds(deleteDoc(doc(db(UID.deleg), "turni/medA/mesi/2026-10")));
+    await assertSucceeds(setDoc(doc(db(UID.admin), "turni/medB/mesi/2026-10"), turnoValido));
+  });
+  it("M2 medico e secondario non cancellano i mesi", async () => {
+    await assertFails(deleteDoc(doc(db(UID.princA), "turni/medA/mesi/2026-10")));
+    await assertFails(deleteDoc(doc(db(UID.secA), "turni/medA/mesi/2026-10")));
+  });
+  it("M3 caricatoIl obbligatorio e uguale all'ora server", async () => {
+    const d = db(UID.deleg);
+    await assertFails(setDoc(doc(d, "turni/medA/mesi/2026-11"), { giorni: {}, importId: "i" }));
+    await assertFails(setDoc(doc(d, "turni/medA/mesi/2026-11"), { ...turnoValido, caricatoIl: T0 }));
+  });
+  it("M4 il medico legge il proprio mese (con caricatoIl)", async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), "turni/medA/mesi/2026-12"), { giorni: {}, importId: "i", caricatoIl: T0 }),
+    );
+    const s = await assertSucceeds(getDoc(doc(db(UID.princA), "turni/medA/mesi/2026-12")));
+    if (!s.data().caricatoIl) throw new Error("caricatoIl mancante");
+  });
+  it("M5 batch atomica: mese + indice + cancellazione di un altro medico", async () => {
+    const d = db(UID.admin);
+    const b = writeBatch(d);
+    b.set(doc(d, "turni/medA/mesi/2026-11"), turnoValido);
+    b.delete(doc(d, "turni/medB/mesi/2026-10"));
+    b.set(doc(d, "mesiPubblicati/2026-11"), indiceValido());
+    await assertSucceeds(b.commit());
+  });
+});
+
+describe("Ciclo leggibile dal medico (turni/{medico}/meta/ciclo)", () => {
+  const ciclo = { cicloInizio: "2026-10-12", cicloManuale: true };
+  it("C1 principale e secondario leggono il proprio ciclo", async () => {
+    await assertSucceeds(getDoc(doc(db(UID.princA), "turni/medA/meta/ciclo")));
+    await assertSucceeds(getDoc(doc(db(UID.secA), "turni/medA/meta/ciclo")));
+  });
+  it("C2 non leggono il ciclo di un altro medico", async () => {
+    await assertFails(getDoc(doc(db(UID.princA), "turni/medB/meta/ciclo")));
+    await assertFails(getDoc(doc(db(UID.secA), "turni/medC/meta/ciclo")));
+  });
+  it("C3 il medico non scrive ne' cancella il ciclo", async () => {
+    await assertFails(setDoc(doc(db(UID.princA), "turni/medA/meta/ciclo"), ciclo));
+    await assertFails(setDoc(doc(db(UID.secA), "turni/medA/meta/ciclo"), ciclo));
+    await assertFails(deleteDoc(doc(db(UID.princA), "turni/medA/meta/ciclo")));
+  });
+  it("C4 admin e delegato scrivono il ciclo", async () => {
+    await assertSucceeds(setDoc(doc(db(UID.admin), "turni/medA/meta/ciclo"), ciclo));
+    await assertSucceeds(setDoc(doc(db(UID.deleg), "turni/medC/meta/ciclo"), { cicloManuale: false }));
+  });
+  it("C5 validazione: data malformata, campi extra, altro documento meta", async () => {
+    const d = db(UID.admin);
+    await assertFails(setDoc(doc(d, "turni/medA/meta/ciclo"), { cicloInizio: "5/10", cicloManuale: true }));
+    await assertFails(setDoc(doc(d, "turni/medA/meta/ciclo"), { ...ciclo, extra: 1 }));
+    await assertFails(setDoc(doc(d, "turni/medA/meta/ciclo"), { cicloInizio: "2026-10-12" }));
+    await assertFails(setDoc(doc(d, "turni/medA/meta/altro"), ciclo));
+  });
+  it("C6 account in attesa, disabilitato e non autenticato non leggono il ciclo", async () => {
+    await assertFails(getDoc(doc(db(UID.attesa), "turni/medA/meta/ciclo")));
+    await assertFails(getDoc(doc(db(UID.disab), "turni/medA/meta/ciclo")));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "turni/medA/meta/ciclo")));
+  });
+  it("C7 batch atomica medici + ciclo", async () => {
+    const d = db(UID.admin);
+    const b = writeBatch(d);
+    b.update(doc(d, "medici/medA"), { cicloInizio: "2026-10-12", cicloManuale: true });
+    b.set(doc(d, "turni/medA/meta/ciclo"), ciclo);
+    await assertSucceeds(b.commit());
   });
 });

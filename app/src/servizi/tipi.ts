@@ -40,6 +40,16 @@ export interface MeseDoc {
   mese: number;
   giorni: Record<string, string[]>;
   importId?: string;
+  /** Data di caricamento (turni/{medico}/mesi/{mese}.caricatoIl), mostrata al medico. */
+  caricatoIl?: Date;
+}
+
+/** mesiPubblicati/{aaaa-mm}: indice dei medici con turni pubblicati nel mese (solo admin e delegati). */
+export interface MesePubblicato {
+  chiave: string;
+  medici: string[];
+  caricatoIl?: Date;
+  importId: string;
 }
 
 /** cambi/{medicoId}/voci/{id} */
@@ -83,6 +93,8 @@ export interface PianoImport {
   turni: { medico: string; chiave: string; giorni: Record<string, string[]> }[];
   mesi: string[];
   avvisi: AvvisoSalvato[];
+  /** Mese di partenza "aaaa-mm": mesi/turni precedenti sono ignorati (difesa in `pubblicaImport`). */
+  meseDa?: string;
 }
 
 export interface CicloMedico {
@@ -98,7 +110,7 @@ export interface Servizi {
   eliminaCambio(medicoId: string, id: string): Promise<void>;
   elencoMedici(): Promise<VoceElenco[]>;
   sedi(): Promise<Sedi>;
-  /** Ancora del ciclo salvata in anagrafica; `null` se non leggibile (vedi report: regole). */
+  /** Ancora del ciclo (turni/{id}/meta/ciclo, leggibile dal medico); `null` se non ancora impostata. */
   cicloMedico(medicoId: string): Promise<CicloMedico | null>;
 
   // --- gestione (admin e delegati) ---
@@ -112,5 +124,11 @@ export interface Servizi {
   salvaMedico(medico: Omit<MedicoAnagrafica, 'id'> & { id?: string }): Promise<string>;
   salvaSedi(sedi: Sedi): Promise<void>;
   importazioni(): Promise<Importazione[]>;
+  /** Indice dei mesi già pubblicati (per l'avviso "già pubblicato il …, verrà sostituito"). */
+  mesiPubblicati(): Promise<MesePubblicato[]>;
+  /**
+   * Ogni mese di `piano.mesi` (>= `piano.meseDa`) sostituisce il precedente: i medici presenti
+   * nell'indice ma assenti dal piano perdono i turni di quel mese. Atomico per mese (batch).
+   */
   pubblicaImport(piano: PianoImport, autoreUid: string, avanzamento?: (fatto: number, totale: number) => void): Promise<string>;
 }

@@ -388,3 +388,11 @@ main#contenuto { flex: 1; outline: none; }
   background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-l); box-shadow: var(--shadow-2);
 }
 @media (min-width: 900px) { .barra-pubblica { bottom: var(--gutter); } }
+
+.import-mese-da { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; max-width: 420px; }
+.import-ignorati { margin-top: 14px; opacity: .75; }
+.import-ignorati .elenco-semplice { padding-bottom: 14px; margin-top: 0; list-style: none; padding-left: 0; }
+.avanzamento { display: grid; gap: 4px; min-width: 160px; }
+.avanzamento-barra { height: 6px; border-radius: 3px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
+.avanzamento-barra > div { height: 100%; background: var(--info); transition: width .3s; }
+.nota-caricamento { margin: 0 0 8px; }

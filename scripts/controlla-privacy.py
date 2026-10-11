@@ -19,7 +19,8 @@ else:
     print("Attenzione: dati/nomi-reali.txt assente, controllo dei cognomi saltato")
 
 pat_nomi = re.compile(r"\b(" + "|".join(re.escape(n) for n in nomi) + r")\b", re.I) if nomi else None
-pat_email = re.compile(r"[\w.+-]+@(?!example\.(?:test|com|org)\b)[\w-]+\.[\w.]+", re.I)
+# Ammessi solo domini di esempio riservati (RFC 2606): example.com/org, *.test, *.invalid, *.example
+pat_email = re.compile(r"[\w.+-]+@(?!example\.(?:test|com|org)\b)(?![\w.-]*\.(?:invalid|test|example)\b)[\w-]+\.[\w.]+", re.I)
 
 file = subprocess.run(["git", "ls-files"], cwd=radice, capture_output=True, text=True).stdout.split()
 problemi = 0

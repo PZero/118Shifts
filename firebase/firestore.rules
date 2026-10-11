@@ -196,13 +196,44 @@ service cloud.firestore {
     }
 
     // ---------- turni ----------
+    // caricatoIl = ora server del caricamento (mostrata al medico).
     match /turni/{medicoId}/mesi/{mese} {
       allow read: if isStaff() || isAccountDi(medicoId);
       allow create, update: if isStaff()
         && mese.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
-        && request.resource.data.keys().hasOnly(['giorni', 'importId'])
+        && request.resource.data.keys().hasOnly(['giorni', 'importId', 'caricatoIl'])
+        && request.resource.data.keys().hasAll(['giorni', 'importId', 'caricatoIl'])
         && request.resource.data.giorni is map
-        && request.resource.data.importId is string;
+        && request.resource.data.importId is string
+        && request.resource.data.caricatoIl == request.time;
+      allow delete: if isStaff();
+    }
+
+    // Partenza del ciclo P-M-N: copia di medici/{id}.cicloInizio/cicloManuale,
+    // leggibile da tutti gli account del medico (medici/{id} e' solo staff).
+    match /turni/{medicoId}/meta/{docId} {
+      allow read: if docId == 'ciclo' && (isStaff() || isAccountDi(medicoId));
+      allow create, update: if docId == 'ciclo' && isStaff()
+        && request.resource.data.keys().hasOnly(['cicloInizio', 'cicloManuale'])
+        && request.resource.data.keys().hasAll(['cicloManuale'])
+        && request.resource.data.cicloManuale is bool
+        && (!('cicloInizio' in request.resource.data)
+            || (request.resource.data.cicloInizio is string
+                && request.resource.data.cicloInizio.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')));
+      allow delete: if docId == 'ciclo' && isStaff();
+    }
+
+    // ---------- indice dei mesi pubblicati (solo staff: elenca i medici) ----------
+    match /mesiPubblicati/{mese} {
+      allow read: if isStaff();
+      allow create, update: if isStaff()
+        && mese.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+        && request.resource.data.keys().hasOnly(['medici', 'caricatoIl', 'importId'])
+        && request.resource.data.keys().hasAll(['medici', 'caricatoIl', 'importId'])
+        && request.resource.data.medici is list
+        && request.resource.data.medici.size() <= 500
+        && request.resource.data.importId is string
+        && request.resource.data.caricatoIl == request.time;
       allow delete: if isStaff();
     }
 

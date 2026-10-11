@@ -28,6 +28,7 @@ import {
   type CambioDoc,
   type MedicoAnagrafica,
   type MeseDoc,
+  type MesePubblicato,
   type Servizi,
   type Utente,
   type VoceElenco,
@@ -95,6 +96,23 @@ class Lotti {
   }
 }
 
+function cicloDoc(cicloInizio: string | undefined, cicloManuale: boolean): DocumentData {
+  return cicloInizio ? { cicloInizio, cicloManuale } : { cicloManuale };
+}
+
+/** Una tantum (admin/delegato): copia il ciclo di tutti i medici esistenti in turni/{id}/meta/ciclo. */
+export async function sincronizzaCicli(): Promise<number> {
+  const { db } = fb();
+  const snap = await getDocs(collection(db, 'medici'));
+  const lotti = new Lotti(db);
+  for (const s of snap.docs) {
+    const m = medicoDaDoc(s.id, s.data());
+    lotti.get().set(doc(db, 'turni', s.id, 'meta', 'ciclo'), cicloDoc(m.cicloInizio, m.cicloManuale));
+  }
+  await lotti.commit();
+  return snap.size;
+}
+
 async function aggiornaElenco(db: Firestore): Promise<void> {
   const snap = await getDocs(collection(db, 'medici'));
   const medici: VoceElenco[] = snap.docs
@@ -120,7 +138,7 @@ export function creaServiziFirestore(): Servizi {
         for (const [g, codici] of Object.entries((d.giorni ?? {}) as Record<string, unknown>)) {
           if (Array.isArray(codici)) giorni[g] = codici.map(String).slice(0, 2);
         }
-        mesi.push({ chiave: s.id, anno: Number(m[1]), mese: Number(m[2]), giorni, importId: d.importId });
+        mesi.push({ chiave: s.id, anno: Number(m[1]), mese: Number(m[2]), giorni, importId: d.importId, caricatoIl: data(d.caricatoIl) });
       }
       return mesi.sort((a, b) => a.chiave.localeCompare(b.chiave));
     },
@@ -184,8 +202,17 @@ export function creaServiziFirestore(): Servizi {
     },
 
     async cicloMedico(medicoId) {
-      // medici/{id} è leggibile solo da admin e delegati: per il medico si torna null
-      // e la proiezione usa l'ancora automatica (vedi report: richiesta sulle regole).
+      // Copia leggibile dal medico: turni/{id}/meta/ciclo (scritta insieme a medici/{id}).
+      try {
+        const c = await getDoc(doc(db, 'turni', medicoId, 'meta', 'ciclo'));
+        if (c.exists()) {
+          const d = c.data();
+          return { cicloInizio: typeof d.cicloInizio === 'string' ? d.cicloInizio : undefined, cicloManuale: d.cicloManuale === true };
+        }
+      } catch {
+        return null;
+      }
+      // Solo admin e delegati: anagrafica (medici non ancora copiati).
       try {
         const s = await getDoc(doc(db, 'medici', medicoId));
         if (!s.exists()) return null;
@@ -258,13 +285,17 @@ export function creaServiziFirestore(): Servizi {
         cicloManuale: m.cicloManuale,
       };
       if (m.cicloInizio) dati.cicloInizio = m.cicloInizio;
+      // Anagrafica e copia del ciclo (leggibile dal medico) in una sola batch atomica.
+      const batch = writeBatch(db);
       if (m.id) {
         // principaleUid non si tocca da qui (si gestisce con l'approvazione degli account).
         if (!m.cicloInizio) dati.cicloInizio = deleteField();
-        await updateDoc(ref, dati);
+        batch.update(ref, dati);
       } else {
-        await setDoc(ref, dati);
+        batch.set(ref, dati);
       }
+      batch.set(doc(db, 'turni', ref.id, 'meta', 'ciclo'), cicloDoc(m.cicloInizio, m.cicloManuale));
+      await batch.commit();
       await aggiornaElenco(db);
       return ref.id;
     },
@@ -289,29 +320,93 @@ export function creaServiziFirestore(): Servizi {
         .sort((a, b) => (b.data?.getTime() ?? 0) - (a.data?.getTime() ?? 0));
     },
 
+    async mesiPubblicati() {
+      const snap = await getDocs(collection(db, 'mesiPubblicati'));
+      return snap.docs
+        .map((s): MesePubblicato => {
+          const d = s.data();
+          return {
+            chiave: s.id,
+            medici: Array.isArray(d.medici) ? d.medici.map(String) : [],
+            caricatoIl: data(d.caricatoIl),
+            importId: String(d.importId ?? ''),
+          };
+        })
+        .sort((a, b) => a.chiave.localeCompare(b.chiave));
+    },
+
     async pubblicaImport(piano, autoreUid, avanzamento) {
       const importRef = doc(collection(db, 'importazioni'));
+      const meseDa = piano.meseDa ?? '';
+      const mesi = piano.mesi.filter((m) => m >= meseDa);
+      const turni = piano.turni.filter((t) => t.chiave >= meseDa);
       const ids = new Map<string, string>();
-      const lotti = new Lotti(db);
+      const totale = mesi.length + 1;
+      let fatto = 0;
 
+      // 1) Anagrafica: nuovi medici (con ciclo) e alias.
+      const lotti = new Lotti(db);
       for (const n of piano.nuoviMedici) {
         const ref = doc(collection(db, 'medici'));
         ids.set(n.rif, ref.id);
         lotti.get().set(ref, { nome: n.nome, alias: [], attivo: true, cicloManuale: false });
+        lotti.get().set(doc(db, 'turni', ref.id, 'meta', 'ciclo'), cicloDoc(undefined, false));
       }
       for (const a of piano.alias) {
         lotti.get().update(doc(db, 'medici', a.medicoId), { alias: arrayUnion(a.alias) });
       }
-      for (const t of piano.turni) {
-        const medicoId = ids.get(t.medico) ?? t.medico;
-        lotti.get().set(doc(db, 'turni', medicoId, 'mesi', t.chiave), { giorni: t.giorni, importId: importRef.id });
+      await lotti.commit();
+      avanzamento?.(++fatto, totale);
+
+      // 2) Un mese alla volta, sostituzione completa. Nella stessa batch (atomica) vanno i turni
+      //    nuovi, la cancellazione dei medici assenti e l'indice. Oltre LIMITE_BATCH operazioni il
+      //    mese è spezzato: l'indice provvisorio (unione) precede i dati e quello definitivo chiude,
+      //    così un'interruzione non lascia turni non tracciati.
+      for (const mese of mesi) {
+        const idxRef = doc(db, 'mesiPubblicati', mese);
+        const prec = await getDoc(idxRef);
+        const precedenti: string[] = prec.exists() && Array.isArray(prec.data().medici) ? prec.data().medici.map(String) : [];
+        const nuovi = new Map<string, Record<string, string[]>>();
+        for (const t of turni) if (t.chiave === mese) nuovi.set(ids.get(t.medico) ?? t.medico, t.giorni);
+
+        const ops: ((b: WriteBatch) => void)[] = [];
+        for (const [medicoId, giorni] of nuovi) {
+          ops.push((b) =>
+            b.set(doc(db, 'turni', medicoId, 'mesi', mese), { giorni, importId: importRef.id, caricatoIl: serverTimestamp() }),
+          );
+        }
+        for (const medicoId of precedenti) {
+          if (!nuovi.has(medicoId)) ops.push((b) => b.delete(doc(db, 'turni', medicoId, 'mesi', mese)));
+        }
+        const indice = (medici: string[]) => (b: WriteBatch) =>
+          b.set(idxRef, { medici, caricatoIl: serverTimestamp(), importId: importRef.id });
+        const elenco = [...nuovi.keys()];
+
+        if (ops.length < LIMITE_BATCH) {
+          const b = writeBatch(db);
+          ops.forEach((o) => o(b));
+          indice(elenco)(b);
+          await b.commit();
+        } else {
+          const unione = [...new Set([...precedenti, ...elenco])];
+          for (let i = 0; i < ops.length; i += LIMITE_BATCH) {
+            const b = writeBatch(db);
+            if (i === 0) indice(unione)(b);
+            ops.slice(i, i + LIMITE_BATCH).forEach((o) => o(b));
+            await b.commit();
+          }
+          const b = writeBatch(db);
+          indice(elenco)(b);
+          await b.commit();
+        }
+        avanzamento?.(++fatto, totale);
       }
-      await lotti.commit(avanzamento);
+
       await aggiornaElenco(db);
       await setDoc(importRef, {
         data: serverTimestamp(),
         autoreUid,
-        mesi: piano.mesi,
+        mesi,
         // Limite prudente per restare lontani dal massimo di 1 MB per documento.
         avvisi: piano.avvisi.slice(0, 400),
       });
