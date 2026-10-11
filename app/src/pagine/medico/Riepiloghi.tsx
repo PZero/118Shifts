@@ -117,7 +117,7 @@ export function CardWeekend({ vista }: { vista: MeseVista }) {
         </div>
         <ul className="lista-weekend" role="list" aria-label="Weekend del mese">
           {weekend.map((g) => (
-            <li key={g[0].data} className={`blocco-weekend blocco-weekend-${statoWeekend(g)}`}>
+            <li key={g[0]?.data}className={`blocco-weekend blocco-weekend-${statoWeekend(g)}`}>
               <ul className="lista-stati" role="list">
                 {g.map((s) => (
                   <RigaStato key={s.data} s={s} />
