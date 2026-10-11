@@ -18,3 +18,4 @@ dist/
 .firebase/
 *.log
 .DS_Store
+*.stackdump

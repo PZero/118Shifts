@@ -29,3 +29,4 @@
 | 2026-10-11 | 4 ottobre (San Francesco) festivo dal 2026 | Festa nazionale reintrodotta nel 2025 |
 | 2026-10-11 | Interfaccia professionale mobile first ma completa anche su desktop; icona tema 112 unica per PWA e schermata Home | Richiesta dell'utente |
 | 2026-10-11 | Subagenti su Sonnet, Haiku per compiti meccanici, Opus solo su richiesta | Risparmio token a parità di qualità per compiti ben definiti |
+| 2026-10-11 | Cronologia GitHub riscritta in un solo commit | Rimuovere due cognomi reali finiti negli esempi |
