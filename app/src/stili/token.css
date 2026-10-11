@@ -1,0 +1,137 @@
+/*
+  Design token di GestioneTurni.
+  Significato dei colori (coerente in tutta l'app):
+  - brand (blu istituzionale sobrio): azioni principali, navigazione;
+  - M / P / N: fasce di turno (azzurro / ambra / indaco), sempre accompagnate dalla lettera;
+  - festivo (rosso): domeniche e festività; sabato: tinta neutra azzurrata;
+  - cambio (verde petrolio): turni ricevuti e cambi;
+  - previsione: nessun riempimento, bordo tratteggiato, testo attenuato;
+  - assenza/altro: neutri (la malattia non ha un colore proprio).
+*/
+
+:root {
+  color-scheme: light;
+
+  --font: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --surface-2: #f7f9fb;
+  --surface-3: #eef2f6;
+  --border: #dbe2ea;
+  --border-strong: #b9c4d1;
+  --text: #0f1b2a;
+  --text-2: #445468;
+  --text-3: #5f6f83;
+
+  --brand: #14467a;
+  --brand-strong: #0b2c4f;
+  --brand-text: #14467a;
+  --brand-soft: #e7eef7;
+  --on-brand: #ffffff;
+  --focus: #1f6fd1;
+
+  --festivo: #b42335;
+  --festivo-soft: #fdf0f1;
+  --sabato: #2f4d6e;
+  --sabato-soft: #f0f4f9;
+  --oggi: #14467a;
+
+  --m-bg: #e2f0fb; --m-fg: #0a5689; --m-bar: #1d82c4;
+  --p-bg: #fff0dc; --p-fg: #874800; --p-bar: #df8a1d;
+  --n-bg: #ebe8fb; --n-fg: #3c2d9b; --n-bar: #5b4bd1;
+
+  --cambio: #0d6b64;
+  --cambio-soft: #e1f3f1;
+  --previsione: #5f6f83;
+
+  --ok: #1b7046; --ok-soft: #e4f3eb;
+  --warn: #835400; --warn-soft: #fff4d8;
+  --danger: #b42335; --danger-soft: #fbeaec;
+  --info: #14467a; --info-soft: #e7eef7;
+
+  --radius-s: 6px;
+  --radius: 10px;
+  --radius-l: 14px;
+  --shadow-1: 0 1px 2px rgb(15 27 42 / 6%), 0 1px 1px rgb(15 27 42 / 4%);
+  --shadow-2: 0 6px 24px rgb(15 27 42 / 10%), 0 2px 6px rgb(15 27 42 / 6%);
+  --shadow-3: 0 20px 60px rgb(15 27 42 / 22%);
+
+  --touch: 44px;
+  --gutter: 16px;
+  --header-h: 60px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #0a111d;
+    --surface: #111a29;
+    --surface-2: #152033;
+    --surface-3: #1a2740;
+    --border: #243149;
+    --border-strong: #34445f;
+    --text: #e6edf5;
+    --text-2: #aab7c7;
+    --text-3: #8d9cb0;
+    --brand: #2f6db3;
+    --brand-strong: #1d4f88;
+    --brand-text: #8dbcf0;
+    --brand-soft: #16294a;
+    --focus: #7cb4ff;
+    --festivo: #ff8e99;
+    --festivo-soft: #2a1520;
+    --sabato: #a9c2df;
+    --sabato-soft: #132036;
+    --oggi: #8dbcf0;
+    --m-bg: #0f2f49; --m-fg: #9fd3f7; --m-bar: #47a6e3;
+    --p-bg: #382811; --p-fg: #f7c37d; --p-bar: #e49b3d;
+    --n-bg: #241f4f; --n-fg: #c6bdff; --n-bar: #8a7cf0;
+    --cambio: #5fd0c3;
+    --cambio-soft: #0f2d2c;
+    --previsione: #8d9cb0;
+    --ok: #6fd3a0; --ok-soft: #0f2a1e;
+    --warn: #f4c46a; --warn-soft: #2e2410;
+    --danger: #ff8e99; --danger-soft: #2e141b;
+    --info: #8dbcf0; --info-soft: #16294a;
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
+    --shadow-2: 0 6px 24px rgb(0 0 0 / 45%);
+    --shadow-3: 0 20px 60px rgb(0 0 0 / 60%);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0a111d;
+  --surface: #111a29;
+  --surface-2: #152033;
+  --surface-3: #1a2740;
+  --border: #243149;
+  --border-strong: #34445f;
+  --text: #e6edf5;
+  --text-2: #aab7c7;
+  --text-3: #8d9cb0;
+  --brand: #2f6db3;
+  --brand-strong: #1d4f88;
+  --brand-text: #8dbcf0;
+  --brand-soft: #16294a;
+  --focus: #7cb4ff;
+  --festivo: #ff8e99;
+  --festivo-soft: #2a1520;
+  --sabato: #a9c2df;
+  --sabato-soft: #132036;
+  --oggi: #8dbcf0;
+  --m-bg: #0f2f49; --m-fg: #9fd3f7; --m-bar: #47a6e3;
+  --p-bg: #382811; --p-fg: #f7c37d; --p-bar: #e49b3d;
+  --n-bg: #241f4f; --n-fg: #c6bdff; --n-bar: #8a7cf0;
+  --cambio: #5fd0c3;
+  --cambio-soft: #0f2d2c;
+  --previsione: #8d9cb0;
+  --ok: #6fd3a0; --ok-soft: #0f2a1e;
+  --warn: #f4c46a; --warn-soft: #2e2410;
+  --danger: #ff8e99; --danger-soft: #2e141b;
+  --info: #8dbcf0; --info-soft: #16294a;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow-2: 0 6px 24px rgb(0 0 0 / 45%);
+  --shadow-3: 0 20px 60px rgb(0 0 0 / 60%);
+}
