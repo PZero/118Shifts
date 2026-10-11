@@ -1,0 +1,247 @@
+rules_version = '2';
+
+// Regole di sicurezza GestioneTurni (contratto: docs/MODELLO-DATI.md).
+// Tutto cio' che non e' esplicitamente permesso qui sotto e' negato.
+//
+// Costo in letture: ogni get()/exists() su un documento diverso conta come
+// una lettura fatturata (le ripetizioni sullo stesso documento nella stessa
+// richiesta sono messe in cache e contano una volta sola). Per una query la
+// valutazione avviene una volta per query, non per documento restituito.
+//   admin:            1 (admins/{uid})
+//   delegato:         3 (admins, users/{uid}, medici/{medicoId})
+//   medico approvato: 2-3 (users, medici; +admins se la regola prova prima isStaff)
+//   scrittura cambio: 3 (users, medici proprio, medici collega)
+// Limite Firestore: 10 accessi a documenti per richiesta singola.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Funzioni di base ----------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function myUserPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function myUser() {
+      return get(myUserPath()).data;
+    }
+
+    function medicoAttivo(medicoId) {
+      return exists(/databases/$(database)/documents/medici/$(medicoId))
+        && get(/databases/$(database)/documents/medici/$(medicoId)).data.get('attivo', false) == true;
+    }
+
+    // Account approvato, associato a un medico attivo.
+    function isApprovato() {
+      return signedIn()
+        && exists(myUserPath())
+        && myUser().get('stato', '') == 'approvato'
+        && myUser().get('medicoId', null) is string
+        && medicoAttivo(myUser().medicoId);
+    }
+
+    function isDelegato() {
+      return isApprovato() && myUser().get('delegato', false) == true;
+    }
+
+    // Gestione account e dati: admin o delegato.
+    function isStaff() {
+      return isAdmin() || isDelegato();
+    }
+
+    // Account approvato di quel medico (principale o secondario).
+    function isAccountDi(medicoId) {
+      return isApprovato() && myUser().medicoId == medicoId;
+    }
+
+    // Account principale: flag sul proprio users E medici/{medicoId}.principaleUid
+    // uguale al proprio uid. principaleUid e' unico per medico: un solo principale.
+    // (medici/{medicoId} e' gia' letto da isApprovato: nessuna lettura in piu'.)
+    function isPrincipaleDi(medicoId) {
+      return isAccountDi(medicoId)
+        && myUser().get('principale', false) == true
+        && get(/databases/$(database)/documents/medici/$(medicoId)).data.get('principaleUid', null) == request.auth.uid;
+    }
+
+    function changed(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(keys);
+    }
+
+    // ---------- admins ----------
+    // Esistenza del documento = admin. Si crea solo a mano dalla console.
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // ---------- users ----------
+    function userValido(d) {
+      return d.keys().hasOnly(['email', 'nome', 'stato', 'medicoId', 'principale', 'delegato', 'creatoIl'])
+        && d.keys().hasAll(['email', 'nome', 'stato', 'principale', 'delegato', 'creatoIl'])
+        && d.email is string
+        && d.nome is string && d.nome.size() > 0 && d.nome.size() <= 100
+        && d.stato in ['attesa', 'approvato', 'disabilitato']
+        && d.principale is bool
+        && d.delegato is bool
+        && d.creatoIl is timestamp
+        && (!('medicoId' in d) || (d.medicoId is string && d.medicoId.size() > 0))
+        // un account approvato deve essere associato a un medico
+        && (d.stato != 'approvato' || 'medicoId' in d);
+    }
+
+    // principale == true solo se, a fine scrittura (batch compresa),
+    // medici/{medicoId}.principaleUid == uid.
+    function principaleCoerente(uid, d) {
+      return d.principale == false
+        || ('medicoId' in d
+            && getAfter(/databases/$(database)/documents/medici/$(d.medicoId)).data.get('principaleUid', null) == uid);
+    }
+
+    match /users/{uid} {
+      allow get: if (signedIn() && request.auth.uid == uid) || isStaff();
+      allow list: if isStaff();
+
+      // Primo accesso: solo il proprio documento, in attesa, senza privilegi.
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.auth.token.email is string
+        && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly(['email', 'nome', 'stato', 'principale', 'delegato', 'creatoIl'])
+        && userValido(request.resource.data)
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.stato == 'attesa'
+        && request.resource.data.principale == false
+        && request.resource.data.delegato == false
+        && request.resource.data.creatoIl == request.time;
+
+      allow update: if userValido(request.resource.data)
+        && !changed(['email', 'creatoIl'])
+        && (!changed(['principale', 'medicoId']) || principaleCoerente(uid, request.resource.data))
+        && (
+          // admin: tutto (compreso il campo delegato)
+          isAdmin()
+          // delegato: non tocca il campo delegato, non gestisce altri delegati
+          // ne' il proprio documento
+          || (isDelegato()
+              && request.auth.uid != uid
+              && resource.data.get('delegato', false) == false
+              && !changed(['delegato']))
+          // l'utente stesso: solo il nome
+          || (signedIn()
+              && request.auth.uid == uid
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome']))
+        );
+
+      allow delete: if isAdmin()
+        || (isDelegato()
+            && request.auth.uid != uid
+            && resource.data.get('delegato', false) == false);
+    }
+
+    // ---------- medici (anagrafica) ----------
+    function medicoValido(d) {
+      return d.keys().hasOnly(['nome', 'alias', 'attivo', 'cicloInizio', 'cicloManuale', 'principaleUid'])
+        && (!('principaleUid' in d) || d.principaleUid == null || d.principaleUid is string)
+        && d.keys().hasAll(['nome', 'alias', 'attivo', 'cicloManuale'])
+        && d.nome is string && d.nome.size() > 0 && d.nome.size() <= 100
+        && d.alias is list
+        && d.attivo is bool
+        && d.cicloManuale is bool
+        && (!('cicloInizio' in d)
+            || (d.cicloInizio is string && d.cicloInizio.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')));
+    }
+
+    // Se principaleUid passa da un account a un altro (o si azzera), l'ex
+    // principale deve perdere il flag nella stessa batch: niente due principali.
+    function exPrincipaleRetrocesso(medicoId, vecchio) {
+      return !existsAfter(/databases/$(database)/documents/users/$(vecchio))
+        || getAfter(/databases/$(database)/documents/users/$(vecchio)).data.get('principale', false) == false
+        || getAfter(/databases/$(database)/documents/users/$(vecchio)).data.get('medicoId', null) != medicoId;
+    }
+
+    function principaleUidCoerente(medicoId) {
+      let nuovo = request.resource.data.get('principaleUid', null);
+      let vecchio = resource == null ? null : resource.data.get('principaleUid', null);
+      return nuovo == vecchio || vecchio == null || exPrincipaleRetrocesso(medicoId, vecchio);
+    }
+
+    match /medici/{medicoId} {
+      allow read: if isStaff();
+      allow create, update: if isStaff()
+        && medicoValido(request.resource.data)
+        && principaleUidCoerente(medicoId);
+      allow delete: if isStaff();
+    }
+
+    // ---------- elenco medici attivi (per scegliere il collega) ----------
+    match /elencoMedici/{docId} {
+      allow read: if docId == 'elenco' && (isApprovato() || isAdmin());
+      allow write: if docId == 'elenco' && isStaff()
+        && (request.resource == null || request.resource.data.medici is list);
+    }
+
+    // ---------- config/sedi ----------
+    match /config/{docId} {
+      allow read: if docId == 'sedi' && (isApprovato() || isAdmin());
+      allow write: if docId == 'sedi' && isStaff();
+    }
+
+    // ---------- turni ----------
+    match /turni/{medicoId}/mesi/{mese} {
+      allow read: if isStaff() || isAccountDi(medicoId);
+      allow create, update: if isStaff()
+        && mese.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+        && request.resource.data.keys().hasOnly(['giorni', 'importId'])
+        && request.resource.data.giorni is map
+        && request.resource.data.importId is string;
+      allow delete: if isStaff();
+    }
+
+    // ---------- cambi turno (privati del medico) ----------
+    function cambioValido(medicoId, d) {
+      return d.keys().hasOnly(['data', 'slot', 'codice', 'verso', 'collegaId', 'creatoIl'])
+        && d.keys().hasAll(['data', 'slot', 'codice', 'verso', 'collegaId', 'creatoIl'])
+        && d.data is string && d.data.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+        && d.slot is int && d.slot in [0, 1]
+        && d.codice is string && d.codice.size() > 0 && d.codice.size() <= 12
+        && d.verso in ['ceduto', 'ricevuto']
+        && d.collegaId is string && d.collegaId != medicoId
+        && exists(/databases/$(database)/documents/medici/$(d.collegaId))
+        && d.creatoIl is timestamp;
+    }
+
+    match /cambi/{medicoId}/voci/{id} {
+      allow read: if isAccountDi(medicoId);
+      allow create: if isPrincipaleDi(medicoId)
+        && cambioValido(medicoId, request.resource.data)
+        && request.resource.data.creatoIl == request.time;
+      allow update: if isPrincipaleDi(medicoId)
+        && cambioValido(medicoId, request.resource.data)
+        && request.resource.data.creatoIl == resource.data.creatoIl;
+      allow delete: if isPrincipaleDi(medicoId);
+    }
+
+    // ---------- importazioni Excel ----------
+    match /importazioni/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && request.resource.data.keys().hasOnly(['data', 'autoreUid', 'mesi', 'avvisi'])
+        && request.resource.data.autoreUid == request.auth.uid
+        && request.resource.data.mesi is list;
+      allow update: if isStaff()
+        && request.resource.data.autoreUid == resource.data.autoreUid;
+      allow delete: if isStaff();
+    }
+
+    // Nessun'altra raccolta e' accessibile (deny di default).
+  }
+}

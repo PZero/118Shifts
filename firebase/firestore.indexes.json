@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "stato", "order": "ASCENDING" },
+        { "fieldPath": "creatoIl", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "medicoId", "order": "ASCENDING" },
+        { "fieldPath": "creatoIl", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

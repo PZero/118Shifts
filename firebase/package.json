@@ -1,0 +1,16 @@
+{
+  "name": "gestioneturni-firebase",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:rules": "firebase emulators:exec --config ../firebase.json --only firestore --project demo-shifts \"vitest run\"",
+    "test:rules:ui": "firebase emulators:exec --config ../firebase.json --only firestore --project demo-shifts \"vitest --watch --ui --open=false --api.port=51205 --api.strictPort\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@vitest/ui": "^5.0.3",
+    "firebase": "^13.0.0",
+    "vitest": "^5.0.3"
+  }
+}

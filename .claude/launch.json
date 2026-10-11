@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "test-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "app", "run", "test:ui"],
+      "port": 51204
+    },
+    {
+      "name": "test-regole",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "firebase", "run", "test:rules:ui"],
+      "port": 51205
+    }
+  ]
+}
