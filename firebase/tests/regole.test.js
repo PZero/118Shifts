@@ -256,6 +256,20 @@ describe("Medico principale", () => {
     await assertFails(updateDoc(u, { principale: false }));
     await assertFails(updateDoc(u, { delegato: true }));
   });
+  it("P8b ultimoAccesso: solo proprio uid con request.time", async () => {
+    const u = doc(p(), "users/uidPrincA");
+    await assertSucceeds(updateDoc(u, { ultimoAccesso: serverTimestamp() }));
+    await assertFails(updateDoc(u, { ultimoAccesso: T0 }));
+    await assertFails(updateDoc(u, { ultimoAccesso: serverTimestamp(), stato: "attesa" }));
+    await assertFails(updateDoc(doc(p(), "users/uidSecA"), { ultimoAccesso: serverTimestamp() }));
+  });
+  it("P8c ultimoAccesso: anche in attesa; admin modifica un utente che lo ha gia'", async () => {
+    await assertSucceeds(updateDoc(doc(db(UID.attesa), "users/uidAttesa"), { ultimoAccesso: serverTimestamp() }));
+    await assertSucceeds(updateDoc(doc(db(UID.admin), "users/uidAttesa"), { nome: "Altro nome" }));
+    await assertSucceeds(
+      updateDoc(doc(db(UID.admin), "users/uidAttesa"), { stato: "approvato", medicoId: "medD" }),
+    );
+  });
   it("P10 non scrive i turni", async () => {
     await assertFails(setDoc(doc(p(), "turni/medA/mesi/2026-10"), turnoValido));
   });
@@ -574,5 +588,47 @@ describe("Ciclo leggibile dal medico (turni/{medico}/meta/ciclo)", () => {
     b.update(doc(d, "medici/medA"), { cicloInizio: "2026-10-12", cicloManuale: true });
     b.set(doc(d, "turni/medA/meta/ciclo"), ciclo);
     await assertSucceeds(b.commit());
+  });
+});
+
+// ---------- Quadro mensile ----------
+const quadroValido = () => ({ giorni: { 1: { medA: ["M6"] } }, importId: "imp4", caricatoIl: serverTimestamp() });
+
+describe("Quadro mensile", () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "quadro/2026-10"), { giorni: { 1: { medA: ["M6"] } }, importId: "imp1", caricatoIl: T0 });
+    });
+  });
+  it("Q1 principale legge, anche il delegato (staff) e l'admin", async () => {
+    for (const u of [UID.princA, UID.princC, UID.deleg, UID.admin]) {
+      await assertSucceeds(getDoc(doc(db(u), "quadro/2026-10")));
+    }
+  });
+  it("Q2 secondario, attesa, disabilitato, medico non attivo, anonimo: negato", async () => {
+    for (const u of [UID.secA, UID.attesa, UID.disab, UID.inatt]) {
+      await assertFails(getDoc(doc(db(u), "quadro/2026-10")));
+    }
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "quadro/2026-10")));
+  });
+  it("Q3 admin e delegato scrivono e cancellano", async () => {
+    await assertSucceeds(setDoc(doc(db(UID.admin), "quadro/2026-11"), quadroValido()));
+    await assertSucceeds(setDoc(doc(db(UID.deleg), "quadro/2026-10"), quadroValido()));
+    await assertSucceeds(deleteDoc(doc(db(UID.deleg), "quadro/2026-10")));
+  });
+  it("Q4 medico principale e secondario non scrivono ne' cancellano", async () => {
+    for (const u of [UID.princA, UID.secA]) {
+      await assertFails(setDoc(doc(db(u), "quadro/2026-11"), quadroValido()));
+      await assertFails(deleteDoc(doc(db(u), "quadro/2026-10")));
+    }
+  });
+  it("Q5 validazione: caricatoIl falso, id malformato, extra, tipi", async () => {
+    const d = db(UID.admin);
+    await assertFails(setDoc(doc(d, "quadro/2026-11"), { ...quadroValido(), caricatoIl: T0 }));
+    await assertFails(setDoc(doc(d, "quadro/2026-13"), quadroValido()));
+    await assertFails(setDoc(doc(d, "quadro/26-10"), quadroValido()));
+    await assertFails(setDoc(doc(d, "quadro/2026-11"), { ...quadroValido(), extra: 1 }));
+    await assertFails(setDoc(doc(d, "quadro/2026-11"), { ...quadroValido(), giorni: [] }));
+    await assertFails(setDoc(doc(d, "quadro/2026-11"), { ...quadroValido(), importId: 5 }));
   });
 });

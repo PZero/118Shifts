@@ -2,6 +2,7 @@
 // L'interfaccia `Servizi` ha due implementazioni: Firestore (produzione) e demo (solo sviluppo).
 
 import type { Cambio } from '../domain/cambi';
+import type { GiorniQuadro } from '../domain/quadro';
 import type { TipoAvviso } from '../domain/excel';
 
 export type StatoAccount = 'attesa' | 'approvato' | 'disabilitato';
@@ -15,6 +16,7 @@ export interface Utente {
   principale: boolean;
   delegato: boolean;
   creatoIl?: Date;
+  ultimoAccesso?: Date;
 }
 
 export interface MedicoAnagrafica {
@@ -50,6 +52,13 @@ export interface MesePubblicato {
   medici: string[];
   caricatoIl?: Date;
   importId: string;
+}
+
+/** quadro/{aaaa-mm}: chi lavora ogni giorno (tutti i medici); leggibile solo da staff e account principali. */
+export interface QuadroMese {
+  chiave: string;
+  giorni: GiorniQuadro;
+  caricatoIl?: Date;
 }
 
 /** cambi/{medicoId}/voci/{id} */
@@ -112,6 +121,8 @@ export interface Servizi {
   sedi(): Promise<Sedi>;
   /** Ancora del ciclo (turni/{id}/meta/ciclo, leggibile dal medico); `null` se non ancora impostata. */
   cicloMedico(medicoId: string): Promise<CicloMedico | null>;
+  /** Quadro del mese (solo account principali e staff; i secondari ricevono permission-denied); `null` se non esiste. */
+  quadro(chiaveMese: string): Promise<QuadroMese | null>;
 
   // --- gestione (admin e delegati) ---
   osservaInAttesa(cb: (numero: number) => void): () => void;

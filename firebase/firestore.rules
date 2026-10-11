@@ -85,7 +85,7 @@ service cloud.firestore {
 
     // ---------- users ----------
     function userValido(d) {
-      return d.keys().hasOnly(['email', 'nome', 'stato', 'medicoId', 'principale', 'delegato', 'creatoIl'])
+      return d.keys().hasOnly(['email', 'nome', 'stato', 'medicoId', 'principale', 'delegato', 'creatoIl', 'ultimoAccesso'])
         && d.keys().hasAll(['email', 'nome', 'stato', 'principale', 'delegato', 'creatoIl'])
         && d.email is string
         && d.nome is string && d.nome.size() > 0 && d.nome.size() <= 100
@@ -93,6 +93,7 @@ service cloud.firestore {
         && d.principale is bool
         && d.delegato is bool
         && d.creatoIl is timestamp
+        && (!('ultimoAccesso' in d) || d.ultimoAccesso is timestamp)
         && (!('medicoId' in d) || (d.medicoId is string && d.medicoId.size() > 0))
         // un account approvato deve essere associato a un medico
         && (d.stato != 'approvato' || 'medicoId' in d);
@@ -139,6 +140,11 @@ service cloud.firestore {
           || (signedIn()
               && request.auth.uid == uid
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome']))
+          // l'utente stesso: solo ultimoAccesso (= ora del server), in qualsiasi stato
+          || (signedIn()
+              && request.auth.uid == uid
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ultimoAccesso'])
+              && request.resource.data.ultimoAccesso == request.time)
         );
 
       allow delete: if isAdmin()
@@ -232,6 +238,26 @@ service cloud.firestore {
         && request.resource.data.keys().hasAll(['medici', 'caricatoIl', 'importId'])
         && request.resource.data.medici is list
         && request.resource.data.medici.size() <= 500
+        && request.resource.data.importId is string
+        && request.resource.data.caricatoIl == request.time;
+      allow delete: if isStaff();
+    }
+
+    // ---------- quadro mensile (turni di tutti, per "Chi e' di turno con me") ----------
+    // Lo leggono staff e account PRINCIPALI (non i secondari). Scrittura come turni/.../mesi.
+    function isPrincipaleQualsiasi() {
+      return isApprovato()
+        && myUser().get('principale', false) == true
+        && get(/databases/$(database)/documents/medici/$(myUser().medicoId)).data.get('principaleUid', null) == request.auth.uid;
+    }
+
+    match /quadro/{mese} {
+      allow read: if isStaff() || isPrincipaleQualsiasi();
+      allow create, update: if isStaff()
+        && mese.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+        && request.resource.data.keys().hasOnly(['giorni', 'importId', 'caricatoIl'])
+        && request.resource.data.keys().hasAll(['giorni', 'importId', 'caricatoIl'])
+        && request.resource.data.giorni is map
         && request.resource.data.importId is string
         && request.resource.data.caricatoIl == request.time;
       allow delete: if isStaff();

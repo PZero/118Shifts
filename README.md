@@ -19,6 +19,9 @@
 ![Tema scuro, import Excel e calendario di un medico](docs/screenshot/mobile-gestione.png)
 *Tema scuro automatico · caricamento dell'Excel con mese di partenza e mesi già pubblicati · calendario di un medico visto dall'amministratore (senza i cambi, che sono privati).*
 
+![Card Oggi e domani e Chi è di turno con me su telefono](docs/screenshot/mobile-oggi.png)
+*In cima all'area medico: card chiuse con il riassunto · «Oggi e domani» aperta · «Chi è di turno con me» con colleghi e reperibili.*
+
 ### Su computer
 ![Pagina pubblica su desktop](docs/screenshot/desktop-pubblica.png)
 
@@ -27,13 +30,15 @@
 | ![Calendario desktop chiaro](docs/screenshot/desktop-calendario.png) | ![Calendario desktop scuro](docs/screenshot/desktop-calendario-scuro.png) |
 
 ![Anagrafica medici](docs/screenshot/desktop-medici.png)
-*Area gestione: anagrafica dei medici con alias per abbinare le varianti del nome presenti nell'Excel; un clic sul nome apre il calendario del medico.*
+*Area gestione: anagrafica dei medici con stato (Abilitato/Disabilitato), ultimo accesso e alias per abbinare le varianti del nome presenti nell'Excel; un clic sul nome apre il calendario del medico.*
 
 ---
 
 ## Funzionalità (Fase 1)
 
 ### Per i medici
+- **Oggi e domani**: card comprimibile in cima con il proprio turno (sede e orario) di oggi e di domani, cambi già applicati.
+- **Chi è di turno con me** (solo account principali): i colleghi della stessa fascia nelle altre sedi e i reperibili (RM, RP, RN, RG) di oggi e di domani, secondo l'Excel pubblicato. I cambi dei colleghi non sono inclusi; vengono mostrati solo nome e sede, nei soli giorni in cui il medico stesso lavora.
 - **Calendario mensile** dei propri turni — Mattino (08–14), Pomeriggio (14–20), Notte (20–08) — con la **sede** di lavoro.
 - **Weekend e festività** evidenziati con codice colore: festività nazionali e **San Giovanni Battista** (24 giugno, patrono di Genova).
 - **Card weekend liberi**: sabato e domenica raggruppati per weekend e colorati (libero, parziale, lavorato), più lo stato delle festività del mese.
@@ -48,7 +53,7 @@
 
 ### Per amministratore e delegati
 - **Approvazione degli accessi**: al primo login l'utente resta in attesa finché non viene associato a un medico.
-- **Gestione account**: associazione account–medico, account principale e secondari, disabilitazione.
+- **Gestione account**: associazione account–medico, account principale e secondari, disabilitazione, con **ultimo accesso** di ogni account e del medico (registrato all'apertura dell'app, al massimo una volta al giorno).
 - **Importazione dell'Excel** dei turni con anteprima e segnalazione dei codici non riconosciuti prima della pubblicazione. Si sceglie un **mese di partenza** (di default il successivo): i fogli precedenti sono ignorati e ogni mese importato **sostituisce completamente** quello già pubblicato (utile per le correzioni).
 - **Mesi pubblicati**: elenco dei mesi caricati con data e numero di medici.
 - **Calendario di ogni medico** in sola lettura (senza i cambi, che restano privati).
@@ -58,6 +63,7 @@
 - Accesso **solo con account Google** (Firebase Authentication).
 - I permessi sono applicati lato server dalle **regole Firestore**, verificate da test automatici.
 - Ogni medico legge solo i propri dati; i cambi sono visibili solo ai suoi account.
+- I turni dei colleghi (card «Chi è di turno con me») sono visibili solo agli account principali dei medici, mai ai familiari (account secondari).
 - Il file Excel è elaborato **nel browser** di chi lo carica: non transita da server terzi.
 - Nessun dato personale, credenziale o file di turni è presente nel repository.
 

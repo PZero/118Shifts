@@ -50,3 +50,6 @@
 | 2026-10-11 | Deploy hosting automatico con GitHub Action su push in `main` (test + build); niente anteprime sulle PR | Lavorare anche da remoto/cloud; le anteprime girano su domini non autorizzati al login |
 | 2026-10-11 | Regole Firestore escluse dal deploy automatico | Toccano la sicurezza: si pubblicano a mano dopo i test sull'emulatore |
 | 2026-10-11 | `/fine-sessione` nel cloud (senza `dati/nomi-reali.txt`): branch + Pull Request, mai push su `main` | Nel cloud il controllo dei cognomi reali salta; il merge si fa dal PC dopo il controllo |
+| 2026-10-11 | `users.ultimoAccesso` scritto dal client all'apertura (max 1/giorno), invece del lastSignIn di Auth | Il login resta ricordato e lastSignIn si legge solo con Admin SDK (niente Functions) |
+| 2026-10-11 | Etichette medico "Abilitato/Disabilitato" (campo dati resta `attivo`) | "Attivo" si confondeva con l'uso dell'app |
+| 2026-10-11 | `quadro/{aaaa-mm}` scritto all'import, leggibile solo da account principali e staff | Serve a "Chi è di turno con me"; i familiari non vedono i turni dei colleghi; niente cambi dei colleghi (privati) |

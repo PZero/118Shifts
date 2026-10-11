@@ -2,10 +2,11 @@
 
 import { Link } from 'wouter';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { accessoPiuRecente, testoUltimoAccesso } from '../../domain/accessi';
 import { chiaviInConflitto, conAlias, normalizzaNome } from '../../domain/anagrafica';
 import { trovaAncora } from '../../domain/proiezione';
 import { useServizi } from '../../sessione/contesto';
-import type { MedicoAnagrafica } from '../../servizi/tipi';
+import type { MedicoAnagrafica, Utente } from '../../servizi/tipi';
 import { Dialogo } from '../../ui/Dialogo';
 import { messaggioErroreGenerico } from '../../ui/errori';
 import { Icona } from '../../ui/Icona';
@@ -18,6 +19,7 @@ const NUOVO: Bozza = { nome: '', alias: [], attivo: true, cicloManuale: false };
 export function Medici() {
   const servizi = useServizi();
   const [medici, setMedici] = useState<MedicoAnagrafica[] | null>(null);
+  const [utenti, setUtenti] = useState<Utente[] | null>([]);
   const [errore, setErrore] = useState<string>();
   const [cerca, setCerca] = useState('');
   const [mostraInattivi, setMostraInattivi] = useState(false);
@@ -29,7 +31,18 @@ export function Medici() {
     } catch (e) {
       setErrore(messaggioErroreGenerico(e));
     }
+    // Gli accessi sono un di più: se la lettura fallisce l'elenco resta utilizzabile.
+    try {
+      setUtenti(await servizi.utenti());
+    } catch {
+      setUtenti(null);
+    }
   }, [servizi]);
+  const accessoPerMedico = useMemo(() => {
+    const per = new Map<string, Date[]>();
+    for (const u of utenti ?? []) if (u.medicoId && u.ultimoAccesso) per.set(u.medicoId, [...(per.get(u.medicoId) ?? []), u.ultimoAccesso]);
+    return new Map([...per].map(([id, date]) => [id, accessoPiuRecente(date)]));
+  }, [utenti]);
   useEffect(() => {
     void carica();
   }, [carica]);
@@ -60,7 +73,7 @@ export function Medici() {
         </label>
         <label className="interruttore">
           <input type="checkbox" checked={mostraInattivi} onChange={(e) => setMostraInattivi(e.target.checked)} />
-          <span>Mostra disattivati</span>
+          <span>Mostra disabilitati</span>
         </label>
       </div>
 
@@ -94,6 +107,7 @@ export function Medici() {
                 <th scope="col">Alias</th>
                 <th scope="col">Ciclo</th>
                 <th scope="col">Stato</th>
+                <th scope="col">Ultimo accesso</th>
                 <th scope="col">
                   <span className="sr-only">Azioni</span>
                 </th>
@@ -119,7 +133,14 @@ export function Medici() {
                       <span className="testo-tenue">Automatico</span>
                     )}
                   </td>
-                  <td>{m.attivo ? <span className="etichetta etichetta-ok">Attivo</span> : <span className="etichetta etichetta-danger">Disattivato</span>}</td>
+                  <td>{m.attivo ? <span className="etichetta etichetta-ok">Abilitato</span> : <span className="etichetta etichetta-danger">Disabilitato</span>}</td>
+                  <td>
+                    {accessoPerMedico.get(m.id) ? (
+                      <span style={{ whiteSpace: 'nowrap' }}>{testoUltimoAccesso(accessoPerMedico.get(m.id))}</span>
+                    ) : (
+                      <span className="testo-tenue">{utenti ? 'mai' : '—'}</span>
+                    )}
+                  </td>
                   <td className="cella-azioni">
                     <button type="button" className="btn btn-secondario btn-piccolo" onClick={() => setBozza({ ...m })} aria-label={`Modifica ${m.nome}`}>
                       <Icona nome="matita" piccola /> Modifica
@@ -238,9 +259,9 @@ function ModuloMedico({ iniziale, onChiudi, onSalvato }: { iniziale: Bozza; onCh
       <label className="interruttore">
         <input type="checkbox" checked={b.attivo} onChange={(e) => setB({ ...b, attivo: e.target.checked })} />
         <span>
-          <strong>Medico attivo</strong>
+          <strong>Medico abilitato</strong>
           <br />
-          <small className="testo-tenue">Se disattivato, i suoi account non leggono più alcun dato e sparisce dall’elenco dei colleghi.</small>
+          <small className="testo-tenue">Se disabilitato, i suoi account non leggono più alcun dato e sparisce dall’elenco dei colleghi.</small>
         </span>
       </label>
 

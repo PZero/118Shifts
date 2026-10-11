@@ -3,6 +3,7 @@
 
 import { aggiungiMesi, chiaveMese, dataISO, giorniNelMese, type AnnoMese } from '../domain/date';
 import { CICLO } from '../domain/proiezione';
+import { costruisciQuadro } from '../domain/quadro';
 import {
   SEDI_PREDEFINITE,
   type CambioDoc,
@@ -24,6 +25,8 @@ const NOMI: { id: string; nome: string; alias: string[]; scarto: number; sede: n
   { id: 'demo-3', nome: 'Verdi Demo', alias: [], scarto: 2, sede: 4 },
   { id: 'demo-4', nome: 'Neri Demo', alias: [], scarto: 3, sede: 1 },
   { id: 'demo-5', nome: 'Gialli Demo', alias: [], scarto: 4, sede: 3 },
+  { id: 'demo-6', nome: 'Blu Demo', alias: [], scarto: 0, sede: 2 },
+  { id: 'demo-7', nome: 'Viola Demo', alias: [], scarto: 1, sede: 5 },
 ];
 
 /** Ciclo inventato P-M-N-smonto-riposo, con qualche ferie e una reperibilità per il medico demo. */
@@ -34,6 +37,12 @@ function giorniDemo(am: AnnoMese, scarto: number, sede: number, ricco: boolean):
   for (let g = 1; g <= n; g++) {
     const fascia = CICLO[(((base + g + scarto) % 5) + 5) % 5];
     if (fascia) out[String(g)] = [`${fascia}${sede}`];
+    // Reperibilità inventate per il quadro dei colleghi (nei giorni senza turno).
+    else if (scarto === 1 && sede === 5) {
+      if (g % 5 === 0) out[String(g)] = ['RN'];
+      else if (g % 3 === 0) out[String(g)] = ['RG'];
+      else if (g % 2 === 0) out[String(g)] = ['RM'];
+    }
   }
   if (ricco) {
     for (const g of [20, 21, 22]) if (g <= n) out[String(g)] = ['F'];
@@ -90,10 +99,11 @@ export function creaServiziDemo(): Servizi {
     cambi.push({ id: `c${++seq}`, data: dataISO(corrente.anno, corrente.mese, libero), slot: 0, codice: 'N2', verso: 'ricevuto', collegaId: 'demo-3' });
   }
 
+  const giorniFa = (n: number) => new Date(Date.now() - n * 86_400_000);
   let utenti: Utente[] = [
-    { uid: 'demo-uid', email: 'rossi.demo@esempio.invalid', nome: 'Rossi Demo', stato: 'approvato', medicoId: 'demo-1', principale: true, delegato: true },
-    { uid: 'demo-uid-2', email: 'rossi.demo.2@esempio.invalid', nome: 'Rossi Demo (secondo account)', stato: 'approvato', medicoId: 'demo-1', principale: false, delegato: false },
-    { uid: 'demo-uid-3', email: 'bianchi.demo@esempio.invalid', nome: 'Bianchi Demo', stato: 'approvato', medicoId: 'demo-2', principale: true, delegato: false },
+    { uid: 'demo-uid', email: 'rossi.demo@esempio.invalid', nome: 'Rossi Demo', stato: 'approvato', medicoId: 'demo-1', principale: true, delegato: true, ultimoAccesso: giorniFa(0) },
+    { uid: 'demo-uid-2', email: 'rossi.demo.2@esempio.invalid', nome: 'Rossi Demo (secondo account)', stato: 'approvato', medicoId: 'demo-1', principale: false, delegato: false, ultimoAccesso: giorniFa(20) },
+    { uid: 'demo-uid-3', email: 'bianchi.demo@esempio.invalid', nome: 'Bianchi Demo', stato: 'approvato', medicoId: 'demo-2', principale: true, delegato: false, ultimoAccesso: giorniFa(1) },
     { uid: 'demo-uid-4', email: 'nuovo.demo@esempio.invalid', nome: 'Nuovo Utente Demo', stato: 'attesa', principale: false, delegato: false },
     { uid: 'demo-uid-5', email: 'ex.demo@esempio.invalid', nome: 'Ex Utente Demo', stato: 'disabilitato', medicoId: 'demo-5', principale: false, delegato: false },
   ];
@@ -116,6 +126,14 @@ export function creaServiziDemo(): Servizi {
     elencoMedici: async () => medici.filter((m) => m.attivo).map((m) => ({ id: m.id, nome: m.nome })),
     sedi: async () => ({ ...sedi }),
     cicloMedico: async () => ({ cicloManuale: false }),
+    async quadro(chiave) {
+      const voci = [...turni].flatMap(([medicoId, perMese]) => {
+        const d = perMese.get(chiave);
+        return d ? [{ medicoId, giorni: d.giorni }] : [];
+      });
+      if (voci.length === 0) return null;
+      return { chiave, giorni: copia(costruisciQuadro(voci)), caricatoIl: new Date() };
+    },
 
     osservaInAttesa(cb) {
       cb(utenti.filter((u) => u.stato === 'attesa').length);

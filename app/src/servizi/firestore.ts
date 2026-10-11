@@ -21,7 +21,9 @@ import {
   type Firestore,
   type WriteBatch,
 } from 'firebase/firestore';
+import { accessoDiOggi } from '../domain/accessi';
 import { scomponi } from '../domain/date';
+import { costruisciQuadro, type GiorniQuadro } from '../domain/quadro';
 import { fb } from './firebase';
 import {
   SEDI_PREDEFINITE,
@@ -52,7 +54,19 @@ export function utenteDaDoc(uid: string, d: DocumentData): Utente {
   if (typeof d.medicoId === 'string') u.medicoId = d.medicoId;
   const c = data(d.creatoIl);
   if (c) u.creatoIl = c;
+  const a = data(d.ultimoAccesso);
+  if (a) u.ultimoAccesso = a;
   return u;
+}
+
+/** Registra l'accesso (solo `ultimoAccesso`) se manca o non è di oggi. Fire-and-forget: errori ignorati. */
+export function registraAccesso(uid: string, ultimoAccesso: Date | undefined): void {
+  if (accessoDiOggi(ultimoAccesso)) return;
+  try {
+    updateDoc(doc(fb().db, 'users', uid), { ultimoAccesso: serverTimestamp() }).catch(() => undefined);
+  } catch {
+    /* mai bloccare l'app */
+  }
 }
 
 function medicoDaDoc(id: string, d: DocumentData): MedicoAnagrafica {
@@ -141,6 +155,22 @@ export function creaServiziFirestore(): Servizi {
         mesi.push({ chiave: s.id, anno: Number(m[1]), mese: Number(m[2]), giorni, importId: d.importId, caricatoIl: data(d.caricatoIl) });
       }
       return mesi.sort((a, b) => a.chiave.localeCompare(b.chiave));
+    },
+
+    async quadro(chiave) {
+      const s = await getDoc(doc(db, 'quadro', chiave));
+      if (!s.exists()) return null;
+      const d = s.data();
+      const giorni: GiorniQuadro = {};
+      for (const [g, perMedico] of Object.entries((d.giorni ?? {}) as Record<string, unknown>)) {
+        if (!perMedico || typeof perMedico !== 'object') continue;
+        const out: Record<string, string[]> = {};
+        for (const [id, codici] of Object.entries(perMedico as Record<string, unknown>)) {
+          if (Array.isArray(codici)) out[id] = codici.map(String).slice(0, 2);
+        }
+        giorni[g] = out;
+      }
+      return { chiave, giorni, caricatoIl: data(d.caricatoIl) };
     },
 
     async cambiMedico(medicoId) {
@@ -375,6 +405,9 @@ export function creaServiziFirestore(): Servizi {
             b.set(doc(db, 'turni', medicoId, 'mesi', mese), { giorni, importId: importRef.id, caricatoIl: serverTimestamp() }),
           );
         }
+        // Quadro del mese (tutti i medici): set completo, sostituisce il precedente.
+        const quadroGiorni = costruisciQuadro([...nuovi].map(([medicoId, giorni]) => ({ medicoId, giorni })));
+        ops.push((b) => b.set(doc(db, 'quadro', mese), { giorni: quadroGiorni, importId: importRef.id, caricatoIl: serverTimestamp() }));
         for (const medicoId of precedenti) {
           if (!nuovi.has(medicoId)) ops.push((b) => b.delete(doc(db, 'turni', medicoId, 'mesi', mese)));
         }

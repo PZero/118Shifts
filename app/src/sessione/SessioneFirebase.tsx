@@ -12,7 +12,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { cancellaCacheLocale, fb, messaggioErrore } from '../servizi/firebase';
-import { creaServiziFirestore, utenteDaDoc } from '../servizi/firestore';
+import { creaServiziFirestore, registraAccesso, utenteDaDoc } from '../servizi/firestore';
 import { SessioneCtx, type ContestoSessione, type Sessione } from './contesto';
 
 /** PWA installata su iOS (o qualunque app standalone): il popup non torna all'app, si usa il redirect. */
@@ -83,6 +83,7 @@ export function SessioneFirebase({ children }: { children: ReactNode }) {
           });
         }
         // Profilo osservato in tempo reale: l'approvazione si vede senza ricaricare.
+        let accessoRegistrato = false;
         smettiProfilo = onSnapshot(
           ref,
           (s) => {
@@ -91,6 +92,10 @@ export function SessioneFirebase({ children }: { children: ReactNode }) {
             if (u.stato === 'attesa') setSessione({ tipo: 'attesa', utente: u });
             else if (u.stato === 'disabilitato') setSessione({ tipo: 'disabilitato', utente: u });
             else {
+              if (!accessoRegistrato) {
+                accessoRegistrato = true;
+                registraAccesso(u.uid, u.ultimoAccesso);
+              }
               const profilo = { uid: u.uid, email: u.email, nome: u.nome, admin: false, delegato: u.delegato, principale: u.principale };
               setSessione({ tipo: 'attivo', profilo: u.medicoId ? { ...profilo, medicoId: u.medicoId } : profilo });
             }

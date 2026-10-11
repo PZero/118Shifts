@@ -1,6 +1,7 @@
 // Account: approvazione (associazione a un medico, principale o secondario), disabilitazione, delegati.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { testoUltimoAccesso } from '../../domain/accessi';
 import { isStaff, useProfilo, useServizi } from '../../sessione/contesto';
 import type { MedicoAnagrafica, StatoAccount, Utente } from '../../servizi/tipi';
 import { Dialogo } from '../../ui/Dialogo';
@@ -137,10 +138,11 @@ export function Account() {
                   {medico && (
                     <span className="riga-elenco-medico">
                       <Icona nome="medici" piccola /> {medico.nome} · {u.principale ? 'principale' : 'secondario'}
-                      {!medico.attivo && <span className="etichetta etichetta-danger">medico disattivato</span>}
+                      {!medico.attivo && <span className="etichetta etichetta-danger">medico disabilitato</span>}
                     </span>
                   )}
                   {u.creatoIl && <span className="nota">Richiesta del {u.creatoIl.toLocaleDateString('it-IT')}</span>}
+                  {u.stato !== 'attesa' && <span className="nota">Ultimo accesso: {testoUltimoAccesso(u.ultimoAccesso)}</span>}
                 </div>
                 <div className="riga-elenco-azioni">
                   {!puo ? (

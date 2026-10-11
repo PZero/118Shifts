@@ -10,6 +10,7 @@ import { Dialogo } from '../../ui/Dialogo';
 import { Icona } from '../../ui/Icona';
 import { dataEstesa, dataNumerica, nomeMese } from '../../ui/etichette';
 import { Calendario } from './Calendario';
+import { CardChiConMe, CardOggiDomani } from './CardOggiDomani';
 import { DettaglioGiorno } from './DettaglioGiorno';
 import { DialogoCambio, type RichiestaCambio } from './DialoghiCambio';
 import { CardCambi, CardOre, CardReperibilita, CardWeekend, Legenda } from './Riepiloghi';
@@ -217,6 +218,14 @@ function VistaMedico({
   return (
     <div className="pagina pagina-medico">
       {intestazione}
+      {!soloLettura && (
+        <div className="card-riepilogo-alto">
+          <CardOggiDomani oggi={oggi} mesi={dati.mesi} cambi={dati.cambi} proiezione={proiezione} sedi={dati.sedi} nomi={nomi} />
+          {principale && (
+            <CardChiConMe oggi={oggi} mesi={dati.mesi} cambi={dati.cambi} proiezione={proiezione} sedi={dati.sedi} nomi={nomi} medicoId={medicoId} />
+          )}
+        </div>
+      )}
       <div className="barra-mese">
         <div className="barra-mese-titolo">
           <h1 className="titolo-mese" aria-live="polite">
