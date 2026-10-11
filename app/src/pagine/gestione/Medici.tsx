@@ -1,5 +1,6 @@
 // Anagrafica medici: nome, alias, attivo, ancora del ciclo (automatica o corretta a mano).
 
+import { Link } from 'wouter';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { chiaviInConflitto, conAlias, normalizzaNome } from '../../domain/anagrafica';
 import { trovaAncora } from '../../domain/proiezione';
@@ -101,7 +102,11 @@ export function Medici() {
             <tbody>
               {visibili.map((m) => (
                 <tr key={m.id}>
-                  <th scope="row">{m.nome}</th>
+                  <th scope="row">
+                    <Link href={`/gestione/medici/${m.id}`} className="link-medico">
+                      {m.nome}
+                    </Link>
+                  </th>
                   <td>
                     <span className="alias">
                       {m.alias.length === 0 ? <span className="testo-tenue">—</span> : m.alias.map((a) => <span key={a} className="etichetta">{a}</span>)}

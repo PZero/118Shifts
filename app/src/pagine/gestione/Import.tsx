@@ -2,7 +2,7 @@
 // avvisi di import, abbinamento dei nomi all'anagrafica e pubblicazione su Firestore.
 // Il file non lascia mai il dispositivo: si pubblicano solo i codici normalizzati.
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { abbinaNome, conAlias, normalizzaNome, pulisciNome, type EsitoAbbinamento } from '../../domain/anagrafica';
 import { aggiungiMesi, chiaveMese, dataISO, giorniNelMese, giornoSettimana, type AnnoMese } from '../../domain/date';
 import type { AvvisoImport, CategoriaAvviso, FoglioMese, RisultatoImport } from '../../domain/excel';
@@ -232,6 +232,8 @@ export function Import() {
         </p>
       )}
 
+      <MesiPubblicati aggiorna={fase.fase} />
+
       {(fase.fase === 'vuoto' || fase.fase === 'lettura' || letto) && (
         <SceltaMeseDa valore={meseDa} onCambia={setMeseDa} disabilitato={pubblicando || fase.fase === 'lettura'} />
       )}
@@ -410,6 +412,49 @@ export function Import() {
           </Dialogo>
         </>
       )}
+    </section>
+  );
+}
+
+function MesiPubblicati({ aggiorna }: { aggiorna: string }) {
+  const servizi = useServizi();
+  const [elenco, setElenco] = useState<MesePubblicato[] | null>(null);
+
+  // Si rilegge a ogni cambio di fase, in particolare dopo una pubblicazione.
+  useEffect(() => {
+    let attivo = true;
+    servizi
+      .mesiPubblicati()
+      .then((l) => attivo && setElenco([...l].sort((a, b) => b.chiave.localeCompare(a.chiave))))
+      .catch(() => attivo && setElenco([]));
+    return () => {
+      attivo = false;
+    };
+  }, [servizi, aggiorna]);
+
+  return (
+    <section className="card import-blocco" aria-labelledby="titolo-pubblicati">
+      <div className="card-corpo">
+        <h2 id="titolo-pubblicati" className="card-titolo">
+          Mesi pubblicati
+        </h2>
+        {elenco === null ? (
+          <div className="scheletro" style={{ height: 48 }} />
+        ) : elenco.length === 0 ? (
+          <p className="testo-tenue">Nessun mese pubblicato</p>
+        ) : (
+          <ul className="elenco-semplice">
+            {elenco.map((m) => (
+              <li key={m.chiave}>
+                <strong>{nomeMeseDaChiave(m.chiave)}</strong>
+                <span className="testo-tenue">
+                  {m.caricatoIl ? ` · caricato il ${dataNumerica(m.caricatoIl)}` : ''} · {m.medici.length} {m.medici.length === 1 ? 'medico' : 'medici'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }

@@ -2,6 +2,7 @@ import { Link, Redirect, Route, Switch, useLocation } from 'wouter';
 import { Icona, type NomeIcona } from '../../ui/Icona';
 import { Account } from './Account';
 import { Import } from './Import';
+import { CalendarioStaff } from './CalendarioStaff';
 import { Medici } from './Medici';
 import { SediPagina } from './Sedi';
 
@@ -27,6 +28,7 @@ export function AreaGestione() {
       <Switch>
         <Route path="/gestione/account" component={Account} />
         <Route path="/gestione/medici" component={Medici} />
+        <Route path="/gestione/medici/:id/:mese?" component={CalendarioStaff} />
         <Route path="/gestione/import" component={Import} />
         <Route path="/gestione/sedi" component={SediPagina} />
         <Route>

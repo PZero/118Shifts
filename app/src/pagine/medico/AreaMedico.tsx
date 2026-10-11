@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useParams } from 'wouter';
 import { aggiungiMesi, chiaveMese, confrontaMesi, scomponi, type AnnoMese } from '../../domain/date';
 import { proiezioneMedico } from '../../domain/proiezione';
@@ -27,8 +27,23 @@ type Caricamento = { stato: 'caricamento' } | { stato: 'errore'; messaggio: stri
 
 export function AreaMedico() {
   const profilo = useProfilo();
+  return <CalendarioMedico medicoId={profilo.medicoId!} principale={profilo.principale} base="/turni" />;
+}
+
+interface ProprietaCalendario {
+  medicoId: string;
+  principale: boolean;
+  /** Percorso base per la navigazione dei mesi (senza barra finale). */
+  base: string;
+  /** Vista dello staff: niente cambi turno (privati del medico), nessuna modifica. */
+  soloLettura?: boolean;
+  /** Intestazione opzionale sopra il calendario (titolo e link di ritorno). */
+  intestazione?: ReactNode;
+}
+
+/** Calendario mensile di un medico: usato dal medico stesso e, in sola lettura, dallo staff. */
+export function CalendarioMedico({ medicoId, principale, base, soloLettura = false, intestazione }: ProprietaCalendario) {
   const servizi = useServizi();
-  const medicoId = profilo.medicoId!;
   const [car, setCar] = useState<Caricamento>({ stato: 'caricamento' });
   const [versione, setVersione] = useState(0);
 
@@ -36,8 +51,8 @@ export function AreaMedico() {
     let attivo = true;
     Promise.all([
       servizi.turniMedico(medicoId),
-      servizi.cambiMedico(medicoId),
-      servizi.elencoMedici(),
+      soloLettura ? Promise.resolve([] as CambioDoc[]) : servizi.cambiMedico(medicoId),
+      soloLettura ? servizi.medici().then((l) => l.map((m) => ({ id: m.id, nome: m.nome }))) : servizi.elencoMedici(),
       servizi.sedi(),
       servizi.cicloMedico(medicoId),
     ])
@@ -46,7 +61,7 @@ export function AreaMedico() {
     return () => {
       attivo = false;
     };
-  }, [servizi, medicoId, versione]);
+  }, [servizi, medicoId, soloLettura, versione]);
 
   const ricaricaCambi = useCallback(async () => {
     const cambi = await servizi.cambiMedico(medicoId);
@@ -57,6 +72,7 @@ export function AreaMedico() {
   if (car.stato === 'errore') {
     return (
       <div className="pagina">
+        {intestazione}
         <div className="avviso avviso-danger" role="alert">
           <Icona nome="attenzione" />
           <div>
@@ -70,18 +86,34 @@ export function AreaMedico() {
       </div>
     );
   }
-  return <VistaMedico dati={car.dati} medicoId={medicoId} principale={profilo.principale} onCambiModificati={ricaricaCambi} />;
+  return (
+    <VistaMedico
+      dati={car.dati}
+      medicoId={medicoId}
+      principale={principale}
+      base={base}
+      soloLettura={soloLettura}
+      intestazione={intestazione}
+      onCambiModificati={ricaricaCambi}
+    />
+  );
 }
 
 function VistaMedico({
   dati,
   medicoId,
   principale,
+  base,
+  soloLettura,
+  intestazione,
   onCambiModificati,
 }: {
   dati: Dati;
   medicoId: string;
   principale: boolean;
+  base: string;
+  soloLettura: boolean;
+  intestazione?: ReactNode;
   onCambiModificati: () => Promise<void>;
 }) {
   const servizi = useServizi();
@@ -121,7 +153,7 @@ function VistaMedico({
 
   const vaiA = (am: AnnoMese) => {
     setSelezionato(null);
-    naviga(`/turni/${chiaveMese(am)}`);
+    naviga(`${base}/${chiaveMese(am)}`);
   };
   const prec = aggiungiMesi(corrente, -1);
   const succ = aggiungiMesi(corrente, 1);
@@ -150,7 +182,7 @@ function VistaMedico({
       giorno={giornoSel}
       sedi={dati.sedi}
       nomi={nomi}
-      puoModificare={principale && vista.tipo !== 'previsione'}
+      puoModificare={!soloLettura && principale && vista.tipo !== 'previsione'}
       onCedi={(giorno, voce) => setRichiesta({ tipo: 'cedi', giorno, voce })}
       onRicevuto={(giorno) => setRichiesta({ tipo: 'ricevuto', giorno })}
       onAnnulla={setDaAnnullare}
@@ -159,6 +191,7 @@ function VistaMedico({
 
   return (
     <div className="pagina pagina-medico">
+      {intestazione}
       <div className="barra-mese">
         <div className="barra-mese-titolo">
           <h1 className="titolo-mese" aria-live="polite">
@@ -207,7 +240,12 @@ function VistaMedico({
           <span>Nessun turno pubblicato per questo mese.</span>
         </div>
       )}
-      {!principale && (
+      {soloLettura && (
+        <p className="nota nota-sola-lettura">
+          <Icona nome="lucchetto" piccola /> I cambi turno sono privati del medico e non sono visibili qui.
+        </p>
+      )}
+      {!soloLettura && !principale && (
         <p className="nota nota-sola-lettura">
           <Icona nome="lucchetto" piccola /> Account secondario: i cambi turno si inseriscono dall’account principale.
         </p>
@@ -224,10 +262,10 @@ function VistaMedico({
           {desktop && dettaglio}
           <CardWeekend vista={vista} />
           <div className="metriche">
-            <CardOre vista={vista} />
+            <CardOre vista={vista} senzaCambi={soloLettura} />
             <CardReperibilita vista={vista} />
           </div>
-          <CardCambi vista={vista} nomi={nomi} />
+          {!soloLettura && <CardCambi vista={vista} nomi={nomi} />}
         </aside>
       </div>
 

@@ -12,7 +12,7 @@ function dettaglioParziale(s: StatoGiorno): string | undefined {
   return s.liberoDiGiorno ? 'libero di giorno' : 'libero di notte';
 }
 
-export function CardOre({ vista }: { vista: MeseVista }) {
+export function CardOre({ vista, senzaCambi = false }: { vista: MeseVista; senzaCambi?: boolean }) {
   const stima = vista.tipo === 'previsione';
   const { M, P, N } = vista.conteggioFasce;
   return (
@@ -22,7 +22,7 @@ export function CardOre({ vista }: { vista: MeseVista }) {
           <h2 id="titolo-ore" className="card-titolo">
             Ore del mese
           </h2>
-          {stima ? <span className="etichetta">Stima</span> : <span className="etichetta etichetta-cambio">Cambi inclusi</span>}
+          {stima ? <span className="etichetta">Stima</span> : senzaCambi ? <span className="etichetta">Da Excel, senza cambi</span> : <span className="etichetta etichetta-cambio">Cambi inclusi</span>}
         </div>
         <p className="metrica-valore num">
           {vista.tipo === 'vuoto' ? '—' : vista.ore}

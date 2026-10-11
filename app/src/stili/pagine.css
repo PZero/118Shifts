@@ -402,3 +402,6 @@ main#contenuto { flex: 1; outline: none; }
 .avanzamento-barra { height: 6px; border-radius: 3px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
 .avanzamento-barra > div { height: 100%; background: var(--info); transition: width .3s; }
 .nota-caricamento { margin: 0 0 8px; }
+
+.link-medico { color: inherit; text-decoration: none; font-weight: inherit; }
+.link-medico:hover, .link-medico:focus-visible { text-decoration: underline; color: var(--accent, inherit); }
