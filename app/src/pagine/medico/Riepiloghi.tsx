@@ -70,9 +70,27 @@ function RigaStato({ s, titolo }: { s: StatoGiorno; titolo?: string }) {
   );
 }
 
+/** Raggruppa sabato e domenica dello stesso weekend (ai bordi del mese può esserci un giorno solo). */
+function weekendRaggruppati(giorni: StatoGiorno[]): StatoGiorno[][] {
+  const gruppi = new Map<string, StatoGiorno[]>();
+  for (const s of [...giorni].sort((a, b) => a.data.localeCompare(b.data))) {
+    const d = new Date(`${s.data}T12:00:00Z`);
+    if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() - 1); // domenica → chiave del sabato
+    const chiave = d.toISOString().slice(0, 10);
+    gruppi.set(chiave, [...(gruppi.get(chiave) ?? []), s]);
+  }
+  return [...gruppi.values()];
+}
+
+function statoWeekend(g: StatoGiorno[]): Stato {
+  if (g.every((s) => s.stato === 'libero')) return 'libero';
+  if (g.every((s) => s.stato === 'lavorato')) return 'lavorato';
+  return 'parziale';
+}
+
 export function CardWeekend({ vista }: { vista: MeseVista }) {
   const { sabati, domeniche, festivita, conteggi } = vista.weekend;
-  const giorniWeekend = [...sabati, ...domeniche].sort((a, b) => a.data.localeCompare(b.data));
+  const weekend = weekendRaggruppati([...sabati, ...domeniche]);
   const previsione = vista.tipo === 'previsione';
   return (
     <section className="card" aria-labelledby="titolo-weekend">
@@ -97,9 +115,15 @@ export function CardWeekend({ vista }: { vista: MeseVista }) {
             <span>lavorati</span>
           </div>
         </div>
-        <ul className="lista-stati" role="list" aria-label="Sabati e domeniche">
-          {giorniWeekend.map((s) => (
-            <RigaStato key={s.data} s={s} />
+        <ul className="lista-weekend" role="list" aria-label="Weekend del mese">
+          {weekend.map((g) => (
+            <li key={g[0].data} className={`blocco-weekend blocco-weekend-${statoWeekend(g)}`}>
+              <ul className="lista-stati" role="list">
+                {g.map((s) => (
+                  <RigaStato key={s.data} s={s} />
+                ))}
+              </ul>
+            </li>
           ))}
         </ul>
         {festivita.length > 0 && (

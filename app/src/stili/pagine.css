@@ -350,6 +350,12 @@ main#contenuto { flex: 1; outline: none; }
 .riga-stato:last-child { border-bottom: 0; }
 .riga-stato-data { flex: 1; min-width: 0; text-transform: capitalize; }
 .riga-stato-extra { font-size: 13px; }
+/* Weekend: sabato e domenica nello stesso blocco, tinta secondo l'esito del weekend */
+.lista-weekend { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.blocco-weekend { border-radius: var(--radius); padding: 0 12px; background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--border-strong, var(--border)); }
+.blocco-weekend .riga-stato { padding: 8px 0; }
+.blocco-weekend-libero { background: var(--ok-soft); border-left-color: var(--ok); }
+.blocco-weekend-parziale { background: var(--warn-soft); border-left-color: var(--warn); }
 .card-metrica .nota { margin-top: 4px; }
 
 /* ---------- Import Excel ---------- */
