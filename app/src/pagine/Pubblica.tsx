@@ -5,7 +5,8 @@ import { SelettoreTema } from '../ui/Tema';
 
 const FUNZIONI: { icona: NomeIcona; titolo: string; testo: string }[] = [
   { icona: 'calendario', titolo: 'Calendario mensile', testo: 'I tuoi turni giorno per giorno, con fascia oraria e sede. Weekend e festività in evidenza, compresi il 24 giugno e il 4 ottobre.' },
-  { icona: 'scambio', titolo: 'Cambi turno', testo: 'Registra i turni ceduti e ricevuti scegliendo il collega dall’elenco. Restano visibili solo ai tuoi account.' },
+  { icona: 'scambio', titolo: 'Cambi turno', testo: 'Registra i turni ceduti e ricevuti scegliendo il collega dall’elenco. Restano privati: li vedi solo tu e chi ha un tuo accesso in sola lettura.' },
+  { icona: 'utenti', titolo: 'Accesso per i familiari', testo: 'Puoi collegare altri account Google, per esempio di un familiare, in sola lettura: vedono turni e cambi ma non possono modificarli.' },
   { icona: 'orologio', titolo: 'Ore del mese', testo: 'Totale calcolato dall’app con i cambi inclusi. La notte conta 4 ore sul giorno e 8 sul successivo.' },
   { icona: 'stella', titolo: 'Weekend e reperibilità', testo: 'Sabati e domeniche liberi o parzialmente liberi, stato delle festività e giorni di reperibilità RM, RP, RN, RG.' },
   { icona: 'previsione', titolo: 'Previsione', testo: 'Proiezione indicativa del ciclo P-M-N per i 12 mesi successivi all’ultimo mese pubblicato.' },

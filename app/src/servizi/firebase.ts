@@ -30,6 +30,15 @@ export function configurazionePresente(): boolean {
   return Boolean(import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_PROJECT_ID);
 }
 
+/**
+ * Su Firebase Hosting il login passa dallo stesso dominio del sito (/__/auth/handler):
+ * Safari blocca i dati tra domini diversi e, nella PWA installata su iPhone, il redirect perderebbe il login.
+ */
+function dominioAuth(): string | undefined {
+  const host = window.location.host;
+  return /\.(web\.app|firebaseapp\.com)$/.test(host) ? host : import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+}
+
 export function fb(): Istanza {
   if (istanza) return istanza;
   if (!configurazionePresente()) {
@@ -37,7 +46,7 @@ export function fb(): Istanza {
   }
   const app = initializeApp({
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    authDomain: dominioAuth(),
     projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
     appId: import.meta.env.VITE_FIREBASE_APP_ID,
     messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
