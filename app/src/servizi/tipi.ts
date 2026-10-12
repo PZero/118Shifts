@@ -17,6 +17,8 @@ export interface Utente {
   delegato: boolean;
   creatoIl?: Date;
   ultimoAccesso?: Date;
+  /** Presentazione all'amministratore (≤200), modificabile dall'utente solo in attesa. */
+  presentazione?: string;
 }
 
 export interface MedicoAnagrafica {
@@ -111,6 +113,33 @@ export interface CicloMedico {
   cicloManuale: boolean;
 }
 
+/** feedback/{id}: conversazione riservata tra un utente e l'amministratore. */
+export interface Conversazione {
+  id: string;
+  autoreUid: string;
+  autoreNome: string;
+  argomento: string;
+  creatoIl?: Date;
+  aggiornatoIl?: Date;
+  ultimoTesto: string;
+  nonLettoAdmin: boolean;
+  nonLettoUtente: boolean;
+}
+
+/** feedback/{id}/messaggi/{id} */
+export interface MessaggioFeedback {
+  id: string;
+  testo: string;
+  daAdmin: boolean;
+  autoreUid: string;
+  creatoIl?: Date;
+}
+
+export interface AutoreFeedback {
+  uid: string;
+  nome: string;
+}
+
 export interface Servizi {
   // --- area medico ---
   turniMedico(medicoId: string): Promise<MeseDoc[]>;
@@ -123,6 +152,21 @@ export interface Servizi {
   cicloMedico(medicoId: string): Promise<CicloMedico | null>;
   /** Quadro del mese (solo account principali e staff; i secondari ricevono permission-denied); `null` se non esiste. */
   quadro(chiaveMese: string): Promise<QuadroMese | null>;
+
+  // --- feedback (account approvati e admin; i delegati non vedono le chat altrui) ---
+  /** Tempo reale. `uid` = solo le conversazioni di quell'utente; senza `uid` tutte (admin). */
+  osservaConversazioni(uid: string | undefined, cb: (c: Conversazione[]) => void, errore: (e: unknown) => void): () => void;
+  osservaMessaggi(convId: string, cb: (m: MessaggioFeedback[]) => void, errore: (e: unknown) => void): () => void;
+  /** Conversazione + primo messaggio in una batch; restituisce l'id. */
+  creaConversazione(autore: AutoreFeedback, argomento: string, testo: string): Promise<string>;
+  /** Messaggio + aggiornamento della conversazione in una batch. */
+  inviaMessaggio(conv: Conversazione, autore: AutoreFeedback, testo: string, daAdmin: boolean): Promise<void>;
+  /** Mette a "letto" solo il flag della propria parte. */
+  segnaLetta(convId: string, comeAdmin: boolean): Promise<void>;
+  /** Cancella i messaggi a blocchi e poi la conversazione. */
+  eliminaConversazione(convId: string): Promise<void>;
+  /** users/{uid}.presentazione: consentito solo finché l'account è in attesa. */
+  salvaPresentazione(uid: string, testo: string): Promise<void>;
 
   // --- gestione (admin e delegati) ---
   osservaInAttesa(cb: (numero: number) => void): () => void;

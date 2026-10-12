@@ -16,6 +16,14 @@
         { "fieldPath": "creatoIl", "order": "ASCENDING" }
       ]
     }
+    ,{
+      "collectionGroup": "feedback",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "autoreUid", "order": "ASCENDING" },
+        { "fieldPath": "aggiornatoIl", "order": "DESCENDING" }
+      ]
+    }
   ],
   "fieldOverrides": []
 }

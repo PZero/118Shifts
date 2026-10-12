@@ -10,6 +10,7 @@ import {
   getDoc,
   getDocs,
   onSnapshot,
+  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -23,12 +24,15 @@ import {
 } from 'firebase/firestore';
 import { accessoDiOggi } from '../domain/accessi';
 import { scomponi } from '../domain/date';
+import { anteprima } from '../domain/feedback';
 import { costruisciQuadro, type GiorniQuadro } from '../domain/quadro';
 import { fb } from './firebase';
 import {
   SEDI_PREDEFINITE,
   type CambioDoc,
+  type Conversazione,
   type MedicoAnagrafica,
+  type MessaggioFeedback,
   type MeseDoc,
   type MesePubblicato,
   type Servizi,
@@ -56,6 +60,7 @@ export function utenteDaDoc(uid: string, d: DocumentData): Utente {
   if (c) u.creatoIl = c;
   const a = data(d.ultimoAccesso);
   if (a) u.ultimoAccesso = a;
+  if (typeof d.presentazione === 'string' && d.presentazione) u.presentazione = d.presentazione;
   return u;
 }
 
@@ -67,6 +72,25 @@ export function registraAccesso(uid: string, ultimoAccesso: Date | undefined): v
   } catch {
     /* mai bloccare l'app */
   }
+}
+
+const STIMA = { serverTimestamps: 'estimate' } as const;
+
+function conversazioneDaDoc(id: string, d: DocumentData): Conversazione {
+  const c: Conversazione = {
+    id,
+    autoreUid: String(d.autoreUid ?? ''),
+    autoreNome: String(d.autoreNome ?? ''),
+    argomento: String(d.argomento ?? ''),
+    ultimoTesto: String(d.ultimoTesto ?? ''),
+    nonLettoAdmin: d.nonLettoAdmin === true,
+    nonLettoUtente: d.nonLettoUtente === true,
+  };
+  const creato = data(d.creatoIl);
+  if (creato) c.creatoIl = creato;
+  const agg = data(d.aggiornatoIl);
+  if (agg) c.aggiornatoIl = agg;
+  return c;
 }
 
 function medicoDaDoc(id: string, d: DocumentData): MedicoAnagrafica {
@@ -251,6 +275,95 @@ export function creaServiziFirestore(): Servizi {
       } catch {
         return null;
       }
+    },
+
+    osservaConversazioni(uid, cb, errore) {
+      const ordine = orderBy('aggiornatoIl', 'desc');
+      const q = uid
+        ? query(collection(db, 'feedback'), where('autoreUid', '==', uid), ordine)
+        : query(collection(db, 'feedback'), ordine);
+      return onSnapshot(q, (snap) => cb(snap.docs.map((s) => conversazioneDaDoc(s.id, s.data(STIMA)))), errore);
+    },
+
+    osservaMessaggi(convId, cb, errore) {
+      const q = query(collection(db, 'feedback', convId, 'messaggi'), orderBy('creatoIl', 'asc'));
+      return onSnapshot(
+        q,
+        (snap) =>
+          cb(
+            snap.docs.map((s): MessaggioFeedback => {
+              const d = s.data(STIMA);
+              const m: MessaggioFeedback = { id: s.id, testo: String(d.testo ?? ''), daAdmin: d.daAdmin === true, autoreUid: String(d.autoreUid ?? '') };
+              const creato = data(d.creatoIl);
+              if (creato) m.creatoIl = creato;
+              return m;
+            }),
+          ),
+        errore,
+      );
+    },
+
+    async creaConversazione(autore, argomento, testo) {
+      const batch = writeBatch(db);
+      const ref = doc(collection(db, 'feedback'));
+      const t = testo.trim();
+      batch.set(ref, {
+        autoreUid: autore.uid,
+        autoreNome: autore.nome.slice(0, 100),
+        argomento: argomento.trim(),
+        creatoIl: serverTimestamp(),
+        aggiornatoIl: serverTimestamp(),
+        ultimoTesto: anteprima(t),
+        nonLettoAdmin: true,
+        nonLettoUtente: false,
+      });
+      batch.set(doc(collection(ref, 'messaggi')), {
+        testo: t,
+        daAdmin: false,
+        autoreUid: autore.uid,
+        convAutoreUid: autore.uid,
+        creatoIl: serverTimestamp(),
+      });
+      await batch.commit();
+      return ref.id;
+    },
+
+    async inviaMessaggio(conv, autore, testo, daAdmin) {
+      const batch = writeBatch(db);
+      const ref = doc(db, 'feedback', conv.id);
+      const t = testo.trim();
+      batch.set(doc(collection(ref, 'messaggi')), {
+        testo: t,
+        daAdmin,
+        autoreUid: autore.uid,
+        convAutoreUid: conv.autoreUid,
+        creatoIl: serverTimestamp(),
+      });
+      batch.update(ref, {
+        aggiornatoIl: serverTimestamp(),
+        ultimoTesto: anteprima(t),
+        ...(daAdmin ? { nonLettoUtente: true } : { nonLettoAdmin: true }),
+      });
+      await batch.commit();
+    },
+
+    async segnaLetta(convId, comeAdmin) {
+      await updateDoc(doc(db, 'feedback', convId), comeAdmin ? { nonLettoAdmin: false } : { nonLettoUtente: false });
+    },
+
+    async eliminaConversazione(convId) {
+      const ref = doc(db, 'feedback', convId);
+      const msgs = await getDocs(collection(ref, 'messaggi'));
+      for (let i = 0; i < msgs.docs.length; i += LIMITE_BATCH) {
+        const batch = writeBatch(db);
+        msgs.docs.slice(i, i + LIMITE_BATCH).forEach((m) => batch.delete(m.ref));
+        await batch.commit();
+      }
+      await deleteDoc(ref);
+    },
+
+    async salvaPresentazione(uid, testo) {
+      await updateDoc(doc(db, 'users', uid), { presentazione: testo.trim() });
     },
 
     osservaInAttesa(cb) {

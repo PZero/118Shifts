@@ -632,3 +632,213 @@ describe("Quadro mensile", () => {
     await assertFails(setDoc(doc(d, "quadro/2026-11"), { ...quadroValido(), importId: 5 }));
   });
 });
+
+// ---------- Feedback e presentazione ----------
+describe("Feedback (chat medico-admin)", () => {
+  const conv = (uid, over = {}) => ({
+    autoreUid: uid, autoreNome: "Medico Prova", argomento: "Un problema",
+    creatoIl: serverTimestamp(), aggiornatoIl: serverTimestamp(),
+    ultimoTesto: "ciao", nonLettoAdmin: true, nonLettoUtente: false, ...over,
+  });
+  const msg = (uid, over = {}) => ({
+    testo: "ciao", daAdmin: false, autoreUid: uid, convAutoreUid: uid,
+    creatoIl: serverTimestamp(), ...over,
+  });
+  async function seed() {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const f = ctx.firestore();
+      for (const u of [UID.princA, UID.secA, UID.deleg]) {
+        await setDoc(doc(f, `feedback/c_${u}`), conv(u, { creatoIl: T0, aggiornatoIl: T0 }));
+        await setDoc(doc(f, `feedback/c_${u}/messaggi/m1`), msg(u, { creatoIl: T0 }));
+      }
+      // messaggio orfano (conversazione assente)
+      await setDoc(doc(f, "feedback/orfana/messaggi/m1"), msg(UID.princA, { creatoIl: T0 }));
+    });
+  }
+
+  it("F1 creazione conversazione + primo messaggio in batch: principale, secondario, delegato", async () => {
+    for (const u of [UID.princA, UID.secA, UID.deleg]) {
+      const d = db(u);
+      const b = writeBatch(d);
+      b.set(doc(d, `feedback/n_${u}`), conv(u));
+      b.set(doc(d, `feedback/n_${u}/messaggi/m1`), msg(u));
+      await assertSucceeds(b.commit());
+    }
+  });
+  it("F2 creazione negata: attesa, disabilitato, medico non attivo, anonimo, admin, altro uid", async () => {
+    for (const u of [UID.attesa, UID.disab, UID.inatt, UID.admin]) {
+      await assertFails(setDoc(doc(db(u), "feedback/x"), conv(u)));
+    }
+    await assertFails(setDoc(doc(env.unauthenticatedContext().firestore(), "feedback/x"), conv(UID.princA)));
+    await assertFails(setDoc(doc(db(UID.princA), "feedback/x"), conv(UID.secA)));
+  });
+  it("F3 creazione: campi non validi", async () => {
+    const d = db(UID.princA);
+    const casi = [
+      { nonLettoAdmin: false }, { nonLettoUtente: true }, { aggiornatoIl: T0 }, { creatoIl: T0 },
+      { argomento: "" }, { argomento: "x".repeat(81) }, { autoreNome: "" }, { ultimoTesto: "x".repeat(121) },
+      { extra: 1 }, { argomento: 5 },
+    ];
+    for (const [i, c] of casi.entries()) {
+      await assertFails(setDoc(doc(d, `feedback/bad${i}`), conv(UID.princA, c)));
+    }
+  });
+  it("F4 lettura: titolare (principale, secondario, delegato come medico) e admin; query del medico", async () => {
+    await seed();
+    for (const u of [UID.princA, UID.secA, UID.deleg]) {
+      await assertSucceeds(getDoc(doc(db(u), `feedback/c_${u}`)));
+      await assertSucceeds(getDocs(query(collection(db(u), "feedback"), where("autoreUid", "==", u))));
+      await assertSucceeds(getDocs(collection(db(u), `feedback/c_${u}/messaggi`)));
+      await assertSucceeds(getDocs(query(collection(db(u), `feedback/c_${u}/messaggi`), where("convAutoreUid", "==", u))));
+    }
+    await assertSucceeds(getDocs(collection(db(UID.admin), "feedback")));
+    await assertSucceeds(getDocs(collection(db(UID.admin), `feedback/c_${UID.princA}/messaggi`)));
+  });
+  it("F5 lettura negata: delegato su chat altrui, altri medici, attesa, disabilitato, anonimo", async () => {
+    await seed();
+    const t = `feedback/c_${UID.princA}`;
+    for (const u of [UID.deleg, UID.secA, UID.princC, UID.attesa, UID.disab, UID.inatt]) {
+      await assertFails(getDoc(doc(db(u), t)));
+      await assertFails(getDoc(doc(db(u), `${t}/messaggi/m1`)));
+      await assertFails(getDocs(collection(db(u), "feedback")));
+    }
+    await assertFails(getDocs(query(collection(db(UID.deleg), "feedback"), where("autoreUid", "==", UID.princA))));
+    await assertFails(getDocs(collection(db(UID.deleg), `${t}/messaggi`)));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), t)));
+  });
+  it("F6 account disabilitato non legge nemmeno le proprie chat", async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "feedback/d1"), conv(UID.disab, { creatoIl: T0, aggiornatoIl: T0 }));
+    });
+    await assertFails(getDoc(doc(db(UID.disab), "feedback/d1")));
+  });
+  it("F7 update conversazione: titolare", async () => {
+    await seed();
+    const r = doc(db(UID.princA), `feedback/c_${UID.princA}`);
+    await assertSucceeds(updateDoc(r, { aggiornatoIl: serverTimestamp(), ultimoTesto: "nuovo", nonLettoAdmin: true }));
+    await assertFails(updateDoc(r, { nonLettoAdmin: false }));
+    await assertFails(updateDoc(r, { nonLettoUtente: true }));
+    await assertFails(updateDoc(r, { argomento: "altro" }));
+    await assertFails(updateDoc(r, { autoreUid: UID.secA }));
+    await assertFails(updateDoc(r, { autoreNome: "Z" }));
+    await assertFails(updateDoc(r, { creatoIl: serverTimestamp() }));
+    await assertFails(updateDoc(r, { aggiornatoIl: T0 }));
+    await assertFails(updateDoc(r, { ultimoTesto: "senza data" }));
+    await assertFails(updateDoc(r, { ultimoTesto: "x".repeat(121), aggiornatoIl: serverTimestamp() }));
+    await assertFails(updateDoc(doc(db(UID.secA), `feedback/c_${UID.princA}`), { nonLettoAdmin: true, aggiornatoIl: serverTimestamp() }));
+    await assertFails(updateDoc(doc(db(UID.deleg), `feedback/c_${UID.princA}`), { nonLettoAdmin: true, aggiornatoIl: serverTimestamp() }));
+  });
+  it("F8 update conversazione: titolare azzera il proprio flag senza toccare aggiornatoIl", async () => {
+    await seed();
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), `feedback/c_${UID.secA}`), { nonLettoUtente: true });
+    });
+    await assertSucceeds(updateDoc(doc(db(UID.secA), `feedback/c_${UID.secA}`), { nonLettoUtente: false }));
+  });
+  it("F9 update conversazione: admin simmetrico", async () => {
+    await seed();
+    const r = doc(db(UID.admin), `feedback/c_${UID.princA}`);
+    await assertSucceeds(updateDoc(r, { aggiornatoIl: serverTimestamp(), ultimoTesto: "risposta", nonLettoUtente: true }));
+    await assertSucceeds(updateDoc(r, { nonLettoAdmin: false }));
+    await assertFails(updateDoc(r, { nonLettoUtente: false }));
+    await assertFails(updateDoc(r, { nonLettoAdmin: true }));
+    await assertFails(updateDoc(r, { argomento: "altro" }));
+    await assertFails(updateDoc(r, { autoreUid: UID.admin }));
+    await assertFails(updateDoc(r, { ultimoTesto: "senza data" }));
+  });
+  it("F10 messaggi: aggiunta del titolare e dell'admin su conversazione esistente (batch)", async () => {
+    await seed();
+    const t = `feedback/c_${UID.princA}`;
+    let d = db(UID.princA);
+    let b = writeBatch(d);
+    b.set(doc(d, `${t}/messaggi/m2`), msg(UID.princA));
+    b.update(doc(d, t), { aggiornatoIl: serverTimestamp(), ultimoTesto: "ciao", nonLettoAdmin: true });
+    await assertSucceeds(b.commit());
+    d = db(UID.admin);
+    b = writeBatch(d);
+    b.set(doc(d, `${t}/messaggi/m3`), msg(UID.admin, { daAdmin: true, convAutoreUid: UID.princA }));
+    b.update(doc(d, t), { aggiornatoIl: serverTimestamp(), ultimoTesto: "r", nonLettoUtente: true });
+    await assertSucceeds(b.commit());
+  });
+  it("F11 messaggi: spoofing e campi non validi", async () => {
+    await seed();
+    const t = `feedback/c_${UID.princA}`;
+    const p = db(UID.princA);
+    await assertFails(setDoc(doc(p, `${t}/messaggi/x1`), msg(UID.princA, { daAdmin: true })));
+    await assertFails(setDoc(doc(p, `${t}/messaggi/x2`), msg(UID.secA)));
+    await assertFails(setDoc(doc(p, `${t}/messaggi/x3`), msg(UID.princA, { convAutoreUid: UID.secA })));
+    await assertFails(setDoc(doc(p, `${t}/messaggi/x4`), msg(UID.princA, { testo: "" })));
+    await assertFails(setDoc(doc(p, `${t}/messaggi/x5`), msg(UID.princA, { testo: "x".repeat(1001) })));
+    await assertFails(setDoc(doc(p, `${t}/messaggi/x6`), msg(UID.princA, { creatoIl: T0 })));
+    await assertFails(setDoc(doc(p, `${t}/messaggi/x7`), msg(UID.princA, { extra: 1 })));
+    await assertFails(setDoc(doc(db(UID.admin), `${t}/messaggi/x8`), msg(UID.admin, { daAdmin: false, convAutoreUid: UID.princA })));
+    await assertFails(setDoc(doc(db(UID.admin), `${t}/messaggi/x9`), msg(UID.princA, { daAdmin: true, convAutoreUid: UID.princA })));
+    for (const u of [UID.deleg, UID.secA, UID.attesa, UID.disab]) {
+      await assertFails(setDoc(doc(db(u), `${t}/messaggi/y`), msg(u, { convAutoreUid: UID.princA })));
+      await assertFails(setDoc(doc(db(u), `${t}/messaggi/y`), msg(u)));
+    }
+    await assertFails(setDoc(doc(p, "feedback/nulla/messaggi/z"), msg(UID.princA)));
+    await assertFails(setDoc(doc(db(UID.admin), "feedback/nulla/messaggi/z"), msg(UID.admin, { daAdmin: true, convAutoreUid: UID.princA })));
+  });
+  it("F12 messaggi: nessun update", async () => {
+    await seed();
+    const t = `feedback/c_${UID.princA}/messaggi/m1`;
+    await assertFails(updateDoc(doc(db(UID.princA), t), { testo: "x" }));
+    await assertFails(updateDoc(doc(db(UID.admin), t), { testo: "x" }));
+  });
+  it("F13 cancellazione: messaggi poi conversazione; titolare e admin; orfani", async () => {
+    await seed();
+    const t = `feedback/c_${UID.princA}`;
+    const p = db(UID.princA);
+    await assertSucceeds(deleteDoc(doc(p, `${t}/messaggi/m1`)));
+    await assertSucceeds(deleteDoc(doc(p, t)));
+    await assertSucceeds(deleteDoc(doc(p, "feedback/orfana/messaggi/m1")));
+    await assertSucceeds(deleteDoc(doc(db(UID.admin), `feedback/c_${UID.secA}/messaggi/m1`)));
+    await assertSucceeds(deleteDoc(doc(db(UID.admin), `feedback/c_${UID.secA}`)));
+  });
+  it("F14 cancellazione negata: delegato, altro medico, disabilitato, attesa, anonimo", async () => {
+    await seed();
+    const t = `feedback/c_${UID.princA}`;
+    for (const u of [UID.deleg, UID.secA, UID.disab, UID.attesa]) {
+      await assertFails(deleteDoc(doc(db(u), t)));
+      await assertFails(deleteDoc(doc(db(u), `${t}/messaggi/m1`)));
+      await assertFails(deleteDoc(doc(db(u), "feedback/orfana/messaggi/m1")));
+    }
+    await assertFails(deleteDoc(doc(env.unauthenticatedContext().firestore(), t)));
+  });
+});
+
+describe("Presentazione in attesa di approvazione", () => {
+  const nuovoDoc = (over = {}) => ({
+    email: `${UID.nuovo}@example.test`, nome: "Nuovo Utente", stato: "attesa",
+    principale: false, delegato: false, creatoIl: serverTimestamp(), ...over,
+  });
+  it("PR1 creazione con presentazione ammessa", async () => {
+    await assertSucceeds(setDoc(doc(db(UID.nuovo), `users/${UID.nuovo}`), nuovoDoc({ presentazione: "Sono il dott. Rossi" })));
+  });
+  it("PR2 creazione: presentazione troppo lunga o non stringa negata", async () => {
+    await assertFails(setDoc(doc(db(UID.nuovo), `users/${UID.nuovo}`), nuovoDoc({ presentazione: "x".repeat(201) })));
+    await assertFails(setDoc(doc(db(UID.nuovo), `users/${UID.nuovo}`), nuovoDoc({ presentazione: 5 })));
+  });
+  it("PR3 in attesa: l'utente modifica solo la presentazione", async () => {
+    const r = doc(db(UID.attesa), `users/${UID.attesa}`);
+    await assertSucceeds(updateDoc(r, { presentazione: "ciao" }));
+    await assertSucceeds(updateDoc(r, { presentazione: "x".repeat(200) }));
+    await assertFails(updateDoc(r, { presentazione: "x".repeat(201) }));
+    await assertFails(updateDoc(r, { presentazione: "ok", stato: "approvato" }));
+    await assertFails(updateDoc(r, { presentazione: "ok", nome: "Altro" }));
+  });
+  it("PR4 approvato o disabilitato: presentazione non modificabile dall'utente", async () => {
+    for (const u of [UID.secA, UID.disab, UID.princA]) {
+      await assertFails(updateDoc(doc(db(u), `users/${u}`), { presentazione: "ciao" }));
+    }
+  });
+  it("PR5 admin e delegato leggono la presentazione; altri non scrivono quella altrui", async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), `users/${UID.attesa}`), { presentazione: "ciao" });
+    });
+    await assertSucceeds(getDoc(doc(db(UID.admin), `users/${UID.attesa}`)));
+    await assertSucceeds(getDoc(doc(db(UID.deleg), `users/${UID.attesa}`)));
+    await assertFails(updateDoc(doc(db(UID.secA), `users/${UID.attesa}`), { presentazione: "x" }));
+  });
+});

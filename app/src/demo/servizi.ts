@@ -2,11 +2,14 @@
 // Questo modulo è importato solo da demo/DemoApp.tsx, a sua volta caricato solo se import.meta.env.DEV.
 
 import { aggiungiMesi, chiaveMese, dataISO, giorniNelMese, type AnnoMese } from '../domain/date';
+import { anteprima } from '../domain/feedback';
 import { CICLO } from '../domain/proiezione';
 import { costruisciQuadro } from '../domain/quadro';
 import {
   SEDI_PREDEFINITE,
   type CambioDoc,
+  type Conversazione,
+  type MessaggioFeedback,
   type Importazione,
   type MedicoAnagrafica,
   type MeseDoc,
@@ -104,9 +107,37 @@ export function creaServiziDemo(): Servizi {
     { uid: 'demo-uid', email: 'rossi.demo@esempio.invalid', nome: 'Rossi Demo', stato: 'approvato', medicoId: 'demo-1', principale: true, delegato: true, ultimoAccesso: giorniFa(0) },
     { uid: 'demo-uid-2', email: 'rossi.demo.2@esempio.invalid', nome: 'Rossi Demo (secondo account)', stato: 'approvato', medicoId: 'demo-1', principale: false, delegato: false, ultimoAccesso: giorniFa(20) },
     { uid: 'demo-uid-3', email: 'bianchi.demo@esempio.invalid', nome: 'Bianchi Demo', stato: 'approvato', medicoId: 'demo-2', principale: true, delegato: false, ultimoAccesso: giorniFa(1) },
-    { uid: 'demo-uid-4', email: 'nuovo.demo@esempio.invalid', nome: 'Nuovo Utente Demo', stato: 'attesa', principale: false, delegato: false },
+    { uid: 'demo-uid-4', email: 'nuovo.demo@esempio.invalid', nome: 'Nuovo Utente Demo', stato: 'attesa', principale: false, delegato: false, presentazione: 'Sono la moglie del dr Bianchi (account per consultare i turni insieme a lui).' },
     { uid: 'demo-uid-5', email: 'ex.demo@esempio.invalid', nome: 'Ex Utente Demo', stato: 'disabilitato', medicoId: 'demo-5', principale: false, delegato: false },
   ];
+
+  // Feedback inventato: due conversazioni del medico demo e una di un collega (visibile solo all'admin).
+  const oreFa = (n: number) => new Date(Date.now() - n * 3_600_000);
+  let conversazioni: Conversazione[] = [
+    { id: 'f1', autoreUid: 'demo-uid', autoreNome: 'Rossi Demo', argomento: 'Notifica prima del turno', creatoIl: oreFa(30), aggiornatoIl: oreFa(3), ultimoTesto: 'Buona idea, la valuto per la prossima versione.', nonLettoAdmin: false, nonLettoUtente: true },
+    { id: 'f2', autoreUid: 'demo-uid', autoreNome: 'Rossi Demo', argomento: 'Colori del calendario', creatoIl: oreFa(80), aggiornatoIl: oreFa(70), ultimoTesto: 'Grazie, tutto chiaro.', nonLettoAdmin: false, nonLettoUtente: false },
+    { id: 'f3', autoreUid: 'demo-uid-3', autoreNome: 'Bianchi Demo', argomento: 'Esportare i turni in PDF', creatoIl: oreFa(5), aggiornatoIl: oreFa(5), ultimoTesto: 'Sarebbe utile poter stampare il mese.', nonLettoAdmin: true, nonLettoUtente: false },
+  ];
+  const messaggiFeedback = new Map<string, MessaggioFeedback[]>([
+    ['f1', [
+      { id: 'm1', testo: 'Sarebbe comodo ricevere un promemoria la sera prima di un turno di notte.', daAdmin: false, autoreUid: 'demo-uid', creatoIl: oreFa(30) },
+      { id: 'm2', testo: 'Buona idea, la valuto per la prossima versione.', daAdmin: true, autoreUid: 'admin-demo', creatoIl: oreFa(3) },
+    ]],
+    ['f2', [
+      { id: 'm3', testo: 'Il sabato si distingue poco dai giorni feriali nel tema scuro.', daAdmin: false, autoreUid: 'demo-uid', creatoIl: oreFa(80) },
+      { id: 'm4', testo: 'Ho rivisto la tinta: ora dovrebbe leggersi meglio.', daAdmin: true, autoreUid: 'admin-demo', creatoIl: oreFa(72) },
+      { id: 'm5', testo: 'Grazie, tutto chiaro.', daAdmin: false, autoreUid: 'demo-uid', creatoIl: oreFa(70) },
+    ]],
+    ['f3', [{ id: 'm6', testo: 'Sarebbe utile poter stampare il mese.', daAdmin: false, autoreUid: 'demo-uid-3', creatoIl: oreFa(5) }]],
+  ]);
+  const ascoltatori = new Set<() => void>();
+  const notifica = () => ascoltatori.forEach((f) => f());
+  const osserva = (calcola: () => void) => {
+    ascoltatori.add(calcola);
+    calcola();
+    return () => void ascoltatori.delete(calcola);
+  };
+  const ordineRecente = (l: Conversazione[]) => [...l].sort((a, b) => (b.aggiornatoIl?.getTime() ?? 0) - (a.aggiornatoIl?.getTime() ?? 0));
 
   const aggiornaUtente = (uid: string, mod: Partial<Utente>) => {
     utenti = utenti.map((u) => (u.uid === uid ? { ...u, ...mod } : u));
@@ -133,6 +164,38 @@ export function creaServiziDemo(): Servizi {
       });
       if (voci.length === 0) return null;
       return { chiave, giorni: copia(costruisciQuadro(voci)), caricatoIl: new Date() };
+    },
+
+    osservaConversazioni: (uid, cb) =>
+      osserva(() => cb(structuredClone(ordineRecente(conversazioni.filter((c) => !uid || c.autoreUid === uid))))),
+    osservaMessaggi: (convId, cb) => osserva(() => cb(structuredClone(messaggiFeedback.get(convId) ?? []))),
+    async creaConversazione(autore, argomento, testo) {
+      const id = `f${++seq + 10}`;
+      const adesso = new Date();
+      conversazioni.push({ id, autoreUid: autore.uid, autoreNome: autore.nome, argomento: argomento.trim(), creatoIl: adesso, aggiornatoIl: adesso, ultimoTesto: anteprima(testo), nonLettoAdmin: true, nonLettoUtente: false });
+      messaggiFeedback.set(id, [{ id: `m${++seq + 10}`, testo: testo.trim(), daAdmin: false, autoreUid: autore.uid, creatoIl: adesso }]);
+      notifica();
+      return id;
+    },
+    async inviaMessaggio(conv, autore, testo, daAdmin) {
+      const adesso = new Date();
+      messaggiFeedback.set(conv.id, [...(messaggiFeedback.get(conv.id) ?? []), { id: `m${++seq + 10}`, testo: testo.trim(), daAdmin, autoreUid: autore.uid, creatoIl: adesso }]);
+      conversazioni = conversazioni.map((c) =>
+        c.id === conv.id ? { ...c, aggiornatoIl: adesso, ultimoTesto: anteprima(testo), ...(daAdmin ? { nonLettoUtente: true } : { nonLettoAdmin: true }) } : c,
+      );
+      notifica();
+    },
+    async segnaLetta(convId, comeAdmin) {
+      conversazioni = conversazioni.map((c) => (c.id === convId ? { ...c, ...(comeAdmin ? { nonLettoAdmin: false } : { nonLettoUtente: false }) } : c));
+      notifica();
+    },
+    async eliminaConversazione(convId) {
+      conversazioni = conversazioni.filter((c) => c.id !== convId);
+      messaggiFeedback.delete(convId);
+      notifica();
+    },
+    async salvaPresentazione(uid, testo) {
+      aggiornaUtente(uid, { presentazione: testo.trim() });
     },
 
     osservaInAttesa(cb) {

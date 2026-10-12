@@ -5,6 +5,7 @@ import { Redirect, Route, Router, Switch, useLocation } from 'wouter';
 import { Caricamento, Disabilitato, Errore, InAttesa } from './pagine/Stati';
 import { AreaGestione } from './pagine/gestione/AreaGestione';
 import { AreaMedico } from './pagine/medico/AreaMedico';
+import { FeedbackMedico } from './pagine/feedback/Feedback';
 import { Pubblica } from './pagine/Pubblica';
 import { configurazionePresente } from './servizi/firebase';
 import { isStaff, useSessione } from './sessione/contesto';
@@ -26,7 +27,7 @@ function Rotte() {
     case 'errore':
       return configurazionePresente() ? <Errore messaggio={sessione.messaggio} /> : <Pubblica />;
     case 'attesa':
-      return <InAttesa email={sessione.utente.email} />;
+      return <InAttesa email={sessione.utente.email} utente={sessione.utente} />;
     case 'disabilitato':
       return <Disabilitato email={sessione.utente.email} />;
     case 'attivo': {
@@ -38,6 +39,7 @@ function Rotte() {
         <Guscio>
           <Switch>
             {profilo.medicoId && <Route path="/turni/:mese?" component={AreaMedico} />}
+            {profilo.medicoId && <Route path="/feedback/:id?" component={FeedbackMedico} />}
             {staff && <Route path="/gestione/*?" component={AreaGestione} />}
             <Route>
               <Redirect to={profilo.medicoId ? '/turni' : '/gestione'} replace />

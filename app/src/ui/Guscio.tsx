@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import { isStaff, useServizi, useSessione, useProfilo } from '../sessione/contesto';
+import { useFeedback } from '../pagine/feedback/contestoFeedback';
+import { ProviderFeedback } from '../pagine/feedback/ProviderFeedback';
 import { Dialogo } from './Dialogo';
 import { Icona, Marchio, type NomeIcona } from './Icona';
 import { SelettoreTema } from './Tema';
@@ -33,16 +35,27 @@ function useInAttesa(attivo: boolean): number {
 }
 
 export function Guscio({ children }: { children: ReactNode }) {
+  return (
+    <ProviderFeedback>
+      <GuscioInterno>{children}</GuscioInterno>
+    </ProviderFeedback>
+  );
+}
+
+function GuscioInterno({ children }: { children: ReactNode }) {
   const profilo = useProfilo();
   const { esci, demo } = useSessione();
   const [percorso] = useLocation();
   const [menu, setMenu] = useState(false);
   const staff = isStaff(profilo);
   const inAttesa = useInAttesa(staff);
+  const { nonLette } = useFeedback();
+  const feedbackAdmin = profilo.admin ? nonLette : 0;
 
   const voci: VoceNav[] = [];
   if (profilo.medicoId) voci.push({ href: '/turni', etichetta: 'I miei turni', icona: 'calendario' });
-  if (staff) voci.push({ href: '/gestione', etichetta: 'Gestione', icona: 'utenti', badge: inAttesa });
+  if (profilo.medicoId) voci.push({ href: '/feedback', etichetta: 'Feedback', icona: 'messaggio', badge: nonLette });
+  if (staff) voci.push({ href: '/gestione', etichetta: 'Gestione', icona: 'utenti', badge: inAttesa + feedbackAdmin });
   const attiva = (href: string) => percorso === href || percorso.startsWith(`${href}/`);
 
   return (
@@ -67,7 +80,7 @@ export function Guscio({ children }: { children: ReactNode }) {
                   <Icona nome={v.icona} />
                   {v.etichetta}
                   {v.badge ? (
-                    <span className="badge" aria-label={`${v.badge} account in attesa`}>
+                    <span className="badge" aria-label={`${v.badge} da vedere`}>
                       {v.badge}
                     </span>
                   ) : null}
@@ -75,9 +88,9 @@ export function Guscio({ children }: { children: ReactNode }) {
               ))}
             </nav>
           )}
-          {voci.length === 1 && staff && inAttesa > 0 && (
-            <Link href="/gestione/account" className="btn btn-fantasma btn-piccolo avviso-attesa">
-              <span className="badge">{inAttesa}</span> in attesa
+          {voci.length === 1 && staff && inAttesa + feedbackAdmin > 0 && (
+            <Link href={inAttesa > 0 ? '/gestione/account' : '/gestione/feedback'} className="btn btn-fantasma btn-piccolo avviso-attesa">
+              <span className="badge">{inAttesa + feedbackAdmin}</span> da vedere
             </Link>
           )}
           <button type="button" className="avatar" onClick={() => setMenu(true)} aria-label={`Account di ${profilo.nome}`} aria-haspopup="dialog">

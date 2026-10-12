@@ -135,6 +135,11 @@ export function Account() {
                     )}
                   </div>
                   <span className="testo-tenue riga-elenco-email">{u.email}</span>
+                  {u.presentazione && (
+                    <blockquote className="presentazione">
+                      <Icona nome="messaggio" piccola /> <span>{u.presentazione}</span>
+                    </blockquote>
+                  )}
                   {medico && (
                     <span className="riga-elenco-medico">
                       <Icona nome="medici" piccola /> {medico.nome} · {u.principale ? 'principale' : 'secondario'}
@@ -300,6 +305,12 @@ function ModuloAssocia({
           <p className="testo-tenue">{utente.email}</p>
         </div>
       </div>
+      {utente.presentazione && (
+        <blockquote className="presentazione presentazione-evidenza">
+          <small>Si è presentato così</small>
+          <p>{utente.presentazione}</p>
+        </blockquote>
+      )}
       <label className="campo">
         <span>Medico dell’anagrafica</span>
         <select className="select" value={medicoId} onChange={(e) => cambiaMedico(e.target.value)} required>

@@ -49,11 +49,13 @@
 - **Chi può darti il cambio** (solo account principali): quando si cede un turno, l'app suggerisce i colleghi con almeno 11 ore di riposo prima dell'inizio e dopo la fine (le reperibilità contano come impegno), secondo l'Excel pubblicato; un tocco sul nome lo seleziona. Resta sempre possibile scegliere qualunque collega dall'elenco.
 - **Più account per medico**: un account principale (che registra i cambi) e account secondari in sola lettura, per esempio per un familiare.
 - **Condivisione del mese come immagine**: un tocco sull'icona di condivisione crea un'immagine del calendario (titolo del mese e griglia, con i cambi già applicati) da inviare come una foto, per esempio su WhatsApp. Nessun link, nessun nome di colleghi.
+- **Feedback e suggerimenti**: conversazioni riservate con l'amministratore, una per argomento (segnalazioni o proposte di nuove funzionalità), con badge dei messaggi non letti. Ciascuna parte può chiudere e cancellare la conversazione. Aperte anche agli account secondari.
 - **Tema chiaro e scuro**, automatico o a scelta.
 - **Installabile** sulla schermata Home di iPhone e Android.
 
 ### Per amministratore e delegati
-- **Approvazione degli accessi**: al primo login l'utente resta in attesa finché non viene associato a un medico.
+- **Approvazione degli accessi**: al primo login l'utente resta in attesa finché non viene associato a un medico; nell'attesa può presentarsi con un breve messaggio (es. «Sono il dr Rossi»), mostrato nella finestra di associazione.
+- **Feedback** (solo amministratore): elenco delle conversazioni dei medici con le non lette in evidenza, risposta, chiusura e cancellazione. I delegati non vi accedono.
 - **Gestione account**: associazione account–medico, account principale e secondari, disabilitazione, con **ultimo accesso** di ogni account e del medico (registrato all'apertura dell'app, al massimo una volta al giorno).
 - **Importazione dell'Excel** dei turni con anteprima e segnalazione dei codici non riconosciuti prima della pubblicazione. Si sceglie un **mese di partenza** (di default il successivo): i fogli precedenti sono ignorati e ogni mese importato **sostituisce completamente** quello già pubblicato (utile per le correzioni).
 - **Mesi pubblicati**: elenco dei mesi caricati con data e numero di medici.
@@ -65,6 +67,7 @@
 - I permessi sono applicati lato server dalle **regole Firestore**, verificate da test automatici.
 - Ogni medico legge solo i propri dati; i cambi sono visibili solo ai suoi account.
 - I turni dei colleghi (card «Chi è di turno con me») sono visibili solo agli account principali dei medici, mai ai familiari (account secondari).
+- Le conversazioni di feedback sono leggibili solo dal loro autore e dall'amministratore (delegati esclusi), come garantito dalle regole.
 - Il file Excel è elaborato **nel browser** di chi lo carica: non transita da server terzi.
 - Nessun dato personale, credenziale o file di turni è presente nel repository.
 

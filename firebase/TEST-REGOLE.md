@@ -1,6 +1,6 @@
 # Prove delle regole Firestore
 
-**Questa checklist è automatizzata** in `tests/regole.test.js` (78 test, stessi codici A1, D1, P1…).
+**Questa checklist è automatizzata** in `tests/regole.test.js` (121 test, stessi codici A1, D1, P1…).
 Resta come documentazione e per eventuali verifiche a mano nel Rules Playground.
 
 ## Come lanciare i test

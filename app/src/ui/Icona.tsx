@@ -36,6 +36,8 @@ const PERCORSI = {
   cerca: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35',
   condividi: 'M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 6l-4-4-4 4M12 2v13',
   oggi: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  messaggio: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
+  invia: 'M22 2 11 13M22 2l-7 20-4-9-9-4z',
 } as const;
 
 export type NomeIcona = keyof typeof PERCORSI;

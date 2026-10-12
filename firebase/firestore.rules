@@ -85,7 +85,7 @@ service cloud.firestore {
 
     // ---------- users ----------
     function userValido(d) {
-      return d.keys().hasOnly(['email', 'nome', 'stato', 'medicoId', 'principale', 'delegato', 'creatoIl', 'ultimoAccesso'])
+      return d.keys().hasOnly(['email', 'nome', 'stato', 'medicoId', 'principale', 'delegato', 'creatoIl', 'ultimoAccesso', 'presentazione'])
         && d.keys().hasAll(['email', 'nome', 'stato', 'principale', 'delegato', 'creatoIl'])
         && d.email is string
         && d.nome is string && d.nome.size() > 0 && d.nome.size() <= 100
@@ -94,6 +94,7 @@ service cloud.firestore {
         && d.delegato is bool
         && d.creatoIl is timestamp
         && (!('ultimoAccesso' in d) || d.ultimoAccesso is timestamp)
+        && (!('presentazione' in d) || (d.presentazione is string && d.presentazione.size() <= 200))
         && (!('medicoId' in d) || (d.medicoId is string && d.medicoId.size() > 0))
         // un account approvato deve essere associato a un medico
         && (d.stato != 'approvato' || 'medicoId' in d);
@@ -116,7 +117,7 @@ service cloud.firestore {
         && request.auth.uid == uid
         && request.auth.token.email is string
         && request.auth.token.email_verified == true
-        && request.resource.data.keys().hasOnly(['email', 'nome', 'stato', 'principale', 'delegato', 'creatoIl'])
+        && request.resource.data.keys().hasOnly(['email', 'nome', 'stato', 'principale', 'delegato', 'creatoIl', 'presentazione'])
         && userValido(request.resource.data)
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.stato == 'attesa'
@@ -140,6 +141,11 @@ service cloud.firestore {
           || (signedIn()
               && request.auth.uid == uid
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome']))
+          // l'utente stesso: solo la presentazione, finche' e' in attesa
+          || (signedIn()
+              && request.auth.uid == uid
+              && resource.data.stato == 'attesa'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['presentazione']))
           // l'utente stesso: solo ultimoAccesso (= ora del server), in qualsiasi stato
           || (signedIn()
               && request.auth.uid == uid
@@ -297,6 +303,88 @@ service cloud.firestore {
       allow update: if isStaff()
         && request.resource.data.autoreUid == resource.data.autoreUid;
       allow delete: if isStaff();
+    }
+
+    // ---------- feedback (chat medico <-> amministratore) ----------
+    // Leggono SOLO il titolare (account approvato, principale o secondario,
+    // anche se delegato) e l'admin. I delegati in quanto staff NON leggono.
+    function convPath(convId) {
+      return /databases/$(database)/documents/feedback/$(convId);
+    }
+
+    function convValida(d) {
+      return d.keys().hasOnly(['autoreUid', 'autoreNome', 'argomento', 'creatoIl', 'aggiornatoIl', 'ultimoTesto', 'nonLettoAdmin', 'nonLettoUtente'])
+        && d.keys().hasAll(['autoreUid', 'autoreNome', 'argomento', 'creatoIl', 'aggiornatoIl', 'ultimoTesto', 'nonLettoAdmin', 'nonLettoUtente'])
+        && d.autoreUid is string
+        && d.autoreNome is string && d.autoreNome.size() >= 1 && d.autoreNome.size() <= 100
+        && d.argomento is string && d.argomento.size() >= 1 && d.argomento.size() <= 80
+        && d.creatoIl is timestamp
+        && d.aggiornatoIl is timestamp
+        && d.ultimoTesto is string && d.ultimoTesto.size() <= 120
+        && d.nonLettoAdmin is bool
+        && d.nonLettoUtente is bool;
+    }
+
+    function convTitolare(d) {
+      return signedIn() && d.autoreUid == request.auth.uid && isApprovato();
+    }
+
+    match /feedback/{convId} {
+      allow read: if (signedIn() && resource.data.autoreUid == request.auth.uid && isApprovato())
+        || isAdmin();
+
+      allow create: if convTitolare(request.resource.data)
+        && convValida(request.resource.data)
+        && request.resource.data.creatoIl == request.time
+        && request.resource.data.aggiornatoIl == request.time
+        && request.resource.data.nonLettoAdmin == true
+        && request.resource.data.nonLettoUtente == false;
+
+      allow update: if convValida(request.resource.data)
+        && !changed(['autoreUid', 'autoreNome', 'argomento', 'creatoIl'])
+        && (!changed(['aggiornatoIl']) || request.resource.data.aggiornatoIl == request.time)
+        && (
+          (convTitolare(resource.data)
+            && (!changed(['nonLettoAdmin']) || request.resource.data.nonLettoAdmin == true)
+            && (!changed(['nonLettoUtente']) || request.resource.data.nonLettoUtente == false)
+            && (!changed(['ultimoTesto']) || changed(['aggiornatoIl'])))
+          || (isAdmin()
+            && (!changed(['nonLettoUtente']) || request.resource.data.nonLettoUtente == true)
+            && (!changed(['nonLettoAdmin']) || request.resource.data.nonLettoAdmin == false)
+            && (!changed(['ultimoTesto']) || changed(['aggiornatoIl'])))
+        );
+
+      allow delete: if (signedIn() && resource.data.autoreUid == request.auth.uid && isApprovato())
+        || isAdmin();
+
+      // convAutoreUid sul messaggio: permessi anche se il genitore e' gia' stato cancellato.
+      match /messaggi/{msgId} {
+        allow read: if (signedIn() && resource.data.get('convAutoreUid', null) == request.auth.uid && isApprovato())
+          || isAdmin()
+          || (signedIn() && exists(convPath(convId))
+              && get(convPath(convId)).data.autoreUid == request.auth.uid && isApprovato());
+
+        allow create: if request.resource.data.keys().hasOnly(['testo', 'daAdmin', 'autoreUid', 'convAutoreUid', 'creatoIl'])
+          && request.resource.data.keys().hasAll(['testo', 'daAdmin', 'autoreUid', 'convAutoreUid', 'creatoIl'])
+          && request.resource.data.testo is string
+          && request.resource.data.testo.size() >= 1 && request.resource.data.testo.size() <= 1000
+          && request.resource.data.daAdmin is bool
+          && request.resource.data.autoreUid == request.auth.uid
+          && request.resource.data.creatoIl == request.time
+          && existsAfter(convPath(convId))
+          && request.resource.data.convAutoreUid == getAfter(convPath(convId)).data.autoreUid
+          && (
+            (request.resource.data.daAdmin == false
+              && request.resource.data.convAutoreUid == request.auth.uid
+              && isApprovato())
+            || (request.resource.data.daAdmin == true && isAdmin())
+          );
+
+        allow update: if false;
+
+        allow delete: if (signedIn() && resource.data.get('convAutoreUid', null) == request.auth.uid && isApprovato())
+          || isAdmin();
+      }
     }
 
     // Nessun'altra raccolta e' accessibile (deny di default).
