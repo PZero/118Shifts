@@ -10,9 +10,38 @@
 
 ## L'app in breve
 
-> Tutte le immagini usano la **modalità demo** con dati inventati: nessun nome o turno reale.
+### A cosa serve
+I turni dei medici del 112 di Genova sono decisi a monte e distribuiti come un unico grande file Excel, un foglio per mese, con tutti i medici e tutte le sedi. Per sapere quando e dove si lavora bisogna aprirlo, cercare la propria riga e interpretare i codici. Ricordarsi poi dei cambi concordati con i colleghi e fare i conti delle ore è un lavoro a parte.
+
+118Shifts fa questo lavoro una volta per tutti. Ogni medico apre l'app dal telefono, come una normale applicazione installata sulla schermata Home, e trova **solo il proprio calendario**: turno di oggi e di domani, sede, orari, festività, weekend liberi, ore del mese e i cambi già applicati. Niente fogli condivisi da scorrere, niente codici da decifrare.
+
+### I turni si caricano una sola volta, per tutti
+L'amministratore (o un delegato) carica il file Excel del mese, o in alternativa uno screenshot della tabella. L'app lo legge **nel browser**, riconosce i medici anche quando il nome è scritto in modi diversi, segnala i codici sconosciuti e mostra un'**anteprima** prima della pubblicazione. Dopo la conferma i turni compaiono subito nel calendario di ogni medico. Se arriva una versione corretta del file basta ricaricarla: il mese viene sostituito per intero.
+
+Oltre ai mesi pubblicati, l'app mostra una **proiezione** della turnazione per i dodici mesi successivi, ben distinta dai turni ufficiali, utile per organizzarsi in anticipo.
+
+### Account principale e account secondari
+Ogni medico ha un **account principale**, uno solo, legato al suo profilo Google. È l'account "operativo": registra i cambi turno, segna le indisponibilità, vede chi è di turno con lui e quali colleghi potrebbero dargli il cambio.
+
+Accanto al principale si possono associare uno o più **account secondari** in sola lettura, pensati per chi vive con il medico, per esempio il coniuge o un familiare che vuole sapere quando sarà a casa. Il secondario vede gli stessi turni e cambi, ma non può modificare nulla né vedere i turni dei colleghi. Così il calendario si condivide in famiglia senza prestare le proprie credenziali.
+
+Nessuno entra da solo: al primo accesso con Google l'utente resta **in attesa** (può lasciare un breve messaggio di presentazione) finché l'amministratore non lo associa al medico giusto, come principale o secondario.
+
+### Cambi turno, privati
+Quando un medico cede o riceve un turno lo registra nell'app: il turno ceduto resta visibile barrato con il nome del collega, quello ricevuto riporta chi l'ha ceduto, e le ore del mese si aggiornano. I cambi sono **privati**: li vedono solo gli account di quel medico. Al momento della cessione l'app suggerisce i colleghi che possono prendere il turno rispettando le **11 ore di riposo** prima e dopo.
+
+### Indisponibilità ed email già pronta
+Prima che i turni del mese successivo vengano decisi, ogni medico può segnare sul calendario i giorni e le fasce (mattino, pomeriggio, notte) in cui **non è disponibile**. L'app prepara il **testo dell'email** con l'elenco ordinato delle date: un tocco lo copia, da incollare nel proprio programma di posta, oppure apre direttamente il client email. L'app non invia niente da sola: il messaggio parte dal medico, come sempre.
+
+Le indisponibilità restano evidenziate anche dopo la pubblicazione dei turni, e un avviso segnala se un turno è finito in una fascia indicata come non disponibile.
+
+### Riservatezza prima di tutto
+Ogni medico vede solo i propri dati. La regola è applicata dal database (regole di sicurezza Firestore), non solo dall'interfaccia. L'accesso avviene solo con Google, i file caricati non lasciano il browser dell'amministratore, e l'app gira interamente sul piano gratuito di Firebase.
 
 ### Su telefono
+
+> Tutte le immagini usano la **modalità demo** con dati inventati: nessun nome o turno reale.
+
 ![Pagina pubblica, calendario del mese e weekend su telefono](docs/screenshot/mobile-medico.png)
 *Pagina di accesso · calendario del mese con turni, sedi, cambi e festività · weekend raggruppati e colorati (libero, parziale, lavorato).*
 
