@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useParams } from 'wouter';
 import { aggiungiMesi, chiaveMese, confrontaMesi, scomponi, type AnnoMese } from '../../domain/date';
+import { uguali, type GiorniIndisponibili } from '../../domain/indisponibilita';
 import { proiezioneMedico } from '../../domain/proiezione';
 import { useProfilo, useServizi } from '../../sessione/contesto';
 import type { CambioDoc, CicloMedico, MeseDoc, NuovoCambio, Sedi, VoceElenco } from '../../servizi/tipi';
@@ -10,6 +11,8 @@ import { Dialogo } from '../../ui/Dialogo';
 import { Icona } from '../../ui/Icona';
 import { dataEstesa, dataNumerica, nomeMese } from '../../ui/etichette';
 import { Calendario } from './Calendario';
+import { CardIndisponibilita, DialogoIndisponibilita } from './Indisponibilita';
+import { costruisciSegni, leggiPreferenzaMostra, salvaPreferenzaMostra, type IndispPerMese } from './indisponibilitaVista';
 import { CardChiConMe, CardOggiDomani } from './CardOggiDomani';
 import { DettaglioGiorno } from './DettaglioGiorno';
 import { DialogoCambio, type RichiestaCambio } from './DialoghiCambio';
@@ -143,6 +146,59 @@ function VistaMedico({
   const nomi = useMemo(() => new Map(dati.elenco.map((m) => [m.id, m.nome])), [dati.elenco]);
   const colleghi = useMemo(() => dati.elenco.filter((m) => m.id !== medicoId), [dati.elenco, medicoId]);
 
+  // Indisponibilità: solo account principale, mai nella vista dello staff.
+  const gestisceIndisp = principale && !soloLettura;
+  const [indisp, setIndisp] = useState<IndispPerMese>({});
+  const salvate = useRef<IndispPerMese>({});
+  const [mostraIndisp, setMostraIndisp] = useState(leggiPreferenzaMostra);
+  const [modificaIndisp, setModificaIndisp] = useState(false);
+  const [giornoIndisp, setGiornoIndisp] = useState<string | null>(null);
+  const [erroreIndisp, setErroreIndisp] = useState<string | null>(null);
+  useEffect(() => {
+    if (!gestisceIndisp) return;
+    let attivo = true;
+    servizi
+      .indisponibilita(medicoId)
+      .then((r) => {
+        if (!attivo) return;
+        salvate.current = r;
+        setIndisp(r);
+      })
+      .catch(() => undefined);
+    return () => {
+      attivo = false;
+    };
+  }, [servizi, medicoId, gestisceIndisp]);
+  const meseSuccessivo = aggiungiMesi(meseOggi, 1);
+  const indispModificabile = gestisceIndisp && confrontaMesi(corrente, meseSuccessivo) === 0;
+  const inModifica = indispModificabile && modificaIndisp;
+  const segni = useMemo(() => (gestisceIndisp && mostraIndisp ? costruisciSegni(indisp, dati.mesi) : undefined), [gestisceIndisp, mostraIndisp, indisp, dati.mesi]);
+  const giorniIndispMese: GiorniIndisponibili = indisp[vista.chiave] ?? {};
+  const ufficialiMese = meseDoc?.giorni ?? {};
+  const salvaIndispMese = async () => {
+    const k = vista.chiave;
+    const nuovi = indisp[k] ?? {};
+    if (uguali(nuovi, salvate.current[k] ?? {})) return;
+    try {
+      await servizi.salvaIndisponibilita(medicoId, k, nuovi);
+      salvate.current = { ...salvate.current, [k]: nuovi };
+      setErroreIndisp(null);
+    } catch (e) {
+      setErroreIndisp(`Indisponibilità non salvate. ${messaggioErroreGenerico(e)}`);
+    }
+  };
+  const cambiaIndispMese = (nuovi: GiorniIndisponibili) => {
+    const k = vista.chiave;
+    setIndisp((r) => {
+      const { [k]: _v, ...resto } = r;
+      return Object.keys(nuovi).length > 0 ? { ...resto, [k]: nuovi } : resto;
+    });
+  };
+  const chiudiIndisp = () => {
+    setGiornoIndisp(null);
+    void salvaIndispMese();
+  };
+
   const desktop = useMedia('(min-width: 1024px)');
   const [selezionato, setSelezionato] = useState<string | null>(null);
   const [richiesta, setRichiesta] = useState<RichiestaCambio | null>(null);
@@ -168,6 +224,14 @@ function VistaMedico({
   };
   // Tocco su un giorno dei mesi adiacenti: si passa a quel mese con il giorno selezionato.
   const seleziona = (data: string) => {
+    if (inModifica) {
+      const { anno, mese } = scomponi(data);
+      if (anno === corrente.anno && mese === corrente.mese) {
+        setSelezionato(data);
+        setGiornoIndisp(data);
+      }
+      return;
+    }
     const { anno, mese } = scomponi(data);
     if (anno === corrente.anno && mese === corrente.mese) return setSelezionato(data);
     const am = { anno, mese };
@@ -317,7 +381,28 @@ function VistaMedico({
 
       <div className="layout-medico">
         <div className="colonna-calendario">
-          <Calendario vista={vista} sedi={dati.sedi} nomi={nomi} selezionato={giornoSel.data} onSeleziona={seleziona} />
+          {gestisceIndisp && (
+            <CardIndisponibilita
+              anno={vista.anno}
+              mese={vista.mese}
+              giorni={giorniIndispMese}
+              ufficiali={ufficialiMese}
+              modificabile={indispModificabile}
+              modifica={inModifica}
+              onModifica={(v) => {
+                setModificaIndisp(v);
+                if (!v) void salvaIndispMese();
+              }}
+              mostra={mostraIndisp}
+              onMostra={(v) => {
+                setMostraIndisp(v);
+                salvaPreferenzaMostra(v);
+              }}
+              nomeMedico={nomi.get(medicoId) ?? ''}
+              errore={erroreIndisp}
+            />
+          )}
+          <Calendario vista={vista} sedi={dati.sedi} nomi={nomi} selezionato={giornoSel.data} onSeleziona={seleziona} segni={segni} inModifica={inModifica} />
           {!desktop && dettaglio}
           <Legenda />
         </div>
@@ -333,6 +418,7 @@ function VistaMedico({
         </aside>
       </div>
 
+      <DialogoIndisponibilita data={giornoIndisp} giorni={giorniIndispMese} ufficiali={ufficialiMese} onCambia={cambiaIndispMese} onChiudi={chiudiIndisp} />
       <DialogoCambio richiesta={richiesta} principale={principale} colleghi={colleghi} sedi={dati.sedi} onChiudi={() => setRichiesta(null)} onConferma={salvaCambio} />
       <Dialogo
         aperto={daAnnullare !== null}

@@ -13,7 +13,7 @@ const SEZIONI: { href: string; etichetta: string; icona: NomeIcona; soloAdmin?: 
   { href: '/gestione/account', etichetta: 'Account', icona: 'utenti' },
   { href: '/gestione/feedback', etichetta: 'Feedback', icona: 'messaggio', soloAdmin: true },
   { href: '/gestione/medici', etichetta: 'Medici', icona: 'medici' },
-  { href: '/gestione/import', etichetta: 'Carica Excel', icona: 'carica' },
+  { href: '/gestione/import', etichetta: 'Carica turni', icona: 'carica' },
   { href: '/gestione/sedi', etichetta: 'Sedi', icona: 'sede' },
 ];
 

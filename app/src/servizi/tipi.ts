@@ -4,6 +4,8 @@
 import type { Cambio } from '../domain/cambi';
 import type { GiorniQuadro } from '../domain/quadro';
 import type { TipoAvviso } from '../domain/excel';
+import type { GiorniIndisponibili } from '../domain/indisponibilita';
+import type { ModelloSerializzato } from '../domain/ocr/modello';
 
 export type StatoAccount = 'attesa' | 'approvato' | 'disabilitato';
 
@@ -152,6 +154,10 @@ export interface Servizi {
   cicloMedico(medicoId: string): Promise<CicloMedico | null>;
   /** Quadro del mese (solo account principali e staff; i secondari ricevono permission-denied); `null` se non esiste. */
   quadro(chiaveMese: string): Promise<QuadroMese | null>;
+  /** Indisponibilità dichiarate (solo account principale): chiave mese -> giorni. Privato del medico. */
+  indisponibilita(medicoId: string): Promise<Record<string, GiorniIndisponibili>>;
+  /** Salva il mese; con `giorni` vuoto cancella il documento. */
+  salvaIndisponibilita(medicoId: string, chiaveMese: string, giorni: GiorniIndisponibili): Promise<void>;
 
   // --- feedback (account approvati e admin; i delegati non vedono le chat altrui) ---
   /** Tempo reale. `uid` = solo le conversazioni di quell'utente; senza `uid` tutte (admin). */
@@ -178,6 +184,10 @@ export interface Servizi {
   medici(): Promise<MedicoAnagrafica[]>;
   salvaMedico(medico: Omit<MedicoAnagrafica, 'id'> & { id?: string }): Promise<string>;
   salvaSedi(sedi: Sedi): Promise<void>;
+  /** Modello OCR per l'import da screenshot (`ocrModello/corrente`); `null` se non ancora caricato. */
+  ocrModello(): Promise<unknown | null>;
+  /** Sostituisce il modello OCR con una sola scrittura (aggiornatoIl lato server). */
+  salvaOcrModello(modello: ModelloSerializzato, autoreUid: string): Promise<void>;
   importazioni(): Promise<Importazione[]>;
   /** Indice dei mesi già pubblicati (per l'avviso "già pubblicato il …, verrà sostituito"). */
   mesiPubblicati(): Promise<MesePubblicato[]>;

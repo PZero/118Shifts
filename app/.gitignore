@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# File di tesseract.js copiati da scripts/copia-ocr.mjs
+public/ocr-tesseract/

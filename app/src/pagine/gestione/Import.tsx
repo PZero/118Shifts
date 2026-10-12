@@ -2,16 +2,21 @@
 // avvisi di import, abbinamento dei nomi all'anagrafica e pubblicazione su Firestore.
 // Il file non lascia mai il dispositivo: si pubblicano solo i codici normalizzati.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { abbinaNome, conAlias, normalizzaNome, pulisciNome, type EsitoAbbinamento } from '../../domain/anagrafica';
 import { aggiungiMesi, chiaveMese, dataISO, giorniNelMese, giornoSettimana, type AnnoMese } from '../../domain/date';
 import type { AvvisoImport, CategoriaAvviso, FoglioMese, RisultatoImport } from '../../domain/excel';
+import type { ModelloOcr } from '../../domain/ocr';
 import { useProfilo, useServizi } from '../../sessione/contesto';
 import { SEDI_PREDEFINITE, type AvvisoSalvato, type MedicoAnagrafica, type MesePubblicato, type PianoImport } from '../../servizi/tipi';
 import { Dialogo } from '../../ui/Dialogo';
 import { messaggioErroreGenerico } from '../../ui/errori';
 import { MESI, dataNumerica, etichettaCodice, nomeMese } from '../../ui/etichette';
 import { Icona } from '../../ui/Icona';
+import type { EsitoScreenshot } from './ocr/ImportScreenshot';
+
+// Il flusso da screenshot (con il suo Web Worker e, a richiesta, tesseract.js) si carica solo quando serve.
+const ImportScreenshot = lazy(() => import('./ocr/ImportScreenshot').then((m) => ({ default: m.ImportScreenshot })));
 
 const MAX_BYTE = 15 * 1024 * 1024;
 
@@ -130,6 +135,10 @@ export function Import() {
   });
   const [pubblicati, setPubblicati] = useState<MesePubblicato[]>([]);
   const [avanzamento, setAvanzamento] = useState<{ fatto: number; totale: number } | null>(null);
+  const [origine, setOrigine] = useState<'excel' | 'screenshot'>('excel');
+  /** Modello OCR migliorato durante il controllo: si salva insieme alla pubblicazione. */
+  const [modelloDaSalvare, setModelloDaSalvare] = useState<ModelloOcr | null>(null);
+  const [avvisoModello, setAvvisoModello] = useState<string>();
 
   const letto = fase.fase === 'pronto' ? fase.letto : null;
   const chiaveDa = chiaveMese(meseDa);
@@ -140,6 +149,47 @@ export function Import() {
   );
   const mesiAttivi = letto ? letto.risultato.mesi.filter((f) => chiaveMese(f) >= chiaveDa) : [];
   const mesiIgnorati = letto ? letto.risultato.mesi.filter((f) => chiaveMese(f) < chiaveDa) : [];
+
+  /** Dal risultato di una lettura (Excel o screenshot) all'anteprima: abbinamenti, avvisi, mesi già pubblicati. */
+  const elabora = async (risultato: RisultatoImport, nomeFile: string) => {
+    const [excel, anagrafica, gia] = await Promise.all([
+      import('../../domain/excel'),
+      servizi.medici(),
+      servizi.mesiPubblicati().catch(() => [] as MesePubblicato[]),
+    ]);
+    setPubblicati(gia);
+    const avvisi = [...risultato.avvisi, ...excel.avvisiAbbinamento(risultato, anagrafica)];
+    const nomi = new Map<string, NomeFile>();
+    for (const f of risultato.mesi) {
+      for (const m of f.medici) {
+        const chiave = normalizzaNome(m.nome);
+        const presente = nomi.get(chiave);
+        if (presente) {
+          presente.fogli.push(f.foglio);
+          presente.mesi.push(chiaveMese(f));
+        } else nomi.set(chiave, { chiave, nome: m.nome, fogli: [f.foglio], mesi: [chiaveMese(f)], esito: abbinaNome(m.nome, anagrafica) });
+      }
+    }
+    const elenco = [...nomi.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'it'));
+    setScelte(Object.fromEntries(elenco.map((n) => [n.chiave, sceltaIniziale(n.esito)])));
+    setFase({
+      fase: 'pronto',
+      letto: { nomeFile, risultato, anagrafica, nomi: elenco, avvisi, gruppi: excel.raggruppaAvvisi(avvisi) },
+    });
+  };
+
+  const dalloScreenshot = async (e: EsitoScreenshot) => {
+    setErrore(undefined);
+    setFase({ fase: 'lettura' });
+    try {
+      setMeseDa(e.mese);
+      setModelloDaSalvare(e.modello);
+      await elabora(e.risultato, e.etichetta);
+    } catch (err) {
+      setErrore(`Impossibile preparare l’anteprima: ${messaggioErroreGenerico(err)}`);
+      setFase({ fase: 'vuoto' });
+    }
+  };
 
   const leggi = async (file: File) => {
     setErrore(undefined);
@@ -154,38 +204,14 @@ export function Import() {
     setFase({ fase: 'lettura' });
     try {
       // Il parser (e la libreria xlsx) si caricano solo quando serve.
-      const [excel, anagrafica, buffer, gia] = await Promise.all([
-        import('../../domain/excel'),
-        servizi.medici(),
-        file.arrayBuffer(),
-        servizi.mesiPubblicati().catch(() => [] as MesePubblicato[]),
-      ]);
-      setPubblicati(gia);
+      const [excel, buffer] = await Promise.all([import('../../domain/excel'), file.arrayBuffer()]);
       const risultato = excel.leggiExcel(buffer);
       if (risultato.mesi.length === 0) {
         setErrore('Nel file non è stato trovato nessun foglio-mese riconoscibile (es. "OTTOBRE 26").');
         setFase({ fase: 'vuoto' });
         return;
       }
-      const avvisi = [...risultato.avvisi, ...excel.avvisiAbbinamento(risultato, anagrafica)];
-      const nomi = new Map<string, NomeFile>();
-      for (const f of risultato.mesi) {
-        for (const m of f.medici) {
-          const chiave = normalizzaNome(m.nome);
-          const gia = nomi.get(chiave);
-          if (gia) {
-            gia.fogli.push(f.foglio);
-            gia.mesi.push(chiaveMese(f));
-          }
-          else nomi.set(chiave, { chiave, nome: m.nome, fogli: [f.foglio], mesi: [chiaveMese(f)], esito: abbinaNome(m.nome, anagrafica) });
-        }
-      }
-      const elenco = [...nomi.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'it'));
-      setScelte(Object.fromEntries(elenco.map((n) => [n.chiave, sceltaIniziale(n.esito)])));
-      setFase({
-        fase: 'pronto',
-        letto: { nomeFile: file.name, risultato, anagrafica, nomi: elenco, avvisi, gruppi: excel.raggruppaAvvisi(avvisi) },
-      });
+      await elabora(risultato, file.name);
     } catch (e) {
       setErrore(`Impossibile leggere il file: ${messaggioErroreGenerico(e)}`);
       setFase({ fase: 'vuoto' });
@@ -197,6 +223,8 @@ export function Import() {
     setScelte({});
     setErrore(undefined);
     setAvanzamento(null);
+    setModelloDaSalvare(null);
+    setAvvisoModello(undefined);
     if (campoFile.current) campoFile.current.value = '';
   };
 
@@ -207,6 +235,16 @@ export function Import() {
     setAvanzamento({ fatto: 0, totale: 1 });
     try {
       await servizi.pubblicaImport(calcolo.piano, profilo.uid, (fatto, totale) => setAvanzamento({ fatto, totale }));
+      // Il modello OCR migliorato si salva una sola volta, a pubblicazione riuscita (un errore qui non annulla i turni).
+      if (modelloDaSalvare) {
+        try {
+          const { serializzaModello } = await import('../../domain/ocr/modello');
+          await servizi.salvaOcrModello(serializzaModello(modelloDaSalvare), profilo.uid);
+          setModelloDaSalvare(null);
+        } catch (e) {
+          setAvvisoModello(`I turni sono pubblicati, ma il modello di lettura non è stato aggiornato: ${messaggioErroreGenerico(e)}`);
+        }
+      }
       setFase({ fase: 'fatto', mesi: calcolo.piano.mesi, avvisi: calcolo.piano.avvisi.length });
     } catch (e) {
       setErrore(`Pubblicazione non riuscita: ${messaggioErroreGenerico(e)}`);
@@ -221,8 +259,8 @@ export function Import() {
     <section aria-labelledby="titolo-import">
       <div className="intestazione-sezione">
         <div>
-          <h1 id="titolo-import">Carica Excel</h1>
-          <p className="testo-tenue">Il file viene letto in questo browser: prima della pubblicazione vedi un’anteprima e gli eventuali avvisi.</p>
+          <h1 id="titolo-import">Carica turni</h1>
+          <p className="testo-tenue">Il file o l’immagine vengono letti in questo browser: prima della pubblicazione vedi un’anteprima e gli eventuali avvisi.</p>
         </div>
       </div>
 
@@ -234,11 +272,28 @@ export function Import() {
 
       <MesiPubblicati aggiorna={fase.fase} />
 
-      {(fase.fase === 'vuoto' || fase.fase === 'lettura' || letto) && (
+      {fase.fase === 'vuoto' && (
+        <div className="segmenti" role="group" aria-label="Origine dei turni" style={{ marginTop: 14 }}>
+          <button type="button" aria-pressed={origine === 'excel'} onClick={() => setOrigine('excel')}>
+            Da Excel
+          </button>
+          <button type="button" aria-pressed={origine === 'screenshot'} onClick={() => setOrigine('screenshot')}>
+            Da screenshot
+          </button>
+        </div>
+      )}
+
+      {fase.fase === 'vuoto' && origine === 'screenshot' && (
+        <Suspense fallback={<div className="scheletro" style={{ height: 96, marginTop: 14 }} />}>
+          <ImportScreenshot onPronto={(e) => void dalloScreenshot(e)} meseIniziale={meseDa} />
+        </Suspense>
+      )}
+
+      {((fase.fase === 'vuoto' && origine === 'excel') || fase.fase === 'lettura' || letto) && (
         <SceltaMeseDa valore={meseDa} onCambia={setMeseDa} disabilitato={pubblicando || fase.fase === 'lettura'} />
       )}
 
-      {(fase.fase === 'vuoto' || fase.fase === 'lettura') && (
+      {((fase.fase === 'vuoto' && origine === 'excel') || fase.fase === 'lettura') && (
         <div className="card card-corpo import-scelta">
           <span className="stato-icona stato-icona-info">
             <Icona nome="file" />
@@ -272,6 +327,11 @@ export function Import() {
             Mesi caricati: <strong>{fase.mesi.map((m) => nomeMeseDaChiave(m)).join(', ')}</strong>
             {fase.avvisi > 0 ? ` · ${fase.avvisi} avvisi registrati nell’importazione.` : '.'}
           </p>
+          {avvisoModello && (
+            <p className="avviso avviso-warn">
+              <Icona nome="attenzione" /> {avvisoModello}
+            </p>
+          )}
           <button type="button" className="btn btn-secondario" onClick={reset}>
             Carica un altro file
           </button>

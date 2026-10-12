@@ -493,3 +493,63 @@ main#contenuto { flex: 1; outline: none; }
 .presentazione-evidenza small { color: var(--text-2); font-weight: 650; }
 .presentazione-modulo { display: grid; gap: 10px; text-align: left; margin-top: 14px; }
 .presentazione-modulo .campo > span { font-size: 14px; }
+
+/* Indisponibilità */
+.cal-indisp {
+  display: inline-flex; align-items: center; gap: 2px; align-self: flex-start; margin-top: auto;
+  padding: 0 4px; border-radius: 4px; font-size: 11px; line-height: 16px;
+  background: var(--text-2); color: var(--surface);
+}
+.cal-indisp-lettere { display: inline-flex; gap: 1px; letter-spacing: .02em; }
+.cal-indisp-conflitto { background: var(--warn-soft); color: var(--warn); box-shadow: inset 0 0 0 1.5px var(--warn); }
+.cal-indisp-conflitto .icona-s { width: 11px; height: 11px; }
+.cal-indisp .in-conflitto { text-decoration: underline; }
+.cal-giorno.con-indisp-conflitto { box-shadow: inset 0 0 0 1.5px var(--warn); }
+.cal-giorno.con-indisp-conflitto.selezionato { box-shadow: inset 0 0 0 2px var(--brand); }
+.cal-giorno.cal-fuori .cal-indisp { opacity: .6; }
+.cal-modifica .cal-giorno.cal-fuori { cursor: default; }
+.cal-modifica .cal-giorno:not(.cal-fuori) { cursor: copy; }
+.indisp-testa { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
+.interruttore-compatto { font-size: 14px; gap: 10px; }
+.indisp-riepilogo { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; font-weight: 600; font-size: 14.5px; }
+.indisp-riepilogo-warn { color: var(--warn); }
+.indisp-azioni { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.indisp-email { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.indisp-sottotitolo { margin: 0 0 8px; font-size: 14px; font-weight: 650; color: var(--text-2); }
+.indisp-elenco { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.indisp-elenco li { display: inline-flex; gap: 8px; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13.5px; }
+.indisp-elenco li span:last-child { font-weight: 700; }
+.indisp-conferma { min-height: 20px; margin: 6px 0 0; color: var(--ok); }
+.indisp-fasce { display: grid; gap: 8px; }
+.indisp-fascia {
+  display: flex; align-items: center; gap: 12px; min-height: var(--touch); padding: 8px 12px; text-align: left;
+  border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); font: inherit; cursor: pointer;
+}
+.indisp-fascia b { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; background: var(--surface-2); }
+.indisp-fascia.attiva { background: var(--text-2); color: var(--surface); border-color: var(--text-2); }
+.indisp-fascia.attiva b { background: var(--surface); color: var(--text); }
+
+/* ---------- Import da screenshot ---------- */
+.ocr-immagine { display: grid; gap: 8px; margin-top: 10px; }
+.ocr-zoom { display: flex; gap: 6px; flex-wrap: wrap; }
+.ocr-scorrevole { overflow: auto; border: 1px solid var(--border-strong); border-radius: var(--radius); background: #fff; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.ocr-tela { position: relative; }
+.ocr-sovrapposto { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.ocr-vista { display: grid; gap: 12px; margin-top: 12px; }
+.ocr-editor { margin-top: 4px; border-color: var(--border-strong); }
+.ocr-ritaglio { display: block; max-width: 100%; height: auto; border: 1px solid var(--border-strong); border-radius: var(--radius-s); background: #fff; image-rendering: auto; }
+.ocr-ritaglio-grande { margin: 8px 0; width: 100%; max-width: 360px; }
+.ocr-lettura { margin: 0 0 10px; }
+.ocr-rapidi { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-top: 8px; }
+.ocr-codice { border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.ocr-scrivi { display: flex; gap: 8px; align-items: end; margin-top: 10px; }
+.ocr-scrivi .campo { flex: 1; }
+.ocr-righe { max-width: 220px; }
+.ocr-stepper { display: flex; gap: 6px; align-items: center; }
+.ocr-stepper .input { width: 72px; text-align: center; }
+.ocr-riga-nome { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.ocr-riga-nome-scelta { display: grid; gap: 4px; flex: 1 1 200px; }
+.ocr-chip { min-width: 34px; min-height: 28px; cursor: pointer; border: 1px solid transparent; font: inherit; }
+.ocr-chip-vuoto { background: var(--surface-3); color: var(--text-3); }
+.ocr-chip-incerto { border-color: var(--warn); box-shadow: 0 0 0 2px var(--warn-soft); }
+.ocr-chip-sel { outline: 2px solid var(--focus); outline-offset: 1px; }

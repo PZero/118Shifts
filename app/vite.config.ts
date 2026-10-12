@@ -33,6 +33,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        // Tesseract (solo import da screenshot, solo admin e delegati) non va mai nel precache.
+        globIgnores: ['ocr-tesseract/**'],
         // Le pagine di Firebase Auth (/__/auth/...) non devono essere servite dal service worker.
         navigateFallbackDenylist: [/^\/__\//],
         cleanupOutdatedCaches: true,

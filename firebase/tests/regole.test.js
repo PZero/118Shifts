@@ -842,3 +842,187 @@ describe("Presentazione in attesa di approvazione", () => {
     await assertFails(updateDoc(doc(db(UID.secA), `users/${UID.attesa}`), { presentazione: "x" }));
   });
 });
+
+// ---------- Indisponibilita del medico ----------
+function meseRel(k, base = new Date()) {
+  const t = base.getUTCFullYear() * 12 + base.getUTCMonth() + k;
+  return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}`;
+}
+const indisp = (giorni = { 5: ["M", "P"], 6: ["N"] }) => ({ giorni, aggiornatoIl: serverTimestamp() });
+const refInd = (u, mese, medico = "medA") => doc(db(u), `indisponibilita/${medico}/mesi/${mese}`);
+
+describe("Indisponibilita (mese +1/+2, solo principale)", () => {
+  const m1 = meseRel(1);
+  const m2 = meseRel(2);
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `indisponibilita/medA/mesi/${meseRel(-1)}`), { giorni: { 3: ["M"] }, aggiornatoIl: T0 });
+      await setDoc(doc(ctx.firestore(), `indisponibilita/medA/mesi/${m1}`), { giorni: { 3: ["M"] }, aggiornatoIl: T0 });
+    });
+  });
+  it("IN1 il principale crea nei mesi +1 e +2, aggiorna e cancella", async () => {
+    await assertSucceeds(setDoc(refInd(UID.princA, m2), indisp()));
+    await assertSucceeds(setDoc(refInd(UID.princA, m1), indisp({ 1: ["M", "P", "N"] })));
+    await assertSucceeds(deleteDoc(refInd(UID.princA, m1)));
+    await assertSucceeds(deleteDoc(refInd(UID.princA, m2)));
+  });
+  it("IN2 mese corrente, +3 e passato non modificabili; il passato resta leggibile", async () => {
+    await assertFails(setDoc(refInd(UID.princA, meseRel(0)), indisp()));
+    await assertFails(setDoc(refInd(UID.princA, meseRel(3)), indisp()));
+    await assertFails(setDoc(refInd(UID.princA, meseRel(-1)), indisp()));
+    await assertFails(deleteDoc(refInd(UID.princA, meseRel(-1))));
+    await assertSucceeds(getDoc(refInd(UID.princA, meseRel(-1))));
+    await assertSucceeds(getDoc(refInd(UID.princA, m1)));
+  });
+  it("IN3 secondario, delegato, admin, altri medici, attesa e disabilitato: niente lettura ne scrittura", async () => {
+    for (const u of [UID.secA, UID.deleg, UID.admin, UID.princC, UID.attesa, UID.disab]) {
+      await assertFails(getDoc(refInd(u, m1)));
+      await assertFails(getDocs(collection(db(u), "indisponibilita/medA/mesi")));
+      await assertFails(setDoc(refInd(u, m2), indisp()));
+      await assertFails(deleteDoc(refInd(u, m1)));
+    }
+  });
+  it("IN4 il principale legge (get/list) i propri; il delegato principale del proprio medico vede i propri ma non quelli altrui", async () => {
+    await assertSucceeds(getDocs(collection(db(UID.princA), "indisponibilita/medA/mesi")));
+    await assertSucceeds(setDoc(refInd(UID.deleg, m2, "medB"), indisp()));
+    await assertSucceeds(getDoc(refInd(UID.deleg, m2, "medB")));
+    await assertFails(getDoc(refInd(UID.princA, m2, "medB")));
+    await assertFails(setDoc(refInd(UID.princC, m2, "medA"), indisp()));
+  });
+  it("IN5 validazione: fascia X, duplicati, liste vuote o troppo lunghe, chiavi non valide", async () => {
+    await assertFails(setDoc(refInd(UID.princA, m2), indisp({ 5: ["X"] })));
+    await assertFails(setDoc(refInd(UID.princA, m2), indisp({ 5: ["M", "M"] })));
+    await assertFails(setDoc(refInd(UID.princA, m2), indisp({ 5: [] })));
+    await assertFails(setDoc(refInd(UID.princA, m2), indisp({ 5: ["M", "P", "N", "M"] })));
+    await assertFails(setDoc(refInd(UID.princA, m2), indisp({ 5: "M" })));
+    await assertFails(setDoc(refInd(UID.princA, m2), indisp({ 0: ["M"] })));
+    await assertFails(setDoc(refInd(UID.princA, m2), indisp({ 32: ["M"] })));
+    await assertFails(setDoc(refInd(UID.princA, m2), indisp({ a: ["M"] })));
+    await assertFails(setDoc(refInd(UID.princA, m2), indisp({ 5: ["m"] })));
+  });
+  it("IN6 campi: aggiornatoIl == request.time, nessun campo extra, giorni mappa, id mese valido", async () => {
+    await assertFails(setDoc(refInd(UID.princA, m2), { giorni: { 5: ["M"] }, aggiornatoIl: T0 }));
+    await assertFails(setDoc(refInd(UID.princA, m2), { ...indisp(), extra: 1 }));
+    await assertFails(setDoc(refInd(UID.princA, m2), { aggiornatoIl: serverTimestamp() }));
+    await assertFails(setDoc(refInd(UID.princA, m2), { giorni: [1], aggiornatoIl: serverTimestamp() }));
+    await assertFails(setDoc(refInd(UID.princA, "2026-13"), indisp()));
+  });
+});
+
+describe("Indisponibilita con orologio fisso (mesi, transizioni, bisestili)", () => {
+  let envF;
+  const rulesF = (anno, mese) =>
+    readFileSync(resolve(qui, "../firestore.rules"), "utf8")
+      .replaceAll("request.time.year()", String(anno))
+      .replaceAll("request.time.month()", String(mese));
+  async function nuovoEnv(anno, mese) {
+    if (envF) await envF.cleanup();
+    envF = await initializeTestEnvironment({ projectId: "demo-shifts-fisso", firestore: { rules: rulesF(anno, mese) } });
+    await envF.withSecurityRulesDisabled(async (ctx) => {
+      const f = ctx.firestore();
+      await setDoc(doc(f, "medici/medA"), medico("Medico A", true, "uidPrincA"));
+      await setDoc(doc(f, "users/uidPrincA"), utente({ medicoId: "medA", principale: true }));
+    });
+    return envF.authenticatedContext("uidPrincA", { email: "a@example.test", email_verified: true }).firestore();
+  }
+  afterAll(async () => {
+    await envF?.cleanup();
+  });
+  const r = (d, mese) => doc(d, `indisponibilita/medA/mesi/${mese}`);
+  const gg = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => [i + 1, ["N"]]));
+
+  it("IF1 dicembre -> gennaio: da dicembre 2026 ammessi 2027-01 e 2027-02, non 2026-12 ne 2027-03", async () => {
+    const d = await nuovoEnv(2026, 12);
+    await assertSucceeds(setDoc(r(d, "2027-01"), indisp()));
+    await assertSucceeds(setDoc(r(d, "2027-02"), indisp()));
+    await assertFails(setDoc(r(d, "2026-12"), indisp()));
+    await assertFails(setDoc(r(d, "2027-03"), indisp()));
+    await assertFails(setDoc(r(d, "2026-01"), indisp()));
+  });
+  it("IF2 novembre: ammessi 2026-12 e 2027-01; gennaio: 02 e 03", async () => {
+    let d = await nuovoEnv(2026, 11);
+    await assertSucceeds(setDoc(r(d, "2026-12"), indisp()));
+    await assertSucceeds(setDoc(r(d, "2027-01"), indisp()));
+    await assertFails(setDoc(r(d, "2027-02"), indisp()));
+    d = await nuovoEnv(2027, 1);
+    await assertSucceeds(setDoc(r(d, "2027-02"), indisp()));
+    await assertSucceeds(setDoc(r(d, "2027-03"), indisp()));
+    await assertFails(setDoc(r(d, "2027-01"), indisp()));
+    await assertFails(setDoc(r(d, "2026-12"), indisp()));
+  });
+  it("IF3 giorno 31 negato in mese da 30 giorni, ammesso in mese da 31", async () => {
+    const d = await nuovoEnv(2026, 2); // +1 marzo (31), +2 aprile (30)
+    await assertSucceeds(setDoc(r(d, "2026-03"), indisp(gg(31))));
+    await assertSucceeds(setDoc(r(d, "2026-04"), indisp(gg(30))));
+    await assertFails(setDoc(r(d, "2026-04"), indisp(gg(31))));
+    await assertFails(setDoc(r(d, "2026-04"), indisp({ 31: ["M"] })));
+  });
+  it("IF4 febbraio: 28 giorni (2027), 29 (2028 bisestile), 2100 non bisestile", async () => {
+    let d = await nuovoEnv(2027, 1);
+    await assertSucceeds(setDoc(r(d, "2027-02"), indisp(gg(28))));
+    await assertFails(setDoc(r(d, "2027-02"), indisp(gg(29))));
+    d = await nuovoEnv(2028, 1);
+    await assertSucceeds(setDoc(r(d, "2028-02"), indisp(gg(29))));
+    await assertFails(setDoc(r(d, "2028-02"), indisp(gg(30))));
+    d = await nuovoEnv(2099, 12);
+    await assertSucceeds(setDoc(r(d, "2100-02"), indisp(gg(28))));
+    await assertFails(setDoc(r(d, "2100-02"), indisp(gg(29))));
+  });
+});
+
+// ---------- Modello OCR ----------
+const ocr = (over = {}) => ({
+  versione: 1,
+  cellaW: 12,
+  cellaH: 16,
+  esempi: [{ c: "M6", v: "QUJD" }, { c: "P", v: "REVG" }],
+  aggiornatoIl: serverTimestamp(),
+  autoreUid: UID.admin,
+  ...over,
+});
+const refO = (u) => doc(db(u), "ocrModello/corrente");
+
+describe("Modello OCR (solo admin e delegati)", () => {
+  it("OC1 admin scrive e legge", async () => {
+    await assertSucceeds(setDoc(refO(UID.admin), ocr()));
+    await assertSucceeds(getDoc(refO(UID.admin)));
+  });
+  it("OC2 delegato scrive (autoreUid proprio), legge e cancella", async () => {
+    await assertSucceeds(setDoc(refO(UID.deleg), ocr({ autoreUid: UID.deleg })));
+    await assertSucceeds(getDoc(refO(UID.deleg)));
+    await assertSucceeds(deleteDoc(refO(UID.deleg)));
+  });
+  it("OC3 medici (principale, secondario), attesa, disabilitato e anonimo negati", async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "ocrModello/corrente"), ocr({ aggiornatoIl: T0 }));
+    });
+    for (const u of [UID.princA, UID.secA, UID.princC, UID.attesa, UID.disab]) {
+      await assertFails(getDoc(refO(u)));
+      await assertFails(setDoc(refO(u), ocr({ autoreUid: u })));
+      await assertFails(deleteDoc(refO(u)));
+    }
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "ocrModello/corrente")));
+  });
+  it("OC4 validazione campi", async () => {
+    const s = (o) => setDoc(refO(UID.admin), ocr(o));
+    await assertFails(s({ autoreUid: UID.deleg }));
+    await assertFails(s({ aggiornatoIl: T0 }));
+    await assertFails(s({ cellaW: 0 }));
+    await assertFails(s({ cellaW: 65 }));
+    await assertFails(s({ cellaH: 0 }));
+    await assertFails(s({ cellaH: 65 }));
+    await assertFails(s({ cellaW: 1.5 }));
+    await assertFails(s({ versione: "1" }));
+    await assertFails(s({ esempi: "x" }));
+    await assertFails(s({ esempi: Array.from({ length: 3001 }, () => ({ c: "M", v: "A" })) }));
+    await assertFails(s({ esempi: [{ c: "", v: "A" }] }));
+    await assertFails(s({ esempi: [{ c: "123456789", v: "A" }] }));
+    await assertFails(s({ esempi: [{ c: "M", v: "A".repeat(2001) }] }));
+    await assertFails(s({ extra: 1 }));
+    await assertSucceeds(s({ esempi: [] }));
+    await assertSucceeds(s({ cellaW: 64, cellaH: 1 }));
+  });
+  it("OC5 altri documenti in ocrModello negati", async () => {
+    await assertFails(setDoc(doc(db(UID.admin), "ocrModello/altro"), ocr()));
+  });
+});

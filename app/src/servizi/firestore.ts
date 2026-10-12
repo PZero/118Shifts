@@ -25,7 +25,9 @@ import {
 import { accessoDiOggi } from '../domain/accessi';
 import { scomponi } from '../domain/date';
 import { anteprima } from '../domain/feedback';
+import { normalizzaIndisponibilita } from '../domain/indisponibilita';
 import { costruisciQuadro, type GiorniQuadro } from '../domain/quadro';
+import type { GiorniIndisponibili } from '../domain/indisponibilita';
 import { fb } from './firebase';
 import {
   SEDI_PREDEFINITE,
@@ -195,6 +197,21 @@ export function creaServiziFirestore(): Servizi {
         giorni[g] = out;
       }
       return { chiave, giorni, caricatoIl: data(d.caricatoIl) };
+    },
+
+    async indisponibilita(medicoId) {
+      const snap = await getDocs(collection(db, 'indisponibilita', medicoId, 'mesi'));
+      const out: Record<string, GiorniIndisponibili> = {};
+      for (const s of snap.docs) {
+        if (/^\d{4}-\d{2}$/.test(s.id)) out[s.id] = normalizzaIndisponibilita(s.data().giorni);
+      }
+      return out;
+    },
+
+    async salvaIndisponibilita(medicoId, chiaveMese, giorni) {
+      const rif = doc(db, 'indisponibilita', medicoId, 'mesi', chiaveMese);
+      if (Object.keys(giorni).length === 0) await deleteDoc(rif);
+      else await setDoc(rif, { giorni, aggiornatoIl: serverTimestamp() });
     },
 
     async cambiMedico(medicoId) {
@@ -445,6 +462,22 @@ export function creaServiziFirestore(): Servizi {
 
     async salvaSedi(sedi) {
       await setDoc(doc(db, 'config', 'sedi'), sedi);
+    },
+
+    async ocrModello() {
+      const snap = await getDoc(doc(db, 'ocrModello', 'corrente'));
+      return snap.exists() ? snap.data() : null;
+    },
+
+    async salvaOcrModello(modello, autoreUid) {
+      await setDoc(doc(db, 'ocrModello', 'corrente'), {
+        versione: modello.versione,
+        cellaW: modello.cellaW,
+        cellaH: modello.cellaH,
+        esempi: modello.esempi,
+        aggiornatoIl: serverTimestamp(),
+        autoreUid,
+      });
     },
 
     async importazioni() {

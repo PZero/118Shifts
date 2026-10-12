@@ -3,6 +3,7 @@
 
 import { aggiungiMesi, chiaveMese, dataISO, giorniNelMese, type AnnoMese } from '../domain/date';
 import { anteprima } from '../domain/feedback';
+import type { GiorniIndisponibili } from '../domain/indisponibilita';
 import { CICLO } from '../domain/proiezione';
 import { costruisciQuadro } from '../domain/quadro';
 import {
@@ -87,6 +88,7 @@ export function creaServiziDemo(): Servizi {
   }));
   let sedi: Sedi = { ...SEDI_PREDEFINITE };
   const importazioni: Importazione[] = [];
+  let ocrDemo: unknown = null;
   const cambi: CambioDoc[] = [];
   let seq = 0;
 
@@ -142,6 +144,19 @@ export function creaServiziDemo(): Servizi {
   const aggiornaUtente = (uid: string, mod: Partial<Utente>) => {
     utenti = utenti.map((u) => (u.uid === uid ? { ...u, ...mod } : u));
   };
+  // Indisponibilità inventate: mese successivo e mese corrente (con un conflitto voluto, se possibile).
+  const indisp = new Map<string, GiorniIndisponibili>();
+  {
+    const succ = chiaveMese(aggiungiMesi(corrente, 1));
+    indisp.set(succ, { '5': ['M', 'P', 'N'], '12': ['N'], '19': ['P'] });
+    const giorniCorr = turni.get(MEDICO_DEMO)?.get(chiaveMese(corrente))?.giorni ?? {};
+    const g1 = Object.keys(giorniCorr).find((g) => /^M/.test(giorniCorr[g]?.[0] ?? ''));
+    const g2 = Object.keys(giorniCorr).find((g) => !giorniCorr[g]?.length);
+    const conf: GiorniIndisponibili = { '2': ['N'], '25': ['P'] };
+    if (g1) conf[g1] = ['M'];
+    if (g2) conf[g2] = ['M', 'P'];
+    indisp.set(chiaveMese(corrente), conf);
+  }
   const copia = <T,>(v: T): T => structuredClone(v);
 
   return {
@@ -157,6 +172,11 @@ export function creaServiziDemo(): Servizi {
     elencoMedici: async () => medici.filter((m) => m.attivo).map((m) => ({ id: m.id, nome: m.nome })),
     sedi: async () => ({ ...sedi }),
     cicloMedico: async () => ({ cicloManuale: false }),
+    indisponibilita: async () => copia(Object.fromEntries(indisp)),
+    async salvaIndisponibilita(_id, chiave, giorni) {
+      if (Object.keys(giorni).length === 0) indisp.delete(chiave);
+      else indisp.set(chiave, copia(giorni));
+    },
     async quadro(chiave) {
       const voci = [...turni].flatMap(([medicoId, perMese]) => {
         const d = perMese.get(chiave);
@@ -222,6 +242,10 @@ export function creaServiziDemo(): Servizi {
     },
     async salvaSedi(s) {
       sedi = { ...s };
+    },
+    ocrModello: async () => ocrDemo,
+    async salvaOcrModello(m) {
+      ocrDemo = m;
     },
     importazioni: async () => copia(importazioni),
     mesiPubblicati: async () => copia(pubblicatiDemo),
