@@ -70,7 +70,7 @@ interface PropsCard {
   mese: number;
   giorni: GiorniIndisponibili;
   ufficiali: Record<string, string[]>;
-  /** Il mese visualizzato è il successivo a quello corrente: modificabile e con email. */
+  /** Mese futuro (entro 12 mesi) senza turni pubblicati: modificabile e con email. */
   modificabile: boolean;
   modifica: boolean;
   onModifica: (v: boolean) => void;

@@ -851,7 +851,7 @@ function meseRel(k, base = new Date()) {
 const indisp = (giorni = { 5: ["M", "P"], 6: ["N"] }) => ({ giorni, aggiornatoIl: serverTimestamp() });
 const refInd = (u, mese, medico = "medA") => doc(db(u), `indisponibilita/${medico}/mesi/${mese}`);
 
-describe("Indisponibilita (mese +1/+2, solo principale)", () => {
+describe("Indisponibilita (mesi +1..+12 senza turni pubblicati, solo principale)", () => {
   const m1 = meseRel(1);
   const m2 = meseRel(2);
   beforeEach(async () => {
@@ -860,19 +860,34 @@ describe("Indisponibilita (mese +1/+2, solo principale)", () => {
       await setDoc(doc(ctx.firestore(), `indisponibilita/medA/mesi/${m1}`), { giorni: { 3: ["M"] }, aggiornatoIl: T0 });
     });
   });
-  it("IN1 il principale crea nei mesi +1 e +2, aggiorna e cancella", async () => {
+  it("IN1 il principale crea nei mesi +1 e +3, aggiorna e cancella", async () => {
     await assertSucceeds(setDoc(refInd(UID.princA, m2), indisp()));
+    await assertSucceeds(setDoc(refInd(UID.princA, meseRel(3)), indisp()));
     await assertSucceeds(setDoc(refInd(UID.princA, m1), indisp({ 1: ["M", "P", "N"] })));
     await assertSucceeds(deleteDoc(refInd(UID.princA, m1)));
     await assertSucceeds(deleteDoc(refInd(UID.princA, m2)));
+    await assertSucceeds(deleteDoc(refInd(UID.princA, meseRel(3))));
   });
-  it("IN2 mese corrente, +3 e passato non modificabili; il passato resta leggibile", async () => {
+  it("IN2 mese corrente, passato e +13 non modificabili; +12 ok; il passato resta leggibile", async () => {
     await assertFails(setDoc(refInd(UID.princA, meseRel(0)), indisp()));
-    await assertFails(setDoc(refInd(UID.princA, meseRel(3)), indisp()));
+    await assertFails(setDoc(refInd(UID.princA, meseRel(13)), indisp()));
+    await assertSucceeds(setDoc(refInd(UID.princA, meseRel(12)), indisp()));
     await assertFails(setDoc(refInd(UID.princA, meseRel(-1)), indisp()));
     await assertFails(deleteDoc(refInd(UID.princA, meseRel(-1))));
     await assertSucceeds(getDoc(refInd(UID.princA, meseRel(-1))));
     await assertSucceeds(getDoc(refInd(UID.princA, m1)));
+  });
+  it("IN2b mese con turni pubblicati per quel medico: negato (create, update, delete); altro medico non influenza", async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `turni/medA/mesi/${m1}`), { giorni: {} });
+      await setDoc(doc(ctx.firestore(), `turni/medA/mesi/${meseRel(4)}`), { giorni: {} });
+      await setDoc(doc(ctx.firestore(), `turni/medB/mesi/${m2}`), { giorni: {} });
+    });
+    await assertFails(setDoc(refInd(UID.princA, m1), indisp()));
+    await assertFails(deleteDoc(refInd(UID.princA, m1)));
+    await assertFails(setDoc(refInd(UID.princA, meseRel(4)), indisp()));
+    await assertSucceeds(setDoc(refInd(UID.princA, m2), indisp()));
+    await assertSucceeds(setDoc(refInd(UID.princA, meseRel(5)), indisp()));
   });
   it("IN3 secondario, delegato, admin, altri medici, attesa e disabilitato: niente lettura ne scrittura", async () => {
     for (const u of [UID.secA, UID.deleg, UID.admin, UID.princC, UID.attesa, UID.disab]) {
@@ -931,27 +946,29 @@ describe("Indisponibilita con orologio fisso (mesi, transizioni, bisestili)", ()
   const r = (d, mese) => doc(d, `indisponibilita/medA/mesi/${mese}`);
   const gg = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => [i + 1, ["N"]]));
 
-  it("IF1 dicembre -> gennaio: da dicembre 2026 ammessi 2027-01 e 2027-02, non 2026-12 ne 2027-03", async () => {
+  it("IF1 dicembre -> gennaio: da dicembre 2026 ammessi 2027-01..2027-12, non 2026-12 ne 2028-01", async () => {
     const d = await nuovoEnv(2026, 12);
     await assertSucceeds(setDoc(r(d, "2027-01"), indisp()));
-    await assertSucceeds(setDoc(r(d, "2027-02"), indisp()));
+    await assertSucceeds(setDoc(r(d, "2027-03"), indisp()));
+    await assertSucceeds(setDoc(r(d, "2027-12"), indisp()));
     await assertFails(setDoc(r(d, "2026-12"), indisp()));
-    await assertFails(setDoc(r(d, "2027-03"), indisp()));
+    await assertFails(setDoc(r(d, "2028-01"), indisp()));
     await assertFails(setDoc(r(d, "2026-01"), indisp()));
   });
-  it("IF2 novembre: ammessi 2026-12 e 2027-01; gennaio: 02 e 03", async () => {
+  it("IF2 novembre: ammessi 2026-12 .. 2027-11 (non 2027-12); gennaio: 2027-02 .. 2028-01", async () => {
     let d = await nuovoEnv(2026, 11);
     await assertSucceeds(setDoc(r(d, "2026-12"), indisp()));
-    await assertSucceeds(setDoc(r(d, "2027-01"), indisp()));
-    await assertFails(setDoc(r(d, "2027-02"), indisp()));
+    await assertSucceeds(setDoc(r(d, "2027-11"), indisp()));
+    await assertFails(setDoc(r(d, "2027-12"), indisp()));
     d = await nuovoEnv(2027, 1);
     await assertSucceeds(setDoc(r(d, "2027-02"), indisp()));
-    await assertSucceeds(setDoc(r(d, "2027-03"), indisp()));
+    await assertSucceeds(setDoc(r(d, "2028-01"), indisp()));
+    await assertFails(setDoc(r(d, "2028-02"), indisp()));
     await assertFails(setDoc(r(d, "2027-01"), indisp()));
     await assertFails(setDoc(r(d, "2026-12"), indisp()));
   });
   it("IF3 giorno 31 negato in mese da 30 giorni, ammesso in mese da 31", async () => {
-    const d = await nuovoEnv(2026, 2); // +1 marzo (31), +2 aprile (30)
+    const d = await nuovoEnv(2026, 2); // marzo (31), aprile (30)
     await assertSucceeds(setDoc(r(d, "2026-03"), indisp(gg(31))));
     await assertSucceeds(setDoc(r(d, "2026-04"), indisp(gg(30))));
     await assertFails(setDoc(r(d, "2026-04"), indisp(gg(31))));

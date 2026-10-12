@@ -31,7 +31,7 @@ Nessuno entra da solo: al primo accesso con Google l'utente resta **in attesa** 
 Quando un medico cede o riceve un turno lo registra nell'app: il turno ceduto resta visibile barrato con il nome del collega, quello ricevuto riporta chi l'ha ceduto, e le ore del mese si aggiornano. I cambi sono **privati**: li vedono solo gli account di quel medico. Al momento della cessione l'app suggerisce i colleghi che possono prendere il turno rispettando le **11 ore di riposo** prima e dopo.
 
 ### Indisponibilità ed email già pronta
-Prima che i turni del mese successivo vengano decisi, ogni medico può segnare sul calendario i giorni e le fasce (mattino, pomeriggio, notte) in cui **non è disponibile**. L'app prepara il **testo dell'email** con l'elenco ordinato delle date: un tocco lo copia, da incollare nel proprio programma di posta, oppure apre direttamente il client email. L'app non invia niente da sola: il messaggio parte dal medico, come sempre.
+Per ogni mese i cui turni non sono ancora stati pubblicati (dal mese dopo l'ultimo caricato, fino a un anno avanti), ogni medico può segnare sul calendario i giorni e le fasce (mattino, pomeriggio, notte) in cui **non è disponibile**. L'app prepara il **testo dell'email** con l'elenco ordinato delle date: un tocco lo copia, da incollare nel proprio programma di posta, oppure apre direttamente il client email. L'app non invia niente da sola: il messaggio parte dal medico, come sempre.
 
 Le indisponibilità restano evidenziate anche dopo la pubblicazione dei turni, e un avviso segnala se un turno è finito in una fascia indicata come non disponibile.
 
@@ -52,7 +52,7 @@ Ogni medico vede solo i propri dati. La regola è applicata dal database (regole
 *In cima all'area medico: card chiuse con il riassunto · «Oggi e domani» aperta · «Chi è di turno con me» sul giorno selezionato nel calendario, con colleghi e reperibili.*
 
 ![Cessione con suggerimenti, indisponibilità e feedback su telefono](docs/screenshot/mobile-novita-medico.png)
-*Cessione di un turno con «Possono darti il cambio» (colleghi con 11 ore di riposo prima e dopo) · indisponibilità del mese successivo segnate sul calendario, con il testo dell'email pronto da copiare · conversazione di feedback con l'amministratore.*
+*Cessione di un turno con «Possono darti il cambio» (colleghi con 11 ore di riposo prima e dopo) · indisponibilità di un mese non ancora pubblicato segnate sul calendario, con il testo dell'email pronto da copiare · conversazione di feedback con l'amministratore.*
 
 ![Import da screenshot e approvazione account su telefono](docs/screenshot/mobile-novita-gestione.png)
 *Import da screenshot: controllo della griglia rilevata sull'immagine · revisione di una cella incerta con il ritaglio ingrandito e le scelte rapide · approvazione di un account in attesa, con il messaggio di presentazione dell'utente.*
@@ -82,7 +82,7 @@ Ogni medico vede solo i propri dati. La regola è applicata dal database (regole
 - **Proiezione** della turnazione sui 12 mesi successivi (ciclo Mattino+Pomeriggio → Notte → smonto → riposo → riposo), distinta graficamente dai turni ufficiali.
 - **Cambi turno privati**: il turno ceduto resta visibile barrato con il nome del collega; il turno ricevuto è collegato al cambio e riporta chi l'ha ceduto. Visibili solo agli account del medico.
 - **Chi può darti il cambio** (solo account principali): quando si cede un turno, l'app suggerisce i colleghi con almeno 11 ore di riposo prima dell'inizio e dopo la fine (le reperibilità contano come impegno), secondo l'Excel pubblicato; un tocco sul nome lo seleziona. Resta sempre possibile scegliere qualunque collega dall'elenco.
-- **Indisponibilità** (solo account principali): sul calendario del mese successivo si segnano i giorni e i turni (M, P, N) in cui non si è disponibili; un pulsante copia il testo dell'email da inviare personalmente (o apre il client di posta). I giorni restano evidenziati anche dopo la pubblicazione dei turni, con avviso se un turno cade in una fascia indisponibile; una spunta li mostra o li nasconde. Visibili solo all'account principale.
+- **Indisponibilità** (solo account principali): sul calendario di ogni mese futuro non ancora pubblicato (dal mese dopo l'ultimo caricato, fino a 12 mesi avanti) si segnano i giorni e i turni (M, P, N) in cui non si è disponibili; quando i turni del mese vengono pubblicati le indisponibilità diventano di sola lettura; un pulsante copia il testo dell'email da inviare personalmente (o apre il client di posta). I giorni restano evidenziati anche dopo la pubblicazione dei turni, con avviso se un turno cade in una fascia indisponibile; una spunta li mostra o li nasconde. Visibili solo all'account principale.
 - **Più account per medico**: un account principale (che registra i cambi) e account secondari in sola lettura, per esempio per un familiare.
 - **Condivisione del mese come immagine**: un tocco sull'icona di condivisione crea un'immagine del calendario (titolo del mese e griglia, con i cambi già applicati) da inviare come una foto, per esempio su WhatsApp. Nessun link, nessun nome di colleghi.
 - **Feedback e suggerimenti**: conversazioni riservate con l'amministratore, una per argomento (segnalazioni o proposte di nuove funzionalità), con badge dei messaggi non letti. Ciascuna parte può chiudere e cancellare la conversazione. Aperte anche agli account secondari.
@@ -174,8 +174,8 @@ Il link completo (con token di accesso locale) viene stampato nel terminale.
 
 ## Roadmap
 - [x] Analisi del formato Excel e dei requisiti
-- [x] Modello dati e regole di sicurezza (136 test sull'emulatore)
-- [x] Logica turni: parser, ore, festività, proiezione, disponibilità colleghi (155 test)
+- [x] Modello dati e regole di sicurezza (137 test sull'emulatore)
+- [x] Logica turni: parser, ore, festività, proiezione, disponibilità colleghi (159 test)
 - [x] Interfaccia: pagina pubblica, login, calendario, card, cambi
 - [x] Pannello amministrazione e import Excel con mese di partenza
 - [x] Import da screenshot, indisponibilità, feedback

@@ -144,11 +144,13 @@ export function creaServiziDemo(): Servizi {
   const aggiornaUtente = (uid: string, mod: Partial<Utente>) => {
     utenti = utenti.map((u) => (u.uid === uid ? { ...u, ...mod } : u));
   };
-  // Indisponibilità inventate: mese successivo e mese corrente (con un conflitto voluto, se possibile).
+  // Indisponibilità inventate: mesi successivi e mese corrente (con un conflitto voluto, se possibile).
   const indisp = new Map<string, GiorniIndisponibili>();
   {
     const succ = chiaveMese(aggiungiMesi(corrente, 1));
     indisp.set(succ, { '5': ['M', 'P', 'N'], '12': ['N'], '19': ['P'] });
+    // Il mese successivo ha turni pubblicati (sola lettura); un mese senza turni è modificabile.
+    indisp.set(chiaveMese(aggiungiMesi(corrente, 2)), { '8': ['M'], '21': ['N'] });
     const giorniCorr = turni.get(MEDICO_DEMO)?.get(chiaveMese(corrente))?.giorni ?? {};
     const g1 = Object.keys(giorniCorr).find((g) => /^M/.test(giorniCorr[g]?.[0] ?? ''));
     const g2 = Object.keys(giorniCorr).find((g) => !giorniCorr[g]?.length);

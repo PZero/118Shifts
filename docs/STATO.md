@@ -17,7 +17,10 @@
 - **Import da screenshot** (Gestione → Carica turni → Da screenshot) e **indisponibilità** (account principali): vedi README. Primo import reale da telefono **riuscito** (modello OCR caricato da `dati/modello-ocr.json`).
 - Ultima sessione: barra "Vai all'anteprima" dell'import da screenshot fissa solo quando tutto è confermato (prima copriva righe e celle su telefono); radio di "Approva account" con descrizione a capo; README con due nuovi collage (novità medico e gestione).
 
+- Indisponibilità: modificabili per ogni mese futuro senza turni pubblicati del medico, fino a +12 (regole: `exists` su `turni/{medico}/mesi/{mese}`); app 159 test, regole 137.
+
 ## Prossimi passi
+0. **Pubblicare le regole** (`firebase deploy --only firestore`): senza, dicembre e successivi vengono rifiutati.
 1. Provare indisponibilità (Copia/Apri email) e feedback su iPhone.
 2. **Reimportare l'Excel** per creare il quadro: attiva "Chi è di turno con me" e "Possono darti il cambio".
 3. Provare su iPhone la cessione con suggerimenti (anche a cavallo di mese) e il caricamento dell'Excel dall'app (Excel → Condividi → copia .xlsx).

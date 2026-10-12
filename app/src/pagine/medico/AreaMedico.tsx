@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useParams } from 'wouter';
+import { meseAccettaIndisponibilita } from '../../domain/indisponibilita-mesi';
 import { aggiungiMesi, chiaveMese, confrontaMesi, scomponi, type AnnoMese } from '../../domain/date';
 import { uguali, type GiorniIndisponibili } from '../../domain/indisponibilita';
 import { proiezioneMedico } from '../../domain/proiezione';
@@ -169,8 +170,14 @@ function VistaMedico({
       attivo = false;
     };
   }, [servizi, medicoId, gestisceIndisp]);
-  const meseSuccessivo = aggiungiMesi(meseOggi, 1);
-  const indispModificabile = gestisceIndisp && confrontaMesi(corrente, meseSuccessivo) === 0;
+  // I mesi del medico sono già caricati a questo punto: "non pubblicato" = assente da dati.mesi.
+  const indispModificabile =
+    gestisceIndisp &&
+    meseAccettaIndisponibilita(
+      corrente,
+      meseOggi,
+      dati.mesi.map((m) => m.chiave),
+    );
   const inModifica = indispModificabile && modificaIndisp;
   const segni = useMemo(() => (gestisceIndisp && mostraIndisp ? costruisciSegni(indisp, dati.mesi) : undefined), [gestisceIndisp, mostraIndisp, indisp, dati.mesi]);
   const giorniIndispMese: GiorniIndisponibili = indisp[vista.chiave] ?? {};

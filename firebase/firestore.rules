@@ -296,7 +296,7 @@ service cloud.firestore {
     // ---------- indisponibilita' del medico (solo account principale) ----------
     // Doc indisponibilita/{medicoId}/mesi/{aaaa-mm}: giorni {"1".."31": ["M"|"P"|"N", ...]}.
     // Lettura e scrittura SOLO dal principale del medico (stessa condizione dei cambi).
-    // Scrittura ammessa solo per il mese successivo e quello dopo (UTC, request.time).
+    // Scrittura ammessa per i mesi futuri entro 12 mesi (UTC) senza turni pubblicati.
     // Chiavi dei giorni validate per mese (29 febbraio, mesi da 30 giorni); i valori
     // giorno per giorno (le regole non hanno cicli: 31 controlli espliciti).
     function giorniNelMese(a, m) {
@@ -345,10 +345,14 @@ service cloud.firestore {
         && g.get('31', ['M']) in v;
     }
 
-    // mese = "aaaa-mm", ammesso se e' il mese +1 o +2 rispetto a request.time (UTC).
-    function meseModificabile(mese) {
+    // mese = "aaaa-mm", ammesso se e' strettamente successivo al mese corrente (UTC,
+    // request.time), entro 12 mesi da esso (incluso) e se i turni di quel mese per il
+    // medico non sono ancora pubblicati (turni/{medicoId}/mesi/{mese} non esiste).
+    function meseModificabile(medicoId, mese) {
       return mese.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
-        && (int(mese[0:4]) * 12 + int(mese[5:7])) - (request.time.year() * 12 + request.time.month()) in [1, 2];
+        && (int(mese[0:4]) * 12 + int(mese[5:7])) - (request.time.year() * 12 + request.time.month()) >= 1
+        && (int(mese[0:4]) * 12 + int(mese[5:7])) - (request.time.year() * 12 + request.time.month()) <= 12
+        && !exists(/databases/$(database)/documents/turni/$(medicoId)/mesi/$(mese));
     }
 
     function indispValida(mese, d) {
@@ -362,10 +366,10 @@ service cloud.firestore {
     match /indisponibilita/{medicoId}/mesi/{mese} {
       allow read: if isPrincipaleDi(medicoId);
       allow create, update: if isPrincipaleDi(medicoId)
-        && meseModificabile(mese)
+        && meseModificabile(medicoId, mese)
         && indispValida(mese, request.resource.data);
       allow delete: if isPrincipaleDi(medicoId)
-        && meseModificabile(mese);
+        && meseModificabile(medicoId, mese);
     }
 
     // ---------- modello OCR per l'import da screenshot (solo admin e delegati) ----------
