@@ -139,6 +139,7 @@ main#contenuto { flex: 1; outline: none; }
 .riga-input { display: flex; gap: 8px; }
 .opzione { display: flex; gap: 10px; align-items: flex-start; min-height: var(--touch); cursor: pointer; }
 .opzione input { margin-top: 5px; width: 18px; height: 18px; accent-color: var(--brand); }
+.opzione > span { display: grid; gap: 2px; }
 .dialogo-piede-interno { padding: 4px 0 0; }
 .griglia-sedi { display: grid; gap: 10px; grid-template-columns: 1fr; }
 @media (min-width: 640px) { .griglia-sedi { grid-template-columns: 1fr 1fr; } }
@@ -396,6 +397,8 @@ main#contenuto { flex: 1; outline: none; }
   background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-l); box-shadow: var(--shadow-2);
 }
 @media (min-width: 900px) { .barra-pubblica { bottom: var(--gutter); } }
+/* Finché c'è da correggere resta in fondo alla pagina, senza coprire le righe da controllare. */
+.barra-pubblica.barra-ferma { position: static; box-shadow: none; }
 
 .import-mese-da { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; max-width: 420px; }
 .import-ignorati { margin-top: 14px; opacity: .75; }

@@ -292,6 +292,7 @@ export function ImportScreenshot({ onPronto, meseIniziale }: { onPronto: (e: Esi
     [letto, stato.confermate, attive],
   );
   const nAttive = attive.filter(Boolean).length;
+  const pronto = nIncerte === 0 && nAttive > 0 && doppi.size === 0;
   const modelloCambiato = modello !== null && modello !== modelloIniziale;
 
   const procedi = () => {
@@ -579,7 +580,7 @@ export function ImportScreenshot({ onPronto, meseIniziale }: { onPronto: (e: Esi
             onModello={setModello}
           />
 
-          <div className="barra-pubblica">
+          <div className={pronto ? 'barra-pubblica' : 'barra-pubblica barra-ferma'}>
             <div>
               {nIncerte > 0 ? (
                 <span className="testo-pericolo">
@@ -591,7 +592,7 @@ export function ImportScreenshot({ onPronto, meseIniziale }: { onPronto: (e: Esi
                 <span className="testo-tenue">Celle controllate: puoi vedere l’anteprima.</span>
               )}
             </div>
-            <button type="button" className="btn btn-primario" disabled={nIncerte > 0 || nAttive === 0 || doppi.size > 0} onClick={procedi}>
+            <button type="button" className="btn btn-primario" disabled={!pronto} onClick={procedi}>
               <Icona nome="spunta" /> Vai all’anteprima
             </button>
           </div>

@@ -22,6 +22,12 @@
 ![Card Oggi e domani e Chi è di turno con me su telefono](docs/screenshot/mobile-oggi.png)
 *In cima all'area medico: card chiuse con il riassunto · «Oggi e domani» aperta · «Chi è di turno con me» sul giorno selezionato nel calendario, con colleghi e reperibili.*
 
+![Cessione con suggerimenti, indisponibilità e feedback su telefono](docs/screenshot/mobile-novita-medico.png)
+*Cessione di un turno con «Possono darti il cambio» (colleghi con 11 ore di riposo prima e dopo) · indisponibilità del mese successivo segnate sul calendario, con il testo dell'email pronto da copiare · conversazione di feedback con l'amministratore.*
+
+![Import da screenshot e approvazione account su telefono](docs/screenshot/mobile-novita-gestione.png)
+*Import da screenshot: controllo della griglia rilevata sull'immagine · revisione di una cella incerta con il ritaglio ingrandito e le scelte rapide · approvazione di un account in attesa, con il messaggio di presentazione dell'utente.*
+
 ### Su computer
 ![Pagina pubblica su desktop](docs/screenshot/desktop-pubblica.png)
 
@@ -59,7 +65,7 @@
 - **Feedback** (solo amministratore): elenco delle conversazioni dei medici con le non lette in evidenza, risposta, chiusura e cancellazione. I delegati non vi accedono.
 - **Gestione account**: associazione account–medico, account principale e secondari, disabilitazione, con **ultimo accesso** di ogni account e del medico (registrato all'apertura dell'app, al massimo una volta al giorno).
 - **Importazione dell'Excel** dei turni con anteprima e segnalazione dei codici non riconosciuti prima della pubblicazione. Si sceglie un **mese di partenza** (di default il successivo): i fogli precedenti sono ignorati e ogni mese importato **sostituisce completamente** quello già pubblicato (utile per le correzioni).
-- **Importazione da screenshot** (admin e delegati, scheda "Da screenshot" in Carica turni): si sceglie mese e immagine, l'app trova la griglia (correggibile toccando due punti), legge le celle con un modello a esempi che migliora a ogni correzione e i cognomi con OCR (tesseract.js, file serviti dall'app stessa), poi mostra le **celle incerte** con il ritaglio ingrandito da confermare o correggere. L'anteprima e la pubblicazione sono quelle dell'Excel. L'immagine resta nel browser; la lettura può contenere errori, quindi le celle evidenziate vanno sempre controllate.
+- **Importazione da screenshot** (admin e delegati, scheda "Da screenshot" in Carica turni): si sceglie mese e immagine, l'app trova la griglia (correggibile toccando due punti), legge le celle con un modello a esempi che migliora a ogni correzione e i cognomi con OCR (tesseract.js, file serviti dall'app stessa), poi mostra le **celle incerte** con il ritaglio ingrandito da confermare o correggere; il pulsante «Vai all'anteprima» resta in fondo alla pagina finché righe e celle non sono tutte confermate, poi diventa fisso in basso. L'anteprima e la pubblicazione sono quelle dell'Excel. L'immagine resta nel browser; la lettura può contenere errori, quindi le celle evidenziate vanno sempre controllate.
 - **Mesi pubblicati**: elenco dei mesi caricati con data e numero di medici.
 - **Calendario di ogni medico** in sola lettura (senza i cambi, che restano privati).
 - **Delegati** nominati dall'amministratore. L'amministratore non è un medico e vede solo l'area di gestione.
