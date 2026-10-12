@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Fascia } from '../../domain/codici';
 import { aggiungiGiorni, scomponi, type DataISO } from '../../domain/date';
 import { colleghiDisponibili } from '../../domain/disponibilita';
+import { testoRichiestaCambio } from '../../domain/richiestaCambio';
+import { copiaNegliAppunti } from '../../ui/appunti';
 import { useServizi } from '../../sessione/contesto';
 import type { NuovoCambio, QuadroMese, Sedi, VoceElenco } from '../../servizi/tipi';
 import { Dialogo } from '../../ui/Dialogo';
@@ -46,6 +48,8 @@ function ModuloCambio({ richiesta, principale, colleghi, sedi, onChiudi, onConfe
   const [sede, setSede] = useState('');
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState<string>();
+
+  const collega = colleghi.find((c) => c.id === collegaId);
 
   const conferma = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,6 +137,14 @@ function ModuloCambio({ richiesta, principale, colleghi, sedi, onChiudi, onConfe
         <small>Il cambio è privato: lo vedono solo i tuoi account.</small>
       </label>
 
+      {richiesta.tipo === 'cedi' && collega && (
+        <RiquadroRichiesta
+          cognome={collega.nome}
+          turni={[`${richiesta.voce.codice} (${etichettaCodice(richiesta.voce.info, sedi).lunga.replace(/ \d{2}–\d{2}/, '').replaceAll(' · ', ', ')})`]}
+          data={dataEstesa(richiesta.giorno.data)}
+        />
+      )}
+
       {errore && (
         <p className="avviso avviso-danger" role="alert">
           {errore}
@@ -148,6 +160,72 @@ function ModuloCambio({ richiesta, principale, colleghi, sedi, onChiudi, onConfe
         </button>
       </div>
     </form>
+  );
+}
+
+/** Messaggio pronto da inviare al collega (condividi o copia); il cambio si registra con "Conferma cambio". */
+function RiquadroRichiesta({ cognome, turni, data }: { cognome: string; turni: string[]; data: string }) {
+  const generato = testoRichiestaCambio({ cognome, turni, data });
+  // Il testo segue il collega scelto, finché non viene modificato a mano.
+  const [manuale, setManuale] = useState<string | null>(null);
+  const testo = manuale ?? generato;
+  const [copiato, setCopiato] = useState(false);
+  const [fallita, setFallita] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  const copia = async () => {
+    const ok = await copiaNegliAppunti(testo);
+    setFallita(!ok);
+    setCopiato(ok);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      setCopiato(false);
+      setFallita(false);
+    }, 2500);
+  };
+  const condividi = async () => {
+    try {
+      await navigator.share({ text: testo });
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      void copia();
+    }
+  };
+
+  return (
+    <section className="campo riquadro-richiesta" aria-label="Chiedi il cambio">
+      <label className="campo">
+        <span>Chiedi il cambio</span>
+        <textarea
+          className="textarea"
+          rows={4}
+          value={testo}
+          onChange={(e) => setManuale(e.target.value)}
+        />
+      </label>
+      <div className="indisp-azioni">
+        {typeof navigator.share === 'function' && (
+          <button type="button" className="btn btn-secondario btn-piccolo" onClick={() => void condividi()}>
+            <Icona nome="invia" /> Condividi
+          </button>
+        )}
+        <button type="button" className="btn btn-secondario btn-piccolo" onClick={() => void copia()}>
+          <Icona nome="file" /> Copia testo
+        </button>
+      </div>
+      <p className="nota indisp-conferma" role="status" aria-live="polite">
+        {copiato && (
+          <>
+            <Icona nome="spunta" piccola /> Copiato
+          </>
+        )}
+        {fallita && 'Copia non riuscita: seleziona il testo e copialo a mano.'}
+      </p>
+      <p className="nota">
+        <Icona nome="info" piccola /> Quando il collega accetta, torna qui e premi Conferma cambio.
+      </p>
+    </section>
   );
 }
 

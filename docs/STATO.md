@@ -19,7 +19,10 @@
 
 - Indisponibilità: modificabili per ogni mese futuro senza turni pubblicati del medico, fino a +12 (regole: `exists` su `turni/{medico}/mesi/{mese}`); app 159 test, regole 137.
 
+- **Chiedi il cambio** nella cessione: messaggio modificabile con Condividi (Web Share) e Copia testo (`ui/appunti.ts`, condiviso con le indisponibilità); app 162 test.
+
 ## Prossimi passi
+0. Provare **Condividi** su iPhone/Android (non verificabile nel browser di sviluppo).
 0. **Pubblicare le regole** (`firebase deploy --only firestore`): senza, dicembre e successivi vengono rifiutati.
 1. Provare indisponibilità (Copia/Apri email) e feedback su iPhone.
 2. **Reimportare l'Excel** per creare il quadro: attiva "Chi è di turno con me" e "Possono darti il cambio".

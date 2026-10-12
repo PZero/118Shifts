@@ -30,6 +30,8 @@ Nessuno entra da solo: al primo accesso con Google l'utente resta **in attesa** 
 ### Cambi turno, privati
 Quando un medico cede o riceve un turno lo registra nell'app: il turno ceduto resta visibile barrato con il nome del collega, quello ricevuto riporta chi l'ha ceduto, e le ore del mese si aggiornano. I cambi sono **privati**: li vedono solo gli account di quel medico. Al momento della cessione l'app suggerisce i colleghi che possono prendere il turno rispettando le **11 ore di riposo** prima e dopo.
 
+Scelto il collega, l'app prepara anche il **messaggio per chiedergli il cambio**, per esempio *«Ciao Bianchi, avrei bisogno di cambiare il turno N6 (Notte, Sede 6) di mercoledì 14 ottobre 2026. Saresti disponibile al cambio?»*. Il testo si può ritoccare, poi con **Condividi** si apre il menu del telefono per mandarlo su WhatsApp (o con qualunque altra app), oppure con **Copia testo** lo si incolla dove si preferisce. L'app non invia nulla da sola e non conosce i numeri di telefono: il messaggio parte dal medico. Quando il collega accetta, si torna nella cessione e si preme **Conferma cambio** per registrarlo.
+
 ### Indisponibilità ed email già pronta
 Per ogni mese i cui turni non sono ancora stati pubblicati (dal mese dopo l'ultimo caricato, fino a un anno avanti), ogni medico può segnare sul calendario i giorni e le fasce (mattino, pomeriggio, notte) in cui **non è disponibile**. L'app prepara il **testo dell'email** con l'elenco ordinato delle date: un tocco lo copia, da incollare nel proprio programma di posta, oppure apre direttamente il client email. L'app non invia niente da sola: il messaggio parte dal medico, come sempre.
 
@@ -82,6 +84,7 @@ Ogni medico vede solo i propri dati. La regola è applicata dal database (regole
 - **Proiezione** della turnazione sui 12 mesi successivi (ciclo Mattino+Pomeriggio → Notte → smonto → riposo → riposo), distinta graficamente dai turni ufficiali.
 - **Cambi turno privati**: il turno ceduto resta visibile barrato con il nome del collega; il turno ricevuto è collegato al cambio e riporta chi l'ha ceduto. Visibili solo agli account del medico.
 - **Chi può darti il cambio** (solo account principali): quando si cede un turno, l'app suggerisce i colleghi con almeno 11 ore di riposo prima dell'inizio e dopo la fine (le reperibilità contano come impegno), secondo l'Excel pubblicato; un tocco sul nome lo seleziona. Resta sempre possibile scegliere qualunque collega dall'elenco.
+- **Chiedi il cambio**: scelto il collega, l'app compone il messaggio di richiesta (turno, sede e data, senza orari), modificabile, da inviare con **Condividi** (WhatsApp o altre app, tramite il menu di condivisione del telefono) o **Copia testo**. Nessun invio automatico e nessun numero di telefono salvato; il cambio si registra con «Conferma cambio» quando il collega ha accettato.
 - **Indisponibilità** (solo account principali): sul calendario di ogni mese futuro non ancora pubblicato (dal mese dopo l'ultimo caricato, fino a 12 mesi avanti) si segnano i giorni e i turni (M, P, N) in cui non si è disponibili; quando i turni del mese vengono pubblicati le indisponibilità diventano di sola lettura; un pulsante copia il testo dell'email da inviare personalmente (o apre il client di posta). I giorni restano evidenziati anche dopo la pubblicazione dei turni, con avviso se un turno cade in una fascia indisponibile; una spunta li mostra o li nasconde. Visibili solo all'account principale.
 - **Più account per medico**: un account principale (che registra i cambi) e account secondari in sola lettura, per esempio per un familiare.
 - **Condivisione del mese come immagine**: un tocco sull'icona di condivisione crea un'immagine del calendario (titolo del mese e griglia, con i cambi già applicati) da inviare come una foto, per esempio su WhatsApp. Nessun link, nessun nome di colleghi.
@@ -175,7 +178,7 @@ Il link completo (con token di accesso locale) viene stampato nel terminale.
 ## Roadmap
 - [x] Analisi del formato Excel e dei requisiti
 - [x] Modello dati e regole di sicurezza (137 test sull'emulatore)
-- [x] Logica turni: parser, ore, festività, proiezione, disponibilità colleghi (159 test)
+- [x] Logica turni: parser, ore, festività, proiezione, disponibilità colleghi (162 test)
 - [x] Interfaccia: pagina pubblica, login, calendario, card, cambi
 - [x] Pannello amministrazione e import Excel con mese di partenza
 - [x] Import da screenshot, indisponibilità, feedback

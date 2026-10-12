@@ -15,6 +15,7 @@ import {
   type GiorniIndisponibili,
 } from '../../domain/indisponibilita';
 import { descriviSegno, type SegnoIndisp } from './indisponibilitaVista';
+import { copiaNegliAppunti } from '../../ui/appunti';
 import { Dialogo } from '../../ui/Dialogo';
 import { Icona } from '../../ui/Icona';
 import { NOME_FASCIA, ORARIO_FASCIA, dataEstesa, nomeMese } from '../../ui/etichette';
@@ -38,31 +39,6 @@ function testoRiepilogo(giorni: number, nonRispettate: number): string {
   const g = `${giorni} ${giorni === 1 ? 'giorno' : 'giorni'}`;
   if (nonRispettate === 0) return `Indisponibilità: ${g}`;
   return `Indisponibilità: ${g}, ${nonRispettate} non ${nonRispettate === 1 ? 'rispettata' : 'rispettate'}`;
-}
-
-async function copiaNegliAppunti(testo: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(testo);
-      return true;
-    }
-  } catch {
-    /* ripiego sotto */
-  }
-  try {
-    const area = document.createElement('textarea');
-    area.value = testo;
-    area.setAttribute('readonly', '');
-    area.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
-    document.body.appendChild(area);
-    area.select();
-    area.setSelectionRange(0, testo.length);
-    const ok = document.execCommand('copy');
-    area.remove();
-    return ok;
-  } catch {
-    return false;
-  }
 }
 
 interface PropsCard {
