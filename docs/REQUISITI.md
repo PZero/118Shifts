@@ -77,5 +77,23 @@ La notte dell'ultimo giorno del mese conta quindi 8 ore nel mese successivo.
 | altri codici non riconosciuti | **da controllare**: segnalati negli avvisi di import | 0 |
 | corrispondenza sede 1–7 → nome | provvisorio: `Sede 1` … `Sede 7`; nomi reali in seguito (tabella configurabile dall'admin) | — |
 
-## Fase 2
-Da definire.
+## Fase 2 — Pianificazione assistita dei turni (indicazione, da progettare)
+Oggi l'app riceve turni già decisi. In Fase 2 potrebbe **accentrare la definizione dei turni**: raccoglie le indisponibilità di tutti, calcola una **proposta** di turnazione e la consegna al responsabile, che la corregge e la approva (**human in the loop**). La decisione resta sempre umana: l'app propone, il responsabile dispone.
+
+Flusso ipotizzato:
+1. **Raccolta**: finestra con scadenza per le indisponibilità del mese successivo, con promemoria nell'app; il responsabile vede il quadro di tutti e chi non ha ancora risposto. Le email preparate in Fase 1 diventano superflue.
+2. **Proposta automatica**: un motore di vincoli genera una bozza che rispetta i vincoli obbligatori e ottimizza quelli preferenziali.
+3. **Revisione**: il responsabile modifica la bozza (scambi, sostituzioni) con verifica in tempo reale dei vincoli e spiegazione di ogni conflitto; può rigenerare bloccando le celle già decise.
+4. **Approvazione e pubblicazione**: la versione approvata entra nel calendario come oggi; storico delle versioni ed export Excel nel formato attuale, per compatibilità con chi lo usa ancora.
+
+Vincoli da raccogliere e formalizzare:
+- **obbligatori**: copertura di ogni sede e fascia, 11 ore di riposo, ciclo MP → N → smonto → riposo → riposo, assenze e ferie, reperibilità, limiti di ore mensili e contrattuali;
+- **preferenziali**: indisponibilità (con priorità), equa distribuzione nel tempo di notti, weekend e festivi (con lo storico dei mesi precedenti), continuità di sede, preferenze personali.
+
+Indicatori per il responsabile: indisponibilità rispettate, carico per medico (ore, notti, weekend, festivi) rispetto alla media, vincoli preferenziali violati e perché.
+
+Punti aperti:
+- **Motore**: senza Cloud Functions (piano Spark) il calcolo gira nel browser del responsabile, per esempio un solver di programmazione lineare intera in WebAssembly; dimensioni e tempi da verificare.
+- **Modello dati e regole**: indisponibilità leggibili dal responsabile (oggi solo dall'account principale), bozze e versioni separate dai turni pubblicati, ruolo "responsabile" distinto o coincidente con l'amministratore.
+- **Organizzazione**: regole contrattuali e consuetudini (anche non scritte) da raccogliere con chi oggi compila i turni; adozione graduale, per esempio una sede o un mese di prova in parallelo al metodo attuale.
+- **Trasparenza**: ogni medico vede che la proposta è automatica e che l'approvazione è del responsabile.

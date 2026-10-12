@@ -174,13 +174,26 @@ Il link completo (con token di accesso locale) viene stampato nel terminale.
 
 ## Roadmap
 - [x] Analisi del formato Excel e dei requisiti
-- [x] Modello dati e regole di sicurezza (102 test sull'emulatore)
-- [x] Logica turni: parser, ore, festività, proiezione, disponibilità colleghi (115 test)
+- [x] Modello dati e regole di sicurezza (136 test sull'emulatore)
+- [x] Logica turni: parser, ore, festività, proiezione, disponibilità colleghi (155 test)
 - [x] Interfaccia: pagina pubblica, login, calendario, card, cambi
 - [x] Pannello amministrazione e import Excel con mese di partenza
+- [x] Import da screenshot, indisponibilità, feedback
 - [x] Pubblicazione su Firebase Hosting
 - [ ] Prove con i primi medici
-- [ ] Fase 2 — da definire
+- [ ] Fase 2 — pianificazione assistita dei turni (da progettare)
+
+### Fase 2: verso la pianificazione assistita
+*Indicazione di massima, ancora da progettare.*
+
+Oggi 118Shifts riceve turni già decisi. Il passo successivo è **aiutare a deciderli**, tenendo sempre una persona al comando (*human in the loop*):
+
+1. **Raccolta delle indisponibilità** di tutti i medici nell'app, con scadenza e promemoria, al posto delle email.
+2. **Proposta automatica**: un motore di vincoli genera una bozza che rispetta copertura di sedi e fasce, 11 ore di riposo, ciclo della turnazione, ferie e limiti di ore, e distribuisce in modo equo notti, weekend e festivi tenendo conto dei mesi precedenti.
+3. **Revisione del responsabile**: modifica della bozza con controllo dei vincoli in tempo reale, spiegazione dei conflitti e indicatori di equità; possibilità di rigenerare tenendo fisse le scelte già fatte.
+4. **Approvazione e pubblicazione**: solo la versione approvata dal responsabile arriva ai calendari dei medici, con storico delle versioni ed export Excel nel formato attuale.
+
+L'algoritmo propone, il responsabile decide. Dettagli e punti aperti in [`docs/REQUISITI.md`](docs/REQUISITI.md#fase-2--pianificazione-assistita-dei-turni-indicazione-da-progettare).
 
 ## Licenza
 [MIT](LICENSE)
