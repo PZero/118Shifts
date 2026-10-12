@@ -55,3 +55,5 @@
 | 2026-10-11 | `quadro/{aaaa-mm}` scritto all'import, leggibile solo da account principali e staff | Serve a "Chi è di turno con me"; i familiari non vedono i turni dei colleghi; niente cambi dei colleghi (privati) |
 | 2026-10-11 | Calendario con i giorni dei mesi adiacenti (attenuati, con turni o proiezione); conteggi solo sul mese | Vedere la settimana completa a inizio e fine mese |
 | 2026-10-11 | "Chi è di turno con me" segue il giorno selezionato (senza selezione: oggi); card in cima | Scelta dell'utente; quadro letto per mese, una volta per sessione |
+| 2026-10-12 | Cedendo un turno, suggeriti i colleghi con 11 ore di riposo prima e dopo (dal quadro; reperibilità = impegno; assenze ignorate); clic = selezione, salvataggio con Conferma | Richiesta dell'utente; le assenze non sono note a priori |
+| 2026-10-12 | Niente import da foto/screenshot dell'Excel | Risoluzione insufficiente per errore < 1% (celle ~25 px, cifre 1/7, 3/8, 5/6 ambigue, riquadri sovrapposti); OCR serio richiederebbe servizi a pagamento |

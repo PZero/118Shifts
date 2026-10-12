@@ -333,7 +333,7 @@ function VistaMedico({
         </aside>
       </div>
 
-      <DialogoCambio richiesta={richiesta} colleghi={colleghi} sedi={dati.sedi} onChiudi={() => setRichiesta(null)} onConferma={salvaCambio} />
+      <DialogoCambio richiesta={richiesta} principale={principale} colleghi={colleghi} sedi={dati.sedi} onChiudi={() => setRichiesta(null)} onConferma={salvaCambio} />
       <Dialogo
         aperto={daAnnullare !== null}
         titolo="Annullare il cambio?"

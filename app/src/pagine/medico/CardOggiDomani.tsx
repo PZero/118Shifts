@@ -1,6 +1,6 @@
 // Card in cima all'area medico: "Oggi e domani" (miei turni, cambi applicati) e
 // "Chi è di turno con me" (colleghi dal quadro del mese, solo account principali).
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
 import { chiConMe, type GruppoChiConMe } from '../../domain/quadro';
 import { scomponi, type DataISO } from '../../domain/date';
 import type { RisultatoProiezione } from '../../domain/proiezione';
@@ -9,6 +9,7 @@ import type { CambioDoc, MeseDoc, QuadroMese, Sedi } from '../../servizi/tipi';
 import { Icona } from '../../ui/Icona';
 import { NOME_FASCIA, ORARIO_FASCIA, dataEstesa, etichettaCodice, nomeSede } from '../../ui/etichette';
 import { ChipTurno } from './ChipTurno';
+import { caricaQuadro } from './quadriCache';
 import { costruisciMese, type GiornoVista } from './vista';
 
 interface GiornoCard {
@@ -168,25 +169,15 @@ export function CardChiConMe({ oggi, giorno, pubblicato, sedi, nomi, medicoId }:
   const [aperto, setAperto] = useState(false);
   const [stato, setStato] = useState<StatoQuadro>({ stato: 'idle' });
   const [tentativo, setTentativo] = useState(0);
-  // Cache in memoria: una lettura per mese per sessione.
-  const cache = useRef(new Map<string, QuadroMese | null>());
   const chiave = giorno.data.slice(0, 7);
   const codici = giorno.voci.filter((v) => v.stato !== 'ceduto').map((v) => v.codice);
 
   useEffect(() => {
     if (!aperto || !pubblicato) return;
-    if (cache.current.has(chiave)) {
-      setStato({ stato: 'pronto', quadro: cache.current.get(chiave) ?? null });
-      return;
-    }
     let attivo = true;
     setStato({ stato: 'caricamento' });
-    servizi
-      .quadro(chiave)
-      .then((q) => {
-        cache.current.set(chiave, q);
-        if (attivo) setStato({ stato: 'pronto', quadro: q });
-      })
+    caricaQuadro(servizi, chiave)
+      .then((q) => attivo && setStato({ stato: 'pronto', quadro: q }))
       .catch(() => attivo && setStato({ stato: 'errore' }));
     return () => {
       attivo = false;

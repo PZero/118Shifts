@@ -46,6 +46,7 @@
 - **Card ore del mese** calcolate dall'app, cambi compresi. La notte vale 4 ore sul giorno di inizio e 8 sul giorno successivo.
 - **Proiezione** della turnazione sui 12 mesi successivi (ciclo Mattino+Pomeriggio → Notte → smonto → riposo → riposo), distinta graficamente dai turni ufficiali.
 - **Cambi turno privati**: il turno ceduto resta visibile barrato con il nome del collega; il turno ricevuto è collegato al cambio e riporta chi l'ha ceduto. Visibili solo agli account del medico.
+- **Chi può darti il cambio** (solo account principali): quando si cede un turno, l'app suggerisce i colleghi con almeno 11 ore di riposo prima dell'inizio e dopo la fine (le reperibilità contano come impegno), secondo l'Excel pubblicato; un tocco sul nome lo seleziona. Resta sempre possibile scegliere qualunque collega dall'elenco.
 - **Più account per medico**: un account principale (che registra i cambi) e account secondari in sola lettura, per esempio per un familiare.
 - **Condivisione del mese come immagine**: un tocco sull'icona di condivisione crea un'immagine del calendario (titolo del mese e griglia, con i cambi già applicati) da inviare come una foto, per esempio su WhatsApp. Nessun link, nessun nome di colleghi.
 - **Tema chiaro e scuro**, automatico o a scelta.
@@ -133,8 +134,8 @@ Il link completo (con token di accesso locale) viene stampato nel terminale.
 
 ## Roadmap
 - [x] Analisi del formato Excel e dei requisiti
-- [x] Modello dati e regole di sicurezza (95 test sull'emulatore)
-- [x] Logica turni: parser, ore, festività, proiezione (89 test)
+- [x] Modello dati e regole di sicurezza (102 test sull'emulatore)
+- [x] Logica turni: parser, ore, festività, proiezione, disponibilità colleghi (115 test)
 - [x] Interfaccia: pagina pubblica, login, calendario, card, cambi
 - [x] Pannello amministrazione e import Excel con mese di partenza
 - [x] Pubblicazione su Firebase Hosting

@@ -426,3 +426,11 @@ main#contenuto { flex: 1; outline: none; }
 .chi-elenco { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14.5px; }
 @media (prefers-reduced-motion: reduce) { .card-comprimibile-freccia { transition: none; } }
 .chi-fascia .num { margin-left: 6px; }
+
+/* Colleghi disponibili nel dialogo "Cedi il turno" */
+.chip-colleghi { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-collega {
+  min-height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-size: 14px; font-weight: 600;
+}
+.chip-collega[aria-pressed='true'] { background: var(--brand); border-color: var(--brand); color: #fff; }
