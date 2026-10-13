@@ -10,6 +10,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 radice = Path(__file__).resolve().parent.parent
 elenco = radice / "dati" / "nomi-reali.txt"
 nomi = []
@@ -26,7 +28,8 @@ file = subprocess.run(["git", "ls-files"], cwd=radice, capture_output=True, text
 problemi = 0
 for f in file:
     p = radice / f
-    if p.suffix.lower() in {".png", ".ico", ".jpg", ".webp"} or p.name == "package-lock.json":
+    # PDF: contenuto compresso, non leggibile come testo (si controlla il sorgente, es. docs/guida/guida.html)
+    if p.suffix.lower() in {".png", ".ico", ".jpg", ".webp", ".pdf"} or p.name == "package-lock.json":
         continue
     try:
         testo = p.read_text(encoding="utf-8", errors="ignore")
