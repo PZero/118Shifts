@@ -2,7 +2,7 @@
 // Questo modulo è importato solo da demo/DemoApp.tsx, a sua volta caricato solo se import.meta.env.DEV.
 
 import { aggiungiMesi, chiaveMese, dataISO, giorniNelMese, type AnnoMese } from '../domain/date';
-import { anteprima } from '../domain/feedback';
+import { anteprima, prossimoContatore, type LimiteFeedback } from '../domain/feedback';
 import type { GiorniIndisponibili } from '../domain/indisponibilita';
 import { CICLO } from '../domain/proiezione';
 import { costruisciQuadro } from '../domain/quadro';
@@ -132,6 +132,12 @@ export function creaServiziDemo(): Servizi {
     ]],
     ['f3', [{ id: 'm6', testo: 'Sarebbe utile poter stampare il mese.', daAdmin: false, autoreUid: 'demo-uid-3', creatoIl: oreFa(5) }]],
   ]);
+  const limiti = new Map<string, LimiteFeedback>();
+  const contaMessaggio = (uid: string) => {
+    const prossimo = prossimoContatore(limiti.get(uid), new Date());
+    if (!prossimo) throw Object.assign(new Error('Missing or insufficient permissions.'), { code: 'permission-denied' });
+    limiti.set(uid, prossimo);
+  };
   const ascoltatori = new Set<() => void>();
   const notifica = () => ascoltatori.forEach((f) => f());
   const osserva = (calcola: () => void) => {
@@ -190,8 +196,10 @@ export function creaServiziDemo(): Servizi {
 
     osservaConversazioni: (uid, cb) =>
       osserva(() => cb(structuredClone(ordineRecente(conversazioni.filter((c) => !uid || c.autoreUid === uid))))),
+    osservaLimiteFeedback: (uid, cb) => osserva(() => cb(limiti.get(uid) ?? null)),
     osservaMessaggi: (convId, cb) => osserva(() => cb(structuredClone(messaggiFeedback.get(convId) ?? []))),
     async creaConversazione(autore, argomento, testo) {
+      contaMessaggio(autore.uid);
       const id = `f${++seq + 10}`;
       const adesso = new Date();
       conversazioni.push({ id, autoreUid: autore.uid, autoreNome: autore.nome, argomento: argomento.trim(), creatoIl: adesso, aggiornatoIl: adesso, ultimoTesto: anteprima(testo), nonLettoAdmin: true, nonLettoUtente: false });
@@ -200,6 +208,7 @@ export function creaServiziDemo(): Servizi {
       return id;
     },
     async inviaMessaggio(conv, autore, testo, daAdmin) {
+      if (!daAdmin) contaMessaggio(autore.uid);
       const adesso = new Date();
       messaggiFeedback.set(conv.id, [...(messaggiFeedback.get(conv.id) ?? []), { id: `m${++seq + 10}`, testo: testo.trim(), daAdmin, autoreUid: autore.uid, creatoIl: adesso }]);
       conversazioni = conversazioni.map((c) =>

@@ -9,6 +9,7 @@ Chiudiamo la sessione. Senza rileggere file che non servono:
 3. Se sono cambiati raccolte, campi o permessi, verifica che `docs/MODELLO-DATI.md` e `firebase/firestore.rules` siano allineati; se è cambiata la legenda dei codici, aggiorna `docs/REQUISITI.md`.
 4. Aggiorna `README.md` (vetrina pubblica su GitHub) se sono cambiati stato, funzioni, architettura o istruzioni. Screenshot solo con dati inventati, in `docs/screenshot/`.
 5. Se ci sono test (`app/`: `npm test`; `firebase/`: `npm run test:rules`), eseguili e riporta l'esito.
+5b. Esegui `node scripts/impronta-regole.mjs verifica`; se fallisce, segnala "regole da pubblicare: npm run deploy:regole in firebase/" (anche in STATO.md e nella risposta finale).
 6. **Controllo prima del commit** (repository pubblico): esegui `python -I scripts/controlla-privacy.py` (deve dare 0 problemi) e verifica inoltre: nessuna chiave, token o password; nessun `.env`; nessun file Excel/CSV; **nessun dato reale** (nomi o turni dei medici); **nessuna email dell'amministratore**.
 7. Fai un commit con un messaggio che riassume la sessione, poi:
    - se `dati/nomi-reali.txt` **esiste** (sessione sul PC): push su `origin main`;

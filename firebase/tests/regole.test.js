@@ -644,6 +644,24 @@ describe("Feedback (chat medico-admin)", () => {
     testo: "ciao", daAdmin: false, autoreUid: uid, convAutoreUid: uid,
     creatoIl: serverTimestamp(), ...over,
   });
+  const oggiUtc = () => {
+    const n = new Date();
+    return n.getUTCFullYear() * 10000 + (n.getUTCMonth() + 1) * 100 + n.getUTCDate();
+  };
+  const limPath = (u) => `limiteFeedback/${u}`;
+  const lim = (giorno, conteggio) => ({ giorno, conteggio });
+  // Messaggio del medico + contatore (valore nuovo) nella stessa scrittura.
+  function msgConLimite(d, u, msgPath, nuovo) {
+    const b = writeBatch(d);
+    b.set(doc(d, msgPath), msg(u));
+    b.set(doc(d, limPath(u)), nuovo);
+    return b;
+  }
+  async function seedLimite(u, giorno, conteggio) {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), limPath(u)), lim(giorno, conteggio));
+    });
+  }
   async function seed() {
     await env.withSecurityRulesDisabled(async (ctx) => {
       const f = ctx.firestore();
@@ -662,6 +680,7 @@ describe("Feedback (chat medico-admin)", () => {
       const b = writeBatch(d);
       b.set(doc(d, `feedback/n_${u}`), conv(u));
       b.set(doc(d, `feedback/n_${u}/messaggi/m1`), msg(u));
+      b.set(doc(d, limPath(u)), lim(oggiUtc(), 1));
       await assertSucceeds(b.commit());
     }
   });
@@ -752,6 +771,7 @@ describe("Feedback (chat medico-admin)", () => {
     let d = db(UID.princA);
     let b = writeBatch(d);
     b.set(doc(d, `${t}/messaggi/m2`), msg(UID.princA));
+    b.set(doc(d, limPath(UID.princA)), lim(oggiUtc(), 1));
     b.update(doc(d, t), { aggiornatoIl: serverTimestamp(), ultimoTesto: "ciao", nonLettoAdmin: true });
     await assertSucceeds(b.commit());
     d = db(UID.admin);
@@ -764,6 +784,7 @@ describe("Feedback (chat medico-admin)", () => {
     await seed();
     const t = `feedback/c_${UID.princA}`;
     const p = db(UID.princA);
+    await seedLimite(UID.princA, oggiUtc(), 1);
     await assertFails(setDoc(doc(p, `${t}/messaggi/x1`), msg(UID.princA, { daAdmin: true })));
     await assertFails(setDoc(doc(p, `${t}/messaggi/x2`), msg(UID.secA)));
     await assertFails(setDoc(doc(p, `${t}/messaggi/x3`), msg(UID.princA, { convAutoreUid: UID.secA })));
@@ -805,6 +826,69 @@ describe("Feedback (chat medico-admin)", () => {
       await assertFails(deleteDoc(doc(db(u), "feedback/orfana/messaggi/m1")));
     }
     await assertFails(deleteDoc(doc(env.unauthenticatedContext().firestore(), t)));
+  });
+  it("F15 limite: 3 messaggi nello stesso giorno ok, il quarto rifiutato", async () => {
+    await seed();
+    const t = `feedback/c_${UID.princA}`;
+    const d = db(UID.princA);
+    await assertSucceeds(msgConLimite(d, UID.princA, `${t}/messaggi/a1`, lim(oggiUtc(), 1)).commit());
+    await assertSucceeds(msgConLimite(d, UID.princA, `${t}/messaggi/a2`, lim(oggiUtc(), 2)).commit());
+    await assertSucceeds(msgConLimite(d, UID.princA, `${t}/messaggi/a3`, lim(oggiUtc(), 3)).commit());
+    await assertFails(msgConLimite(d, UID.princA, `${t}/messaggi/a4`, lim(oggiUtc(), 4)).commit());
+    await assertFails(msgConLimite(d, UID.princA, `${t}/messaggi/a4`, lim(oggiUtc(), 3)).commit());
+    await assertFails(msgConLimite(d, UID.princA, `${t}/messaggi/a4`, lim(oggiUtc(), 1)).commit());
+  });
+  it("F16 limite: messaggio senza contatore o con contatore non incrementato rifiutato", async () => {
+    await seed();
+    const t = `feedback/c_${UID.princA}`;
+    const d = db(UID.princA);
+    await assertFails(setDoc(doc(d, `${t}/messaggi/b1`), msg(UID.princA)));
+    await seedLimite(UID.princA, oggiUtc(), 1);
+    await assertFails(setDoc(doc(d, `${t}/messaggi/b2`), msg(UID.princA)));
+    await assertFails(msgConLimite(d, UID.princA, `${t}/messaggi/b3`, lim(oggiUtc(), 1)).commit());
+    await assertFails(msgConLimite(d, UID.princA, `${t}/messaggi/b4`, lim(oggiUtc(), 3)).commit());
+  });
+  it("F17 limite: reset a 1 nello stesso giorno rifiutato; delete rifiutato", async () => {
+    await seed();
+    await seedLimite(UID.princA, oggiUtc(), 2);
+    const d = db(UID.princA);
+    await assertFails(setDoc(doc(d, limPath(UID.princA)), lim(oggiUtc(), 1)));
+    await assertFails(setDoc(doc(d, limPath(UID.princA)), lim(oggiUtc(), 0)));
+    await assertFails(setDoc(doc(d, limPath(UID.princA)), { ...lim(oggiUtc(), 3), extra: 1 }));
+    await assertFails(deleteDoc(doc(d, limPath(UID.princA))));
+    await assertFails(deleteDoc(doc(db(UID.admin), limPath(UID.princA))));
+    await assertSucceeds(setDoc(doc(d, limPath(UID.princA)), lim(oggiUtc(), 3)));
+  });
+  it("F18 limite: contatore con giorno passato riparte da 1", async () => {
+    await seed();
+    const t = `feedback/c_${UID.princA}`;
+    await seedLimite(UID.princA, 20200101, 3);
+    const d = db(UID.princA);
+    await assertFails(msgConLimite(d, UID.princA, `${t}/messaggi/c1`, lim(oggiUtc(), 2)).commit());
+    await assertFails(msgConLimite(d, UID.princA, `${t}/messaggi/c1`, lim(20200101, 3)).commit());
+    await assertSucceeds(msgConLimite(d, UID.princA, `${t}/messaggi/c1`, lim(oggiUtc(), 1)).commit());
+  });
+  it("F19 limite: contatore altrui non leggibile ne scrivibile; titolare e admin leggono", async () => {
+    await seed();
+    await seedLimite(UID.princA, oggiUtc(), 1);
+    for (const u of [UID.secA, UID.deleg, UID.attesa, UID.disab]) {
+      await assertFails(getDoc(doc(db(u), limPath(UID.princA))));
+      await assertFails(setDoc(doc(db(u), limPath(UID.princA)), lim(oggiUtc(), 2)));
+    }
+    await assertFails(setDoc(doc(db(UID.admin), limPath(UID.princA)), lim(oggiUtc(), 2)));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), limPath(UID.princA))));
+    await assertSucceeds(getDoc(doc(db(UID.princA), limPath(UID.princA))));
+    await assertSucceeds(getDoc(doc(db(UID.admin), limPath(UID.princA))));
+    await assertFails(setDoc(doc(db(UID.princA), limPath(UID.secA)), lim(oggiUtc(), 1)));
+    await assertFails(setDoc(doc(db(UID.princA), limPath(UID.princC)), lim(20200101, 1)));
+  });
+  it("F20 limite: l'admin risponde senza limite e senza contatore", async () => {
+    await seed();
+    const t = `feedback/c_${UID.princA}`;
+    const d = db(UID.admin);
+    for (let i = 0; i < 5; i++) {
+      await assertSucceeds(setDoc(doc(d, `${t}/messaggi/r${i}`), msg(UID.admin, { daAdmin: true, convAutoreUid: UID.princA })));
+    }
   });
 });
 

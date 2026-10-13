@@ -11,4 +11,6 @@ Poi dammi, in italiano e in meno di 20 righe:
 4. **Rischi e incongruenze** tra dati/parser, regole Firebase e interfaccia
 5. **Un suggerimento** concreto per migliorare il progetto
 
+Esegui anche `node scripts/impronta-regole.mjs verifica`; se fallisce, segnala "regole da pubblicare: npm run deploy:regole in firebase/" tra i problemi aperti.
+
 Non modificare alcun file.

@@ -5,6 +5,7 @@
   "scripts": {
     "test": "vitest run",
     "test:rules": "firebase emulators:exec --config ../firebase.json --only firestore --project demo-shifts \"vitest run\"",
+    "deploy:regole": "npm run test:rules && cd .. && firebase deploy --only firestore && node scripts/impronta-regole.mjs scrivi",
     "test:rules:ui": "firebase emulators:exec --config ../firebase.json --only firestore --project demo-shifts \"vitest --watch --ui --open=false --api.port=51205 --api.strictPort\""
   },
   "devDependencies": {

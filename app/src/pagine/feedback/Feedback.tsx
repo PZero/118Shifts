@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'wouter';
-import { LIMITI_FEEDBACK, nonLetta, ordinaConversazioni, validaArgomento, validaTestoMessaggio } from '../../domain/feedback';
+import { LIMITI_FEEDBACK, MAX_MESSAGGI_GIORNO, nonLetta, ordinaConversazioni, validaArgomento, validaTestoMessaggio } from '../../domain/feedback';
 import { useProfilo, useServizi } from '../../sessione/contesto';
 import type { Conversazione, MessaggioFeedback } from '../../servizi/tipi';
 import { Dialogo } from '../../ui/Dialogo';
@@ -32,6 +32,23 @@ function quando(d: Date | undefined): string {
   return `${d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })} ${ora}`;
 }
 
+const ERRORE_LIMITE = `Hai raggiunto il limite di ${MAX_MESSAGGI_GIORNO} messaggi per oggi`;
+
+function erroreInvio(e: unknown): string {
+  const codice = typeof e === 'object' && e !== null && 'code' in e ? String((e as { code: unknown }).code) : '';
+  return codice === 'permission-denied' ? ERRORE_LIMITE : messaggioErroreGenerico(e);
+}
+
+function InfoLimite({ restanti }: { restanti: number | null }) {
+  if (restanti === null) return null;
+  return (
+    <p className="nota" aria-live="polite">
+      Puoi inviare fino a {MAX_MESSAGGI_GIORNO} messaggi al giorno. Oggi te ne restano <strong className="num">{restanti}</strong>
+      <span className="testo-tenue"> (il conteggio riparte ogni notte).</span>
+    </p>
+  );
+}
+
 function Contatore({ n, max }: { n: number; max: number }) {
   return (
     <small className={`contatore num ${n > max ? 'contatore-oltre' : ''}`} aria-live="polite">
@@ -43,7 +60,7 @@ function Contatore({ n, max }: { n: number; max: number }) {
 /* ---------- Elenco ---------- */
 
 function Elenco({ base }: { base: string }) {
-  const { conversazioni, errore, comeAdmin, nonLette } = useFeedback();
+  const { conversazioni, errore, comeAdmin, nonLette, restanti } = useFeedback();
   const [nuova, setNuova] = useState(false);
   const ordinate = useMemo(() => (conversazioni ? ordinaConversazioni(conversazioni, comeAdmin) : null), [conversazioni, comeAdmin]);
 
@@ -70,12 +87,13 @@ function Elenco({ base }: { base: string }) {
           </p>
         </div>
         {!comeAdmin && (
-          <button type="button" className="btn btn-primario" onClick={() => setNuova(true)}>
+          <button type="button" className="btn btn-primario" onClick={() => setNuova(true)} disabled={restanti === 0}>
             <Icona nome="piu" /> Nuova conversazione
           </button>
         )}
       </div>
 
+      {!comeAdmin && <InfoLimite restanti={restanti} />}
 
       {errore && (
         <p className="avviso avviso-danger" role="alert">
@@ -135,7 +153,9 @@ function ModuloNuova({ base, onChiudi }: { base: string; onChiudi: () => void })
   const [testo, setTesto] = useState('');
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState<string>();
-  const valido = validaArgomento(argomento) === null && validaTestoMessaggio(testo) === null;
+  const { restanti } = useFeedback();
+  const esaurito = restanti === 0;
+  const valido = !esaurito && validaArgomento(argomento) === null && validaTestoMessaggio(testo) === null;
 
   const crea = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,7 +168,7 @@ function ModuloNuova({ base, onChiudi }: { base: string; onChiudi: () => void })
       onChiudi();
       vai(`${base}/${id}`);
     } catch (e2) {
-      setErrore(messaggioErroreGenerico(e2));
+      setErrore(erroreInvio(e2));
       setInvio(false);
     }
   };
@@ -168,6 +188,7 @@ function ModuloNuova({ base, onChiudi }: { base: string; onChiudi: () => void })
       <p className="nota">
         <Icona nome="lucchetto" piccola /> Lo leggerà solo l’amministratore.
       </p>
+      <InfoLimite restanti={restanti} />
       {errore && (
         <p className="avviso avviso-danger" role="alert">
           <Icona nome="attenzione" /> {errore}
@@ -190,7 +211,8 @@ function ModuloNuova({ base, onChiudi }: { base: string; onChiudi: () => void })
 function Chat({ id, base }: { id: string; base: string }) {
   const servizi = useServizi();
   const profilo = useProfilo();
-  const { conversazioni, comeAdmin } = useFeedback();
+  const { conversazioni, comeAdmin, restanti } = useFeedback();
+  const esaurito = !comeAdmin && restanti === 0;
   const [, vai] = useLocation();
   const conv: Conversazione | undefined = conversazioni?.find((c) => c.id === id);
   const [messaggi, setMessaggi] = useState<MessaggioFeedback[] | null>(null);
@@ -226,14 +248,14 @@ function Chat({ id, base }: { id: string; base: string }) {
   }, [numero]);
 
   const invia = async () => {
-    if (!conv || invio || validaTestoMessaggio(testo) !== null) return;
+    if (!conv || invio || esaurito || validaTestoMessaggio(testo) !== null) return;
     setInvio(true);
     setErrore(undefined);
     try {
       await servizi.inviaMessaggio(conv, { uid: profilo.uid, nome: profilo.nome }, testo, comeAdmin);
       setTesto('');
     } catch (e) {
-      setErrore(messaggioErroreGenerico(e));
+      setErrore(erroreInvio(e));
     } finally {
       setInvio(false);
     }
@@ -320,6 +342,7 @@ function Chat({ id, base }: { id: string; base: string }) {
             rows={3}
             value={testo}
             placeholder={comeAdmin ? 'Scrivi una risposta…' : 'Scrivi un messaggio…'}
+            disabled={esaurito}
             onChange={(e) => setTesto(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -329,9 +352,15 @@ function Chat({ id, base }: { id: string; base: string }) {
             }}
           />
         </label>
+        {!comeAdmin && <InfoLimite restanti={restanti} />}
+        {esaurito && (
+          <p className="avviso avviso-info" role="status">
+            <Icona nome="attenzione" /> {ERRORE_LIMITE}. Potrai scrivere di nuovo da domani.
+          </p>
+        )}
         <div className="chat-scrivi-azioni">
           <Contatore n={testo.trim().length} max={LIMITI_FEEDBACK.testo} />
-          <button type="submit" className="btn btn-primario" disabled={invio || !conv || validaTestoMessaggio(testo) !== null}>
+          <button type="submit" className="btn btn-primario" disabled={invio || !conv || esaurito || validaTestoMessaggio(testo) !== null}>
             <Icona nome="invia" /> {invio ? 'Invio…' : 'Invia'}
           </button>
         </div>

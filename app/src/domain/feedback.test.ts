@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { anteprima, contaNonLette, LIMITI_FEEDBACK, ordinaConversazioni, validaArgomento, validaPresentazione, validaTestoMessaggio } from './feedback';
+import { anteprima, contaNonLette, giornoUtc, messaggiRestanti, prossimoContatore, LIMITI_FEEDBACK, ordinaConversazioni, validaArgomento, validaPresentazione, validaTestoMessaggio } from './feedback';
 
 describe('validazioni', () => {
   it('argomento: obbligatorio, max 80', () => {
@@ -47,5 +47,25 @@ describe('ordinamento e conteggio', () => {
   it('conta per ruolo', () => {
     expect(contaNonLette(elenco, true)).toBe(2);
     expect(contaNonLette(elenco, false)).toBe(0);
+  });
+});
+
+describe('limite giornaliero', () => {
+  const adesso = new Date(Date.UTC(2026, 9, 13, 10, 0));
+  it('giorno UTC aaaammgg', () => {
+    expect(giornoUtc(adesso)).toBe(20261013);
+    expect(giornoUtc(new Date(Date.UTC(2026, 0, 5, 23, 59)))).toBe(20260105);
+  });
+  it('prossimo contatore: nuovo, giorno diverso, incremento, limite', () => {
+    expect(prossimoContatore(null, adesso)).toEqual({ giorno: 20261013, conteggio: 1 });
+    expect(prossimoContatore({ giorno: 20261012, conteggio: 3 }, adesso)).toEqual({ giorno: 20261013, conteggio: 1 });
+    expect(prossimoContatore({ giorno: 20261013, conteggio: 2 }, adesso)).toEqual({ giorno: 20261013, conteggio: 3 });
+    expect(prossimoContatore({ giorno: 20261013, conteggio: 3 }, adesso)).toBeNull();
+  });
+  it('restanti', () => {
+    expect(messaggiRestanti(null, adesso)).toBe(3);
+    expect(messaggiRestanti({ giorno: 20261012, conteggio: 3 }, adesso)).toBe(3);
+    expect(messaggiRestanti({ giorno: 20261013, conteggio: 1 }, adesso)).toBe(2);
+    expect(messaggiRestanti({ giorno: 20261013, conteggio: 3 }, adesso)).toBe(0);
   });
 });

@@ -62,3 +62,32 @@ export function ordinaConversazioni<T extends ConversazioneOrdinabile>(elenco: r
     return nb - na || tempo(b) - tempo(a);
   });
 }
+
+/* ---------- Limite giornaliero (medici) ---------- */
+
+export const MAX_MESSAGGI_GIORNO = 3;
+
+/** Contatore in limiteFeedback/{uid}: `giorno` aaaammgg in UTC. */
+export interface LimiteFeedback {
+  giorno: number;
+  conteggio: number;
+}
+
+/** Giorno UTC come numero aaaammgg. */
+export function giornoUtc(d: Date): number {
+  return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+}
+
+/** Contatore da scrivere inviando un messaggio ora; `null` se il limite è già raggiunto. */
+export function prossimoContatore(attuale: LimiteFeedback | null | undefined, adesso: Date): LimiteFeedback | null {
+  const oggi = giornoUtc(adesso);
+  if (!attuale || attuale.giorno !== oggi) return { giorno: oggi, conteggio: 1 };
+  if (attuale.conteggio >= MAX_MESSAGGI_GIORNO) return null;
+  return { giorno: oggi, conteggio: attuale.conteggio + 1 };
+}
+
+/** Messaggi ancora inviabili oggi (0..3). */
+export function messaggiRestanti(attuale: LimiteFeedback | null | undefined, adesso: Date): number {
+  if (!attuale || attuale.giorno !== giornoUtc(adesso)) return MAX_MESSAGGI_GIORNO;
+  return Math.max(0, MAX_MESSAGGI_GIORNO - attuale.conteggio);
+}

@@ -6,6 +6,8 @@
 
 > **Stato:** Fase 1 — prima versione pubblicata su Firebase Hosting, in prova. Il repository non contiene dati reali: i turni sono caricati dagli amministratori e restano su Firebase, protetti da regole di accesso.
 
+> 📄 **Guida per i medici** (2 pagine, da stampare o condividere): [Guida-GestioneTurni.pdf](docs/Guida-GestioneTurni.pdf). Spiega con parole semplici come entrare (QR code verso la pagina pubblica), cosa fa l'app e, con la massima trasparenza, chi vede quali dati.
+
 ---
 
 ## L'app in breve
@@ -88,7 +90,7 @@ Ogni medico vede solo i propri dati. La regola è applicata dal database (regole
 - **Indisponibilità** (solo account principali): sul calendario di ogni mese futuro non ancora pubblicato (dal mese dopo l'ultimo caricato, fino a 12 mesi avanti) si segnano i giorni e i turni (M, P, N) in cui non si è disponibili; quando i turni del mese vengono pubblicati le indisponibilità diventano di sola lettura; un pulsante copia il testo dell'email da inviare personalmente (o apre il client di posta). I giorni restano evidenziati anche dopo la pubblicazione dei turni, con avviso se un turno cade in una fascia indisponibile; una spunta li mostra o li nasconde. Visibili solo all'account principale.
 - **Più account per medico**: un account principale (che registra i cambi) e account secondari in sola lettura, per esempio per un familiare.
 - **Condivisione del mese come immagine**: un tocco sull'icona di condivisione crea un'immagine del calendario (titolo del mese e griglia, con i cambi già applicati) da inviare come una foto, per esempio su WhatsApp. Nessun link, nessun nome di colleghi.
-- **Feedback e suggerimenti**: conversazioni riservate con l'amministratore, una per argomento (segnalazioni o proposte di nuove funzionalità), con badge dei messaggi non letti. Ciascuna parte può chiudere e cancellare la conversazione. Aperte anche agli account secondari.
+- **Feedback e suggerimenti**: conversazioni riservate con l'amministratore, una per argomento (segnalazioni o proposte di nuove funzionalità), con badge dei messaggi non letti. Ciascuna parte può chiudere e cancellare la conversazione. Aperte anche agli account secondari. **Massimo 3 messaggi al giorno** per account, indicato nella pagina con i messaggi rimasti; il limite è imposto dalle regole Firestore (contatore giornaliero, UTC), non solo dall'interfaccia.
 - **Tema chiaro e scuro**, automatico o a scelta.
 - **Installabile** sulla schermata Home di iPhone e Android.
 
@@ -107,7 +109,7 @@ Ogni medico vede solo i propri dati. La regola è applicata dal database (regole
 - I permessi sono applicati lato server dalle **regole Firestore**, verificate da test automatici.
 - Ogni medico legge solo i propri dati; i cambi sono visibili solo ai suoi account.
 - I turni dei colleghi (card «Chi è di turno con me») sono visibili solo agli account principali dei medici, mai ai familiari (account secondari).
-- Le conversazioni di feedback sono leggibili solo dal loro autore e dall'amministratore (delegati esclusi), come garantito dalle regole.
+- Le conversazioni di feedback sono leggibili solo dal loro autore e dall'amministratore (delegati esclusi), come garantito dalle regole; le regole limitano i messaggi dei medici a 3 al giorno.
 - Il file Excel è elaborato **nel browser** di chi lo carica: non transita da server terzi.
 - Nessun dato personale, credenziale o file di turni è presente nel repository.
 
@@ -141,6 +143,7 @@ docs/
   MODELLO-DATI.md    raccolte Firestore e permessi
   DECISIONI.md       registro delle decisioni
   STATO.md           stato del progetto e prossimi passi
+  Guida-GestioneTurni.pdf  guida di 2 pagine per i medici (sorgente in guida/)
 firebase.json        configurazione Firebase
 ```
 
@@ -173,7 +176,7 @@ Il link completo (con token di accesso locale) viene stampato nel terminale.
 
 ### Deploy
 - **Hosting (automatico):** a ogni push su `main` la GitHub Action [`firebase-hosting-merge.yml`](.github/workflows/firebase-hosting-merge.yml) esegue test e build della PWA e pubblica su Firebase Hosting. La configurazione web e l'account di servizio stanno nei segreti del repository.
-- **Regole Firestore (manuale):** dopo i test sull'emulatore, `firebase deploy --only firestore` dalla radice.
+- **Regole Firestore (manuale):** `npm run deploy:regole` in `firebase/` esegue i test sull'emulatore, pubblica le regole e salva l'impronta in `firebase/regole-pubblicate.sha256`. `node scripts/impronta-regole.mjs verifica` segnala se le regole del repository non sono ancora state pubblicate.
 
 ## Roadmap
 - [x] Analisi del formato Excel e dei requisiti

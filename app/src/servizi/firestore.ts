@@ -24,7 +24,7 @@ import {
 } from 'firebase/firestore';
 import { accessoDiOggi } from '../domain/accessi';
 import { scomponi } from '../domain/date';
-import { anteprima } from '../domain/feedback';
+import { anteprima, prossimoContatore } from '../domain/feedback';
 import { normalizzaIndisponibilita } from '../domain/indisponibilita';
 import { costruisciQuadro, type GiorniQuadro } from '../domain/quadro';
 import type { GiorniIndisponibili } from '../domain/indisponibilita';
@@ -46,6 +46,17 @@ const LIMITE_BATCH = 450;
 
 function data(v: unknown): Date | undefined {
   return v instanceof Timestamp ? v.toDate() : undefined;
+}
+
+/** Aggiunge alla batch la scrittura del contatore giornaliero (limiteFeedback/{uid}); le regole rifiutano oltre il limite. */
+async function aggiungiContatore(db: ReturnType<typeof fb>['db'], batch: ReturnType<typeof writeBatch>, uid: string): Promise<void> {
+  const ref = doc(db, 'limiteFeedback', uid);
+  const s = await getDoc(ref);
+  const d = s.data();
+  const attuale = s.exists() && typeof d?.giorno === 'number' && typeof d?.conteggio === 'number' ? { giorno: d.giorno, conteggio: d.conteggio } : null;
+  // A limite raggiunto si tenta comunque la scrittura (conteggio 4): sono le regole a rifiutarla.
+  const prossimo = prossimoContatore(attuale, new Date()) ?? { giorno: attuale?.giorno ?? 0, conteggio: (attuale?.conteggio ?? 3) + 1 };
+  batch.set(ref, prossimo);
 }
 
 export function utenteDaDoc(uid: string, d: DocumentData): Utente {
@@ -302,6 +313,17 @@ export function creaServiziFirestore(): Servizi {
       return onSnapshot(q, (snap) => cb(snap.docs.map((s) => conversazioneDaDoc(s.id, s.data(STIMA)))), errore);
     },
 
+    osservaLimiteFeedback(uid, cb, errore) {
+      return onSnapshot(
+        doc(db, 'limiteFeedback', uid),
+        (s) => {
+          const d = s.data();
+          cb(s.exists() && typeof d?.giorno === 'number' && typeof d?.conteggio === 'number' ? { giorno: d.giorno, conteggio: d.conteggio } : null);
+        },
+        errore,
+      );
+    },
+
     osservaMessaggi(convId, cb, errore) {
       const q = query(collection(db, 'feedback', convId, 'messaggi'), orderBy('creatoIl', 'asc'));
       return onSnapshot(
@@ -322,6 +344,7 @@ export function creaServiziFirestore(): Servizi {
 
     async creaConversazione(autore, argomento, testo) {
       const batch = writeBatch(db);
+      await aggiungiContatore(db, batch, autore.uid);
       const ref = doc(collection(db, 'feedback'));
       const t = testo.trim();
       batch.set(ref, {
@@ -347,6 +370,7 @@ export function creaServiziFirestore(): Servizi {
 
     async inviaMessaggio(conv, autore, testo, daAdmin) {
       const batch = writeBatch(db);
+      if (!daAdmin) await aggiungiContatore(db, batch, autore.uid);
       const ref = doc(db, 'feedback', conv.id);
       const t = testo.trim();
       batch.set(doc(collection(ref, 'messaggi')), {

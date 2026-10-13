@@ -433,6 +433,46 @@ service cloud.firestore {
       return signedIn() && d.autoreUid == request.auth.uid && isApprovato();
     }
 
+    // Limite di 3 messaggi al giorno per account (giorno UTC, aaaammgg).
+    // Il contatore deve essere scritto nella stessa operazione del messaggio.
+    function oggiUtc() {
+      return request.time.year() * 10000 + request.time.month() * 100 + request.time.day();
+    }
+
+    function limitePath(uid) {
+      return /databases/$(database)/documents/limiteFeedback/$(uid);
+    }
+
+    function contatoreIncrementato() {
+      return existsAfter(limitePath(request.auth.uid))
+        && getAfter(limitePath(request.auth.uid)).data.giorno == oggiUtc()
+        && (!exists(limitePath(request.auth.uid))
+          ? getAfter(limitePath(request.auth.uid)).data.conteggio == 1
+          : (get(limitePath(request.auth.uid)).data.giorno == oggiUtc()
+            ? getAfter(limitePath(request.auth.uid)).data.conteggio == get(limitePath(request.auth.uid)).data.conteggio + 1
+            : getAfter(limitePath(request.auth.uid)).data.conteggio == 1));
+    }
+
+    function limiteValido(d) {
+      return d.keys().hasOnly(['giorno', 'conteggio'])
+        && d.keys().hasAll(['giorno', 'conteggio'])
+        && d.giorno is int && d.giorno == oggiUtc()
+        && d.conteggio is int && d.conteggio >= 1 && d.conteggio <= 3;
+    }
+
+    match /limiteFeedback/{uid} {
+      allow read: if (signedIn() && request.auth.uid == uid && isApprovato()) || isAdmin();
+      allow create: if signedIn() && request.auth.uid == uid && isApprovato()
+        && limiteValido(request.resource.data)
+        && request.resource.data.conteggio == 1;
+      allow update: if signedIn() && request.auth.uid == uid && isApprovato()
+        && limiteValido(request.resource.data)
+        && (resource.data.giorno == oggiUtc()
+          ? request.resource.data.conteggio == resource.data.conteggio + 1
+          : request.resource.data.conteggio == 1);
+      allow delete: if false;
+    }
+
     match /feedback/{convId} {
       allow read: if (signedIn() && resource.data.autoreUid == request.auth.uid && isApprovato())
         || isAdmin();
@@ -480,7 +520,8 @@ service cloud.firestore {
           && (
             (request.resource.data.daAdmin == false
               && request.resource.data.convAutoreUid == request.auth.uid
-              && isApprovato())
+              && isApprovato()
+              && contatoreIncrementato())
             || (request.resource.data.daAdmin == true && isAdmin())
           );
 

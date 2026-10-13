@@ -9,9 +9,11 @@ export interface StatoFeedback {
   nonLette: number;
   /** Vista amministratore (tutte le conversazioni) o utente (solo le proprie). */
   comeAdmin: boolean;
+  /** Messaggi ancora inviabili oggi (solo medici); `null` = non applicabile o non ancora noto. */
+  restanti: number | null;
 }
 
-export const FeedbackCtx = createContext<StatoFeedback>({ conversazioni: null, nonLette: 0, comeAdmin: false });
+export const FeedbackCtx = createContext<StatoFeedback>({ conversazioni: null, nonLette: 0, comeAdmin: false, restanti: null });
 
 export function useFeedback(): StatoFeedback {
   return useContext(FeedbackCtx);

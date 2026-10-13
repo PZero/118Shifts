@@ -2,6 +2,7 @@
 // L'interfaccia `Servizi` ha due implementazioni: Firestore (produzione) e demo (solo sviluppo).
 
 import type { Cambio } from '../domain/cambi';
+import type { LimiteFeedback } from '../domain/feedback';
 import type { GiorniQuadro } from '../domain/quadro';
 import type { TipoAvviso } from '../domain/excel';
 import type { GiorniIndisponibili } from '../domain/indisponibilita';
@@ -162,10 +163,12 @@ export interface Servizi {
   // --- feedback (account approvati e admin; i delegati non vedono le chat altrui) ---
   /** Tempo reale. `uid` = solo le conversazioni di quell'utente; senza `uid` tutte (admin). */
   osservaConversazioni(uid: string | undefined, cb: (c: Conversazione[]) => void, errore: (e: unknown) => void): () => void;
+  /** Contatore giornaliero dei messaggi del medico (limiteFeedback/{uid}); `null` se non esiste. */
+  osservaLimiteFeedback(uid: string, cb: (l: LimiteFeedback | null) => void, errore: (e: unknown) => void): () => void;
   osservaMessaggi(convId: string, cb: (m: MessaggioFeedback[]) => void, errore: (e: unknown) => void): () => void;
-  /** Conversazione + primo messaggio in una batch; restituisce l'id. */
+  /** Conversazione + primo messaggio (+ contatore giornaliero) in una batch; restituisce l'id. */
   creaConversazione(autore: AutoreFeedback, argomento: string, testo: string): Promise<string>;
-  /** Messaggio + aggiornamento della conversazione in una batch. */
+  /** Messaggio + aggiornamento della conversazione (+ contatore giornaliero se del medico) in una batch. */
   inviaMessaggio(conv: Conversazione, autore: AutoreFeedback, testo: string, daAdmin: boolean): Promise<void>;
   /** Mette a "letto" solo il flag della propria parte. */
   segnaLetta(convId: string, comeAdmin: boolean): Promise<void>;
