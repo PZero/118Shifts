@@ -19,3 +19,6 @@ dist/
 *.log
 .DS_Store
 *.stackdump
+
+# Video di presentazione: pubblicato su YouTube, non in git
+docs/video/*.mp4

@@ -8,6 +8,8 @@
 
 > 📄 **Guida per i medici** (2 pagine, da stampare o condividere): [Guida-GestioneTurni.pdf](docs/Guida-GestioneTurni.pdf). Spiega con parole semplici come entrare (QR code verso la pagina pubblica), cosa fa l'app e, con la massima trasparenza, chi vede quali dati.
 
+> 🎬 **Video di presentazione** (1 minuto, dati di esempio inventati): [guarda su YouTube](https://youtu.be/scJRPhcOiV4). È visibile anche nella pagina pubblica dell'app.
+
 ---
 
 ## L'app in breve
@@ -78,6 +80,7 @@ Ogni medico vede solo i propri dati. La regola è applicata dal database (regole
 ### Per i medici
 - **Oggi e domani**: card comprimibile in cima con il proprio turno (sede e orario) di oggi e di domani, cambi già applicati.
 - **Chi è di turno con me** (solo account principali): i colleghi della stessa fascia nelle altre sedi e i reperibili (RM, RP, RN, RG) del giorno selezionato nel calendario (all'avvio oggi), secondo l'Excel pubblicato. I cambi dei colleghi non sono inclusi; vengono mostrati solo nome e sede, nei soli giorni in cui il medico stesso lavora.
+- **Cosa fa oggi un collega** (solo account principali): card sotto il calendario, sempre chiusa all'apertura; scelto un collega dalla tendina (in ordine alfabetico) mostra i suoi turni di oggi con orario e sede, reperibilità o assenze, secondo l'Excel pubblicato (cambi dei colleghi esclusi).
 - **Calendario mensile** dei propri turni — Mattino (08–14), Pomeriggio (14–20), Notte (20–08) — con la **sede** di lavoro.
 - **Weekend e festività** evidenziati con codice colore: festività nazionali e **San Giovanni Battista** (24 giugno, patrono di Genova).
 - **Card weekend liberi**: sabato e domenica raggruppati per weekend e colorati (libero, parziale, lavorato), più lo stato delle festività del mese.
@@ -108,7 +111,7 @@ Ogni medico vede solo i propri dati. La regola è applicata dal database (regole
 - Accesso **solo con account Google** (Firebase Authentication).
 - I permessi sono applicati lato server dalle **regole Firestore**, verificate da test automatici.
 - Ogni medico legge solo i propri dati; i cambi sono visibili solo ai suoi account.
-- I turni dei colleghi (card «Chi è di turno con me») sono visibili solo agli account principali dei medici, mai ai familiari (account secondari).
+- I turni dei colleghi (card «Chi è di turno con me» e «Cosa fa oggi un collega») sono visibili solo agli account principali dei medici, mai ai familiari (account secondari).
 - Le conversazioni di feedback sono leggibili solo dal loro autore e dall'amministratore (delegati esclusi), come garantito dalle regole; le regole limitano i messaggi dei medici a 3 al giorno.
 - Il file Excel è elaborato **nel browser** di chi lo carica: non transita da server terzi.
 - Nessun dato personale, credenziale o file di turni è presente nel repository.
@@ -144,6 +147,7 @@ docs/
   DECISIONI.md       registro delle decisioni
   STATO.md           stato del progetto e prossimi passi
   Guida-GestioneTurni.pdf  guida di 2 pagine per i medici (sorgente in guida/)
+  video/             copertina e sorgenti del video di presentazione (il video è su YouTube)
 firebase.json        configurazione Firebase
 ```
 

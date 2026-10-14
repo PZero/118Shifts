@@ -79,6 +79,8 @@ export function Pubblica() {
           </div>
         </section>
 
+        <VideoPresentazione />
+
         <section className="sezione" aria-labelledby="titolo-funzioni">
           <div className="pubblica-contenitore">
             <h2 id="titolo-funzioni" className="titolo-sezione">
@@ -169,6 +171,53 @@ export function Pubblica() {
         </div>
       </footer>
     </div>
+  );
+}
+
+const ID_VIDEO = 'scJRPhcOiV4';
+
+/** Video di presentazione con "facciata": nessuna richiesta a YouTube finché non si preme play. */
+function VideoPresentazione() {
+  const [avviato, setAvviato] = useState(false);
+  return (
+    <section className="sezione sezione-video" aria-labelledby="titolo-video">
+      <div className="pubblica-contenitore">
+        <div className="card video-card">
+          <div className="video-intestazione">
+            <h2 id="titolo-video" className="video-titolo">
+              Guarda la presentazione
+            </h2>
+            <p className="video-sotto">Un minuto per scoprire l’app</p>
+          </div>
+          <div className="video-riquadro">
+            {avviato ? (
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${ID_VIDEO}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+                title="Presentazione di GestioneTurni"
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                allowFullScreen
+                loading="lazy"
+              />
+            ) : (
+              <>
+                <img src="/video/copertina.jpg" alt="" width={1280} height={720} loading="lazy" decoding="async" />
+                <button type="button" className="video-play" aria-label="Riproduci il video di presentazione" onClick={() => setAvviato(true)}>
+                  <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" fill="currentColor">
+                    <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
+          <p className="video-nota">
+            Su YouTube: dati di esempio, inventati.{' '}
+            <a href={`https://youtu.be/${ID_VIDEO}`} target="_blank" rel="noopener noreferrer">
+              youtu.be/{ID_VIDEO}
+            </a>
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
 

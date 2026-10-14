@@ -151,7 +151,122 @@ export function CardOggiDomani({ oggi, mesi, cambi, proiezione, sedi, nomi }: Pr
   );
 }
 
-type StatoQuadro = { stato: 'idle' | 'caricamento' | 'errore' } | { stato: 'pronto'; quadro: QuadroMese | null };
+interface PropsCollega {
+  oggi: DataISO;
+  sedi: Sedi;
+  /** Colleghi attivi (escluso il medico stesso). */
+  colleghi: readonly { id: string; nome: string }[];
+}
+
+/** "Cosa fa oggi un collega": turni di oggi di un collega scelto, dal quadro del mese. */
+export function CardCollega({ oggi, sedi, colleghi }: PropsCollega) {
+  const servizi = useServizi();
+  const idSelect = useId();
+  const [aperto, setAperto] = useState(false);
+  const [scelto, setScelto] = useState('');
+  const [stato, setStato] = useState<StatoQuadro>({ stato: 'idle' });
+  const [tentativo, setTentativo] = useState(0);
+  const chiave = oggi.slice(0, 7);
+  const ordinati = useMemo(() => [...colleghi].sort((a, b) => a.nome.localeCompare(b.nome, 'it')), [colleghi]);
+  const collega = ordinati.find((c) => c.id === scelto);
+
+  useEffect(() => {
+    if (!aperto) return;
+    let attivo = true;
+    caricaQuadro(servizi, chiave)
+      .then((q) => attivo && setStato({ stato: 'pronto', quadro: q }))
+      .catch(() => attivo && setStato({ stato: 'errore' }));
+    return () => {
+      attivo = false;
+    };
+  }, [aperto, chiave, servizi, tentativo]);
+
+  const etichette =
+    collega && stato.stato === 'pronto' && stato.quadro
+      ? (stato.quadro.giorni[String(Number(oggi.slice(8)))]?.[collega.id] ?? []).map((c) => etichettaCodice(c, sedi).lunga).filter(Boolean)
+      : null;
+
+  const risultato = () => {
+    if (!collega) return null;
+    if (stato.stato === 'errore') {
+      return (
+        <div className="avviso">
+          <Icona nome="info" />
+          <div>
+            <span>Al momento non riesco a mostrare i turni. Riprova più tardi.</span>
+            <button
+              type="button"
+              className="btn btn-secondario btn-piccolo"
+              style={{ marginTop: 8 }}
+              onClick={() => {
+                setStato({ stato: 'idle' });
+                setTentativo((t) => t + 1);
+              }}
+            >
+              Riprova
+            </button>
+          </div>
+        </div>
+      );
+    }
+    if (stato.stato !== 'pronto') return <div className="scheletro" style={{ height: 48 }} aria-busy="true" aria-label="Caricamento" />;
+    if (!stato.quadro) return <p className="testo-tenue">Turni dei colleghi non ancora pubblicati per questo mese</p>;
+    return (
+      <>
+        {etichette && etichette.length > 0 ? (
+          <ul className="chi-elenco" role="list" aria-live="polite">
+            {etichette.map((e, i) => (
+              <li key={i}>
+                <b>{e}</b>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="testo-tenue" aria-live="polite">Nessun turno oggi</p>
+        )}
+        <p className="nota">
+          <Icona nome="info" piccola /> Secondo l’Excel pubblicato: i cambi dei colleghi non sono inclusi.
+        </p>
+      </>
+    );
+  };
+
+  return (
+    <CardComprimibile
+      titolo="Cosa fa oggi un collega"
+      sottotitolo={
+        <span className="card-riassunto">
+          {collega ? (
+            <>
+              <b>{collega.nome}:</b> {etichette ? (etichette.length ? etichette.join(' + ') : 'nessun turno oggi') : 'apri per vedere'}
+            </>
+          ) : (
+            'Scegli un collega'
+          )}
+        </span>
+      }
+      aperto={aperto}
+      onToggle={() => setAperto((a) => !a)}
+    >
+      <div className="campo">
+        <label htmlFor={idSelect} className="testo-tenue">
+          {dataEstesa(oggi)}
+        </label>
+        <select id={idSelect} className="select" value={scelto} onChange={(e) => setScelto(e.target.value)}>
+          <option value="">Scegli un collega…</option>
+          {ordinati.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nome}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div style={{ marginTop: 12 }}>{risultato()}</div>
+    </CardComprimibile>
+  );
+}
+
+type StatoQuadro ={ stato: 'idle' | 'caricamento' | 'errore' } | { stato: 'pronto'; quadro: QuadroMese | null };
 
 interface PropsChiConMe {
   oggi: DataISO;

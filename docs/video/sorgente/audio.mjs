@@ -1,0 +1,12 @@
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import ffmpeg from 'ffmpeg-static';
+const { voceA, totale } = JSON.parse(readFileSync('voceA.json', 'utf8'));
+const vol = process.argv[2] || '0.30';
+const ins = ['-i', 'musica.wav']; voceA.forEach((_, i) => ins.push('-i', `voce/v${i}.mp3`));
+let fc = voceA.map((a, i) => `[${i + 1}:a]aresample=44100,adelay=${Math.round(a * 1000)}:all=1[v${i}]`).join(';');
+fc += `;${voceA.map((_, i) => `[v${i}]`).join('')}amix=inputs=${voceA.length}:normalize=0,pan=stereo|c0=c0|c1=c0,highpass=f=70,equalizer=f=3500:t=q:w=1.2:g=2,acompressor=threshold=-20dB:ratio=3:attack=5:release=150:makeup=2,apad=whole_dur=${totale},asplit=2[voce][sc]`;
+fc += `;[0:a]volume=${vol}[mus];[mus][sc]sidechaincompress=threshold=0.02:ratio=5:attack=60:release=600[musd]`;
+fc += `;[voce][musd]amix=inputs=2:normalize=0,atrim=0:${totale},loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000[out]`;
+execFileSync(ffmpeg, ['-y', ...ins, '-filter_complex', fc, '-map', '[out]', '-c:a', 'pcm_s16le', 'audio.wav'], { stdio: ['ignore', 'ignore', 'pipe'] });
+console.log('audio ok');

@@ -14,7 +14,7 @@ import { dataEstesa, dataNumerica, nomeMese } from '../../ui/etichette';
 import { Calendario } from './Calendario';
 import { CardIndisponibilita, DialogoIndisponibilita } from './Indisponibilita';
 import { costruisciSegni, leggiPreferenzaMostra, salvaPreferenzaMostra, type IndispPerMese } from './indisponibilitaVista';
-import { CardChiConMe, CardOggiDomani } from './CardOggiDomani';
+import { CardChiConMe, CardCollega, CardOggiDomani } from './CardOggiDomani';
 import { DettaglioGiorno } from './DettaglioGiorno';
 import { DialogoCambio, type RichiestaCambio } from './DialoghiCambio';
 import { CardCambi, CardOre, CardReperibilita, CardWeekend, Legenda } from './Riepiloghi';
@@ -411,6 +411,7 @@ function VistaMedico({
           )}
           <Calendario vista={vista} sedi={dati.sedi} nomi={nomi} selezionato={giornoSel.data} onSeleziona={seleziona} segni={segni} inModifica={inModifica} />
           {!desktop && dettaglio}
+          {!soloLettura && principale && <CardCollega oggi={oggi} sedi={dati.sedi} colleghi={colleghi} />}
           <Legenda />
         </div>
         {/* Mobile: calendario, weekend e festività, poi i conteggi. */}

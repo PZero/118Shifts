@@ -1,24 +1,25 @@
 # Stato del progetto
 
-**Ultimo aggiornamento:** 2026-10-13 — Fase 1, app online in prova (https://shifts-be876.web.app). Fase 2 (pianificazione assistita) solo come indicazione in `docs/REQUISITI.md`.
+**Ultimo aggiornamento:** 2026-10-14 — Fase 1, app online in prova (https://shifts-be876.web.app). Fase 2 (pianificazione assistita) solo come indicazione in `docs/REQUISITI.md`.
 
 ## Fatto
 - Requisiti, modello dati, decisioni (`docs/`).
 - **Logica turni** `app/src/domain/`: parser Excel, codici e sedi, anagrafica con alias, ore (solo M/P/N, notte 4+8), cambi, festività, weekend, proiezione MP-N-smonto-riposo-riposo, reperibilità, avvisi di import, quadro mensile, disponibilità colleghi (11 ore), mesi ammessi per le indisponibilità, testo della richiesta di cambio, limite giornaliero dei feedback. **165 test**.
 - **Regole Firestore** `firebase/`: ruoli, approvazione, principale unico, mesi pubblicati, ciclo, ultimo accesso, quadro, feedback, presentazione, `ocrModello`, indisponibilità (mese futuro senza turni pubblicati del medico, fino a +12), `limiteFeedback` (3 messaggi/giorno). **143 test** (emulatore, Java 21).
 - **Interfaccia** online:
-  - medico: Oggi e domani, Chi è di turno con me, calendario con mesi adiacenti, weekend, ore, reperibilità, cambi, condivisione PNG, indisponibilità con email, feedback;
+  - medico: Oggi e domani, Chi è di turno con me, **Cosa fa oggi un collega** (card chiusa sotto il calendario, tendina, turni di oggi dal quadro), calendario con mesi adiacenti, weekend, ore, reperibilità, cambi, condivisione PNG, indisponibilità con email, feedback;
   - **Cedi il turno**: "Possono darti il cambio" e **Chiedi il cambio** (messaggio modificabile, Condividi via Web Share / Copia testo; registrazione sempre con Conferma cambio);
   - gestione: account (con presentazione), medici, calendario del medico, Carica Excel o **screenshot** (OCR nel browser; barra anteprima fissa solo a controllo completato), mesi pubblicati, feedback (solo admin);
-  - pagina pubblica, demo `/demo` (solo sviluppo).
+  - pagina pubblica con **video di presentazione** (YouTube nocookie, caricato solo al tocco), demo `/demo` (solo sviluppo).
 - **Produzione**: regole pubblicate il 2026-10-13 (impronta allineata), admin, primo Excel reale, login PWA su iPhone, primo import da screenshot riuscito (modello OCR caricato).
 - **Guida PDF per i medici** `docs/Guida-GestioneTurni.pdf` (2 pagine, QR alla pagina pubblica, "chi vede cosa"; sorgente `docs/guida/guida.html`, generata con Chrome headless dalla scratchpad).
+- **Video di presentazione** (1:08, YouTube `scJRPhcOiV4`, link nel README): voce neurale Isabella, musica sintetizzata originale; sorgenti in `docs/video/sorgente/`, MP4 escluso da git.
 - **Feedback: max 3 messaggi al giorno** per account (contatore `limiteFeedback/{uid}`, imposto dalle regole; frase con i restanti nella pagina).
 - **README**: link alla guida, panoramica estesa, collage delle novità (medico e gestione), Fase 2 in roadmap.
 
 ## Prossimi passi
-1. Provare su iPhone: **feedback con il limite** (frase dei restanti, blocco al 4°), **Condividi** di "Chiedi il cambio", indisponibilità da dicembre (Copia/Apri email).
-2. **Distribuire la guida PDF** ai medici non ancora iscritti e approvare i nuovi account.
+1. Provare su iPhone: **video nella pagina pubblica**, **Cosa fa oggi un collega**, **feedback con il limite** (frase dei restanti, blocco al 4°), **Condividi** di "Chiedi il cambio", indisponibilità da dicembre (Copia/Apri email).
+2. **Distribuire guida PDF e video** ai medici non ancora iscritti e approvare i nuovi account.
 3. **Reimportare l'Excel** per creare il quadro: attiva "Chi è di turno con me" e "Possono darti il cambio".
 4. Provare la cessione con suggerimenti a cavallo di mese e il caricamento dell'Excel dall'app.
 5. Controllare i medici ancora "Manuale": la data vale come giorno MP.
@@ -40,6 +41,8 @@
 - Lint: avvisi preesistenti. Bundle ~290 kB gzip.
 
 ## Note tecniche
+- Test regole: Java 21 non trovato sul PC il 2026-10-14 (c'è solo jdk-11): reinstallarlo prima di modificare le regole.
+- Video: rigenerare da `docs/video/sorgente/` (playwright-core, ffmpeg-static, edge-tts, numpy nella scratchpad); 1920x1080, -14 LUFS.
 - Test regole: Java 21 (`JAVA_HOME` su `jdk-21`; quello di sistema è Java 11).
 - Deploy hosting: automatico con GitHub Action su push in `main`. Se cambia `.env`, aggiornare i segreti.
 - Deploy regole: in PowerShell 5.1 niente `&&`; `cd firebase`, impostare `JAVA_HOME`, poi `npm run deploy:regole` (test, deploy, poi impronta in `firebase/regole-pubblicate.sha256`); `node scripts/impronta-regole.mjs verifica` segnala regole modificate e non pubblicate.

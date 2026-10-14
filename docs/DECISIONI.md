@@ -69,3 +69,6 @@
 | 2026-10-13 | Deploy regole con `npm run deploy:regole` che salva l'impronta SHA-256 delle regole pubblicate; `/stato` e `/fine-sessione` la verificano | Le regole erano rimaste non pubblicate mentre l'app era già aggiornata |
 | 2026-10-13 | Guida PDF di 2 pagine per i medici in `docs/`, testo discorsivo senza elenchi, QR alla pagina pubblica, sezione "chi vede cosa", nessun contatto | Diffusione tra medici poco tecnologici; prevenire dubbi sulla privacy con trasparenza |
 | 2026-10-13 | Ordine di rilascio: prima le regole, poi il push del frontend quando l'app scrive raccolte nuove | Con le regole vecchie le nuove scritture (es. `limiteFeedback`) sarebbero rifiutate |
+| 2026-10-14 | Video di presentazione su YouTube, incorporato nella pagina pubblica con facciata (copertina locale, iframe `youtube-nocookie` solo al tocco); MP4 fuori da git | Spark: 360 MB/giorno di hosting, il video (24 MB) li esaurirebbe; nessun cookie né richiesta a YouTube prima del clic |
+| 2026-10-14 | Musica del video sintetizzata da codice, voce neurale edge-tts (Isabella) | Nessun rischio di Content ID/copyright su YouTube |
+| 2026-10-14 | Card "Cosa fa oggi un collega": solo oggi, chiusa all'apertura, dal `quadro` (solo account principali), senza cambi dei colleghi | Richiesta dell'utente; nessuna modifica a modello dati e regole |

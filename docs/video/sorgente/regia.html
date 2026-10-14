@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>GestioneTurni · video</title>
+<style>
+@font-face { font-family: Inter; src: url(asset/inter.woff2) format('woff2'); font-weight: 100 900; }
+:root { --blu: #0f2a4a; --accento: #7fb2ec; --chiaro: rgba(222, 233, 247, .84); --verde: #3fbf8f; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0a1d35; }
+body { font-family: Inter, sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
+#scena { position: absolute; inset: 0; overflow: hidden;
+  background: radial-gradient(1400px 1000px at 72% 42%, #1a4678 0%, #0f2a4a 48%, #0a1c33 100%); }
+.alone { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .35; will-change: transform; }
+#alone1 { width: 760px; height: 760px; background: #2b6cb8; left: 1050px; top: 120px; }
+#alone2 { width: 620px; height: 620px; background: #1d8a6a; left: -200px; top: 620px; opacity: .16; }
+#griglia { position: absolute; inset: 0; opacity: .05;
+  background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
+  background-size: 64px 64px; mask-image: radial-gradient(900px 700px at 70% 45%, #000, transparent); }
+
+/* Marchio in alto */
+#marchio { position: absolute; left: 150px; top: 64px; display: flex; align-items: center; gap: 18px; }
+#marchio img { width: 56px; height: 56px; border-radius: 14px; }
+#marchio b { display: block; font-size: 28px; font-weight: 750; letter-spacing: -.01em; }
+#marchio span { display: block; font-size: 18px; color: var(--chiaro); font-weight: 500; margin-top: 2px; }
+
+/* Intro */
+#intro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+#intro img { width: 168px; height: 168px; border-radius: 40px; box-shadow: 0 30px 80px rgba(0, 0, 0, .35); }
+#intro .k { margin-top: 44px; font-size: 24px; letter-spacing: .22em; text-transform: uppercase; color: var(--accento); font-weight: 700; }
+#intro h1 { margin-top: 14px; font-size: 112px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+#intro p { margin-top: 26px; font-size: 44px; color: var(--chiaro); font-weight: 400; }
+
+/* Testi delle scene */
+.testo { position: absolute; left: 150px; top: 0; height: 1080px; width: 900px; display: flex; flex-direction: column; justify-content: center; }
+.testo .k { display: flex; align-items: center; gap: 18px; font-size: 24px; letter-spacing: .2em; text-transform: uppercase; color: var(--accento); font-weight: 700; }
+.testo .k i { font-style: normal; font-variant-numeric: tabular-nums; color: #fff; opacity: .55; }
+.testo .k s { display: block; width: 56px; height: 2px; background: var(--accento); text-decoration: none; transform-origin: left; }
+.testo h2 { margin-top: 26px; font-size: 86px; line-height: 1.04; font-weight: 800; letter-spacing: -.025em; max-width: 860px; text-wrap: balance; }
+.parola { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .08em; margin-bottom: -.08em; }
+.parola > span { display: inline-block; will-change: transform; }
+.testo p { margin-top: 34px; font-size: 38px; line-height: 1.36; color: var(--chiaro); max-width: 760px; font-weight: 400; text-wrap: pretty; }
+.testo p b { color: #fff; font-weight: 650; }
+
+/* Telefono */
+#telefono { position: absolute; left: 1161px; top: 104px; width: 418px; height: 872px; transform-origin: 50% 50%; }
+#cornice { position: absolute; inset: 0; border-radius: 64px; background: linear-gradient(145deg, #4a5566, #1b2129 40%, #0e1116 60%, #3a4453);
+  box-shadow: 0 60px 120px rgba(0, 0, 0, .5), 0 20px 40px rgba(0, 0, 0, .3), inset 0 0 0 2px rgba(255, 255, 255, .08); }
+#schermo { position: absolute; left: 14px; top: 14px; width: 390px; height: 844px; border-radius: 50px; overflow: hidden; background: #f3f6fa; }
+.strato { position: absolute; inset: 0; }
+.strato img { position: absolute; left: 0; top: 0; width: 390px; display: block; }
+#intera img.pagina { will-change: transform; }
+#intera .testa { position: absolute; left: 0; top: 0; width: 390px; height: 61px; overflow: hidden; }
+#intera .piede { position: absolute; left: 0; bottom: 0; width: 390px; height: 57px; overflow: hidden; }
+#intera .piede img { top: auto; bottom: 0; }
+#tocco, #onda { position: absolute; left: 0; top: 0; z-index: 6; border-radius: 50%; pointer-events: none; }
+#tocco { width: 46px; height: 46px; margin: -23px 0 0 -23px; background: rgba(15, 42, 74, .28); border: 2.5px solid rgba(255, 255, 255, .95); box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
+#onda { width: 46px; height: 46px; margin: -23px 0 0 -23px; border: 3px solid rgba(30, 95, 168, .9); }
+
+/* Riservatezza dentro il telefono */
+#riserva { position: absolute; inset: 0; z-index: 5; background: rgba(10, 29, 53, .78); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; }
+#riserva .card { width: 330px; background: #fff; color: #1b2430; border-radius: 28px; padding: 34px 28px 26px; text-align: center; box-shadow: 0 30px 60px rgba(0, 0, 0, .35); }
+#riserva .scudo { width: 84px; height: 84px; margin: 0 auto 16px; border-radius: 24px; background: #e6f4ee; display: flex; align-items: center; justify-content: center; }
+#riserva h3 { font-size: 26px; font-weight: 800; color: #0f2a4a; letter-spacing: -.01em; }
+#riserva ul { list-style: none; margin-top: 20px; text-align: left; }
+#riserva li { display: flex; gap: 12px; align-items: center; font-size: 17px; font-weight: 600; padding: 12px 0; border-top: 1px solid #e3e9f1; }
+#riserva li svg { flex: 0 0 26px; }
+
+/* Chiusura */
+#chiusura { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 110px; }
+#chiusura .qr { width: 400px; height: 400px; background: #fff; border-radius: 36px; padding: 40px; box-shadow: 0 40px 90px rgba(0, 0, 0, .4); }
+#chiusura .qr svg { width: 100%; height: 100%; display: block; }
+#chiusura .dx { width: 940px; }
+#chiusura .k { font-size: 24px; letter-spacing: .2em; text-transform: uppercase; color: var(--accento); font-weight: 700; }
+#chiusura h2 { margin-top: 20px; font-size: 92px; font-weight: 800; letter-spacing: -.03em; line-height: 1.02; }
+#chiusura .url { margin-top: 30px; font-size: 46px; font-weight: 650; color: #fff; display: inline-block; padding-bottom: 8px; border-bottom: 3px solid var(--accento); }
+#chiusura .pillole { margin-top: 44px; display: flex; flex-wrap: wrap; gap: 14px; }
+#chiusura .pillole span { font-size: 26px; font-weight: 600; padding: 14px 24px; border-radius: 999px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .16); display: flex; align-items: center; gap: 10px; }
+#chiusura .pillole span::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--verde); }
+
+/* Avanzamento */
+#avanza { position: absolute; left: 150px; right: 150px; bottom: 62px; height: 3px; background: rgba(255, 255, 255, .12); border-radius: 3px; }
+#avanza div { height: 100%; background: var(--accento); border-radius: 3px; width: 0; }
+#nota { position: absolute; left: 150px; bottom: 24px; font-size: 17px; color: rgba(222, 233, 247, .55); font-weight: 500; }
+#velo { position: absolute; inset: 0; background: #0a1c33; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="scena">
+  <div id="alone1" class="alone"></div>
+  <div id="alone2" class="alone"></div>
+  <div id="griglia"></div>
+
+  <div id="intro">
+    <img src="asset/icona.svg" alt="">
+    <div class="k">Medici 112 · Genova</div>
+    <h1>GestioneTurni</h1>
+    <p>I tuoi turni, sempre in tasca.</p>
+  </div>
+
+  <div id="marchio"><img src="asset/icona.svg" alt=""><div><b>GestioneTurni</b><span>Medici 112 · Genova</span></div></div>
+
+  <div id="testi"></div>
+
+  <div id="telefono">
+    <div id="cornice"></div>
+    <div id="schermo">
+      <div class="strato" id="sA"><img alt=""></div>
+      <div class="strato" id="intera">
+        <img class="pagina" src="asset/intera.png" alt="">
+        <div class="testa"><img src="asset/home.png" alt=""></div>
+        <div class="piede"><img src="asset/home.png" alt=""></div>
+      </div>
+      <div class="strato" id="sB"><img alt=""></div>
+      <div id="riserva">
+        <div class="card">
+          <div class="scudo"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#0f6b4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
+          <h3>Solo i tuoi turni</h3>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="#0f6b4f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg>Accesso con Google</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="#0f6b4f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg>Account approvato dall'amministratore</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="#0f6b4f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg>Protetti dalle regole del database</li>
+          </ul>
+        </div>
+      </div>
+      <div id="onda"></div>
+      <div id="tocco"></div>
+    </div>
+  </div>
+
+  <div id="chiusura">
+    <div class="qr" id="qr"></div>
+    <div class="dx">
+      <div class="k">Inizia in due minuti</div>
+      <h2>Inquadra il codice<br>e accedi.</h2>
+      <div class="url">shifts-be876.web.app</div>
+      <div class="pillole"><span>Gratuita</span><span>Senza pubblicità</span><span>iPhone, Android e computer</span></div>
+    </div>
+  </div>
+
+  <div id="avanza"><div></div></div>
+  <div id="nota">Dati di esempio, inventati</div>
+  <div id="velo"></div>
+</div>
+
+<script src="asset/qr.js"></script>
+<script src="tempi.js"></script>
+<script>
+// ---------- utilità ----------
+const $ = (s) => document.querySelector(s);
+const cl = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const pr = (t, a, d) => cl((t - a) / d);
+const eo = (x) => 1 - Math.pow(1 - x, 3);                       // uscita morbida
+const eio = (x) => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const mix = (a, b, p) => a + (b - a) * p;
+
+const { inizi, durate, totale } = window.TEMPI;                  // da tempi.js
+const D = window.DATI;
+const S = (i, dt) => inizi[i] + dt;                              // istante assoluto
+const FINE = (i) => inizi[i] + durate[i];
+
+$('#qr').innerHTML = window.QR;
+
+// ---------- testi ----------
+const TESTI = [
+  null,
+  ['Accesso', 'Accedi con Google', 'Nessuna password nuova da ricordare.'],
+  ['Oggi e domani', 'Il tuo turno, a colpo d’occhio', 'Sede e orario di <b>oggi</b> e di <b>domani</b>.'],
+  ['Calendario', 'Il mese, già pronto', 'Turni a colori e festività segnate. <b>Ore</b> e <b>weekend liberi</b> contati per te.'],
+  ['Previsione', 'Uno sguardo ai mesi che verranno', 'Basata sulla turnazione, ben distinta dai turni ufficiali.'],
+  ['Cambi turno', 'Chi può darti il cambio', 'Nel rispetto delle <b>11 ore</b> di riposo, con il messaggio già pronto.'],
+  ['Colleghi', 'Chi è di turno con te', 'Per ogni giorno in cui lavori, in tutte le sedi.'],
+  ['Riservatezza', 'Vedi solo i tuoi turni', 'Lo garantiscono le <b>regole del database</b>, non la buona volontà.'],
+];
+const blocchi = TESTI.map((x, i) => {
+  if (!x) return null;
+  const el = document.createElement('div');
+  el.className = 'testo';
+  const parole = x[1].split(' ').map((w) => `<span class="parola"><span>${w}</span></span>`).join(' ');
+  el.innerHTML = `<div class="k"><i>0${i}</i><s></s>${x[0]}</div><h2>${parole}</h2><p>${x[2]}</p>`;
+  $('#testi').appendChild(el);
+  return { el, k: el.querySelector('.k'), s: el.querySelector('.k s'), parole: [...el.querySelectorAll('.parola > span')], p: el.querySelector('p') };
+});
+
+function testi(t) {
+  blocchi.forEach((b, i) => {
+    if (!b) return;
+    const a = inizi[i], f = FINE(i), l = t - a;
+    if (t < a - .1 || t > f + .1) { b.el.style.display = 'none'; return; }
+    b.el.style.display = 'flex';
+    const usc = eio(pr(t, f - .5, .5));
+    b.el.style.opacity = 1 - usc;
+    b.el.style.transform = `translateY(${-24 * usc}px)`;
+    const pk = eo(pr(l, .05, .6));
+    b.k.style.opacity = pk;
+    b.k.style.transform = `translateX(${(1 - pk) * -24}px)`;
+    b.s.style.transform = `scaleX(${eo(pr(l, .15, .7))})`;
+    b.parole.forEach((w, j) => {
+      const pw = eo(pr(l, .2 + j * .06, .75));
+      w.style.transform = `translateY(${(1 - pw) * 105}%)`;
+    });
+    const pp = eo(pr(l, .55 + b.parole.length * .06, .8));
+    b.p.style.opacity = pp;
+    b.p.style.transform = `translateY(${(1 - pp) * 22}px)`;
+  });
+}
+
+// ---------- schermo del telefono ----------
+const tap = D.tap;
+const avanti = [tap.avanti[0], tap.avanti[1] + 380];             // pulsante "mese successivo" a pagina non scorsa
+const pos = D.pos;
+const maxScroll = D.alto - 844;
+const yCal = cl(pos.calendario - 75, 0, maxScroll), yWe = cl(pos.weekend - 75, 0, maxScroll), yOre = cl(pos.ore - 200, 0, maxScroll);
+
+// [istante, immagine, durata transizione]
+const EVENTI = [
+  [0, 'login', 0],
+  [S(1, 3.1), 'home', .55],
+  [S(2, 1.2), 'oggi', .5],
+  [S(3, .05), 'home', .45],
+  [S(3, .6), 'intera', .01],
+  [S(4, .1), 'home', .5],
+  [S(4, 1.5), 'futuro', .55],
+  [S(5, .05), 'giorno', .5],
+  [S(5, 1.75), 'cedi', .5],
+  [S(5, 4.3), 'chiedi', .45],
+  [S(6, .05), 'home', .45],
+  [S(6, 1.0), 'chi', .5],
+  [S(7, .05), 'home', .5],
+];
+const TOCCHI = [
+  [S(1, 2.75), tap.login], [S(2, .9), tap.oggi], [S(4, 1.2), avanti], [S(5, 1.45), tap.cedi],
+  [S(5, 4.0), tap.bianchi], [S(5, 7.0), tap.condividi], [S(6, .7), tap.chi],
+];
+// scorrimento della pagina intera: [inizio, durata, da, a]
+const SCORRI = [
+  [S(3, 1.0), 1.4, 0, yCal],
+  [S(3, 3.9), 1.5, yCal, yWe],
+  [S(3, 6.5), 1.3, yWe, yOre],
+];
+function scorri(t) {
+  let y = 0;
+  for (const [a, d, da, aa] of SCORRI) { if (t >= a) y = mix(da, aa, eio(pr(t, a, d))); }
+  return y;
+}
+
+const sA = $('#sA'), sB = $('#sB'), sAi = sA.querySelector('img'), sBi = sB.querySelector('img');
+const intera = $('#intera'), pagina = intera.querySelector('.pagina');
+function mostra(strato, img, nome) {
+  if (nome === 'intera') { strato.style.display = 'none'; return; }
+  strato.style.display = 'block';
+  const src = `asset/${nome}.png`;
+  if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+}
+function schermo(t) {
+  let k = 0;
+  for (let i = 0; i < EVENTI.length; i++) if (EVENTI[i][0] <= t) k = i;
+  const cur = EVENTI[k], prev = EVENTI[k - 1] || cur;
+  const p = cur[2] ? eo(pr(t, cur[0], cur[2])) : 1;
+  mostra(sA, sAi, prev[1]);
+  mostra(sB, sBi, cur[1]);
+  sA.style.opacity = 1;
+  sB.style.opacity = p;
+  sB.style.transform = `translateY(${(1 - p) * 10}px)`;
+  // la pagina intera sta sotto se è la precedente, sopra se è la corrente
+  const usaIntera = cur[1] === 'intera' || prev[1] === 'intera';
+  intera.style.display = usaIntera ? 'block' : 'none';
+  intera.style.zIndex = cur[1] === 'intera' ? 3 : 1;
+  sB.style.zIndex = 2;
+  intera.style.opacity = cur[1] === 'intera' ? p : 1;
+  pagina.style.transform = `translateY(${-scorri(t)}px)`;
+
+  // tocco
+  const tc = $('#tocco'), on = $('#onda');
+  tc.style.opacity = 0; on.style.opacity = 0;
+  for (const [a, [x, y]] of TOCCHI) {
+    if (t > a - .55 && t < a + .7) {
+      const arrivo = eo(pr(t, a - .55, .4)), via = pr(t, a + .2, .4);
+      const premuto = t >= a - .08 && t < a + .12 ? .82 : 1;
+      tc.style.left = x + 'px'; tc.style.top = y + 'px';
+      tc.style.opacity = arrivo * (1 - via);
+      tc.style.transform = `scale(${mix(1.5, 1, arrivo) * premuto})`;
+      const po = pr(t, a, .6);
+      on.style.left = x + 'px'; on.style.top = y + 'px';
+      on.style.opacity = t >= a ? (1 - po) * .9 : 0;
+      on.style.transform = `scale(${1 + eo(po) * 1.8})`;
+    }
+  }
+
+  // riquadro riservatezza
+  const r = $('#riserva'), pr7 = eo(pr(t, S(7, .5), .6));
+  r.style.display = t > S(7, .4) ? 'flex' : 'none';
+  r.style.opacity = pr7;
+  const card = r.querySelector('.card');
+  card.style.transform = `translateY(${(1 - pr7) * 40}px) scale(${mix(.94, 1, pr7)})`;
+  r.querySelectorAll('li').forEach((li, j) => {
+    const q = eo(pr(t, S(7, 1.4 + j * .7), .5));
+    li.style.opacity = q;
+    li.style.transform = `translateX(${(1 - q) * 18}px)`;
+  });
+}
+
+// ---------- telefono, intro, chiusura ----------
+function telefono(t) {
+  const ent = eo(pr(t, S(1, -.1), 1.0));
+  const usc = eio(pr(t, S(8, -.25), .8));
+  const el = $('#telefono');
+  el.style.display = ent > 0 && usc < 1 ? 'block' : 'none';
+  // lieve deriva continua per dare vita all'inquadratura
+  const deriva = Math.sin(t * .35) * 6;
+  el.style.opacity = ent * (1 - usc);
+  el.style.transform = `translate(${usc * 160}px, ${(1 - ent) * 140 + deriva}px) scale(${1.05 * mix(.96, 1, ent)})`;
+}
+function intro(t) {
+  const el = $('#intro'), f = FINE(0);
+  el.style.display = t < f + .2 ? 'flex' : 'none';
+  const [img, k, h, p] = el.children;
+  const a = eo(pr(t, .2, .9)), b = eo(pr(t, .55, .8)), c = eo(pr(t, .8, .8)), d = eo(pr(t, 1.3, .9));
+  img.style.opacity = a; img.style.transform = `scale(${mix(.8, 1, a)})`;
+  k.style.opacity = b; k.style.transform = `translateY(${(1 - b) * 20}px)`;
+  h.style.opacity = c; h.style.transform = `translateY(${(1 - c) * 30}px)`;
+  p.style.opacity = d; p.style.transform = `translateY(${(1 - d) * 24}px)`;
+  const u = eio(pr(t, f - .6, .6));
+  el.style.opacity = 1 - u;
+  el.style.transform = `scale(${mix(1, .94, u)})`;
+  // marchio in alto dopo l'intro, nascosto in chiusura
+  const m = eo(pr(t, f - .1, .7)) * (1 - eio(pr(t, S(8, -.2), .5)));
+  $('#marchio').style.opacity = m;
+  $('#marchio').style.transform = `translateY(${(1 - m) * -14}px)`;
+}
+function chiusura(t) {
+  const el = $('#chiusura'), a = S(8, .2);
+  el.style.display = t > a - .1 ? 'flex' : 'none';
+  const [qr, dx] = el.children;
+  const q = eo(pr(t, a, .9));
+  qr.style.opacity = q; qr.style.transform = `scale(${mix(.88, 1, q)}) rotate(${(1 - q) * -3}deg)`;
+  [...dx.children].forEach((c, j) => {
+    const v = eo(pr(t, a + .3 + j * .22, .8));
+    c.style.opacity = v; c.style.transform = `translateY(${(1 - v) * 26}px)`;
+  });
+  dx.querySelectorAll('.pillole span').forEach((s, j) => {
+    const v = eo(pr(t, a + 1.4 + j * .25, .6));
+    s.style.opacity = v; s.style.transform = `translateY(${(1 - v) * 14}px)`;
+  });
+}
+function sfondo(t) {
+  $('#alone1').style.transform = `translate(${Math.sin(t * .18) * 60}px, ${Math.cos(t * .14) * 40}px)`;
+  $('#alone2').style.transform = `translate(${Math.cos(t * .12) * 70}px, ${Math.sin(t * .16) * 30}px)`;
+  $('#avanza div').style.width = (cl(t / totale) * 100) + '%';
+  const vis = t > FINE(0) - .1 && t < S(8, 0);
+  $('#avanza').style.opacity = vis ? 1 : 0;
+  $('#nota').style.opacity = t > S(1, .4) && t < S(8, -.3) ? 1 : 0;
+  // dissolvenza d'ingresso e d'uscita
+  $('#velo').style.opacity = 1 - eo(pr(t, 0, .7)) + eio(pr(t, totale - .9, .9));
+}
+
+window.render = (t) => { sfondo(t); intro(t); testi(t); telefono(t); schermo(t); chiusura(t); };
+window.pronto = async () => {
+  await document.fonts.ready;
+  const nomi = ['login', 'home', 'oggi', 'intera', 'futuro', 'giorno', 'cedi', 'chiedi', 'chi'];
+  await Promise.all(nomi.map((n) => { const i = new Image(); i.src = `asset/${n}.png`; return i.decode(); }));
+  await Promise.all([...document.images].map((i) => i.decode().catch(() => {})));
+  return true;
+};
+window.attesa = () => Promise.all([sAi, sBi].map((i) => (i.getAttribute('src') ? i.decode().catch(() => {}) : null)));
+render(0);
+</script>
+</body>
+</html>
