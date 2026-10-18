@@ -83,3 +83,83 @@ export function chiConMe(giornoQuadro: GiornoQuadro | undefined, mioMedicoId: st
   }
   return gruppi;
 }
+
+export interface CambioSede {
+  medicoId: string;
+  codice: string;
+  fascia: Fascia;
+  sede: number;
+  /** 0 = stesso giorno del turno di partenza, 1 = giorno dopo, ecc. */
+  giorniDopo: number;
+}
+
+/** Turno (con fascia e sede) di un medico in un giorno del quadro, ignorando le reperibilità. */
+function turnoInFascia(codici: readonly string[] | undefined, fascia: Fascia): { codice: string; sede?: number } | null {
+  for (const c of codici ?? []) {
+    const i = interpretaCodice(c);
+    if (i && i.categoria === 'turno' && i.fascia === fascia) {
+      return i.sede !== undefined ? { codice: i.grezzo, sede: i.sede } : { codice: i.grezzo };
+    }
+  }
+  return null;
+}
+
+/**
+ * "Chi mi dà il cambio": chi sarà sulla mia stessa sede dopo di me. `giorni[0]` è il giorno del turno
+ * di partenza, `giorni[1]` il giorno dopo, ecc. (undefined = non disponibile). I miei turni consecutivi
+ * sulla stessa sede vengono saltati; al primo slot senza di me si cerca un altro medico con quella
+ * sede (primo in ordine di medicoId). Nessuno nello slot, o slot in un giorno non disponibile: cambio null.
+ * Restituisce null se non ho un turno con sede nella fascia di partenza.
+ */
+export function chiMiDaIlCambio(args: {
+  medicoId: string;
+  giorni: ReadonlyArray<GiornoQuadro | undefined>;
+  fasciaPartenza: Fascia;
+}): { sede: number; cambio: CambioSede | null } | null {
+  const { medicoId, giorni, fasciaPartenza } = args;
+  const mio = turnoInFascia(giorni[0]?.[medicoId], fasciaPartenza);
+  if (!mio || mio.sede === undefined) return null;
+  const sede = mio.sede;
+  for (let slot = FASCE.indexOf(fasciaPartenza) + 1; ; slot++) {
+    const giorniDopo = Math.floor(slot / 3);
+    const fascia = FASCE[slot % 3]!;
+    const giorno = giorni[giorniDopo];
+    if (!giorno) return { sede, cambio: null };
+    const io = turnoInFascia(giorno[medicoId], fascia);
+    if (io && io.sede === sede) continue;
+    const altri = Object.keys(giorno).filter((id) => id !== medicoId).sort((a, b) => a.localeCompare(b));
+    for (const id of altri) {
+      const t = turnoInFascia(giorno[id], fascia);
+      if (t && t.sede === sede) return { sede, cambio: { medicoId: id, codice: t.codice, fascia, sede, giorniDopo } };
+    }
+    return { sede, cambio: null };
+  }
+}
+
+const FINE_FASCIA: Record<Fascia, number> = { M: 14, P: 20, N: 32 };
+
+function fasceTurno(codici: readonly string[] | undefined): Fascia[] {
+  const s = new Set<Fascia>();
+  for (const c of codici ?? []) {
+    const i = interpretaCodice(c);
+    if (i && i.categoria === 'turno' && i.fascia) s.add(i.fascia);
+  }
+  return FASCE.filter((f) => s.has(f));
+}
+
+/**
+ * Turno di partenza per la card: con giorno scelto a calendario (`ora` assente) = primo turno del giorno;
+ * per "oggi" = il turno in corso o il prossimo di oggi, e prima delle 8 la notte iniziata ieri se c'è.
+ */
+export function turnoDiPartenza(args: {
+  mieiCodiciIeri?: readonly string[];
+  mieiCodiciOggi: readonly string[];
+  ora?: number;
+}): { giorno: 'ieri' | 'oggi'; fascia: Fascia } | null {
+  const oggi = fasceTurno(args.mieiCodiciOggi);
+  const { ora } = args;
+  if (ora === undefined) return oggi[0] ? { giorno: 'oggi', fascia: oggi[0] } : null;
+  if (ora < 8 && fasceTurno(args.mieiCodiciIeri).includes('N')) return { giorno: 'ieri', fascia: 'N' };
+  const f = oggi.find((x) => FINE_FASCIA[x] > ora);
+  return f ? { giorno: 'oggi', fascia: f } : null;
+}

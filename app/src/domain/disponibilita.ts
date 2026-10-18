@@ -28,10 +28,21 @@ function impegniDi(codici: readonly string[] | undefined, offset: number): Array
   return out;
 }
 
+const CATEGORIE_ASSENZA = new Set(['ferie', 'malattia', 'corso', 'indisponibile']);
+
+function assenteNelGiorno(codici: readonly string[] | undefined): boolean {
+  return (codici ?? []).some((c) => {
+    const i = interpretaCodice(c);
+    return !!i && CATEGORIE_ASSENZA.has(i.categoria);
+  });
+}
+
 /**
  * Colleghi che possono prendere il turno `fascia` del giorno `data`, rispettando 11 ore di riposo
- * prima dell'inizio e dopo la fine. Le reperibilità contano come impegno; assenze e codici
- * sconosciuti sono ignorati. Restituisce i medicoId nell'ordine dei candidati.
+ * prima dell'inizio e dopo la fine. Le reperibilità contano come impegno. Sono esclusi i candidati
+ * assenti nel giorno del turno ceduto (`giorno`): ferie, malattia/permessi, corso, indisponibilità;
+ * le assenze del giorno prima o dopo non escludono. I codici sconosciuti sono ignorati.
+ * Restituisce i medicoId nell'ordine dei candidati.
  */
 export function colleghiDisponibili(args: {
   data: DataISO;
@@ -43,6 +54,7 @@ export function colleghiDisponibili(args: {
 }): string[] {
   const [inizio, fine] = ORARI_FASCIA[args.fascia];
   return args.candidati.filter((id) => {
+    if (assenteNelGiorno(args.giorno?.[id])) return false;
     const impegni = [
       ...impegniDi(args.giornoPrima?.[id], -24),
       ...impegniDi(args.giorno?.[id], 0),

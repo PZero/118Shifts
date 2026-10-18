@@ -1,8 +1,9 @@
 // Card in cima all'area medico: "Oggi e domani" (miei turni, cambi applicati) e
 // "Chi è di turno con me" (colleghi dal quadro del mese, solo account principali).
 import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
-import { chiConMe, type GruppoChiConMe } from '../../domain/quadro';
-import { scomponi, type DataISO } from '../../domain/date';
+import { chiConMe, chiMiDaIlCambio, turnoDiPartenza, type GruppoChiConMe } from '../../domain/quadro';
+import { aggiungiGiorni, scomponi, type DataISO } from '../../domain/date';
+import type { Fascia } from '../../domain/codici';
 import type { RisultatoProiezione } from '../../domain/proiezione';
 import { useServizi } from '../../sessione/contesto';
 import type { CambioDoc, MeseDoc, QuadroMese, Sedi } from '../../servizi/tipi';
@@ -277,6 +278,96 @@ interface PropsChiConMe {
   sedi: Sedi;
   nomi: Map<string, string>;
   medicoId: string;
+}
+
+interface PropsChiDaIlCambio {
+  oggi: DataISO;
+  /** Giorno della card "Chi è di turno con me" (selezionato o oggi). */
+  giorno: GiornoVista;
+  /** Giorno scelto a calendario: allora vale il primo turno del giorno, non l'ora attuale. */
+  esplicito: boolean;
+  pubblicato: boolean;
+  mesi: readonly MeseDoc[];
+  cambi: readonly CambioDoc[];
+  proiezione: RisultatoProiezione;
+  sedi: Sedi;
+  nomi: Map<string, string>;
+  medicoId: string;
+}
+
+const ORA_INIZIO: Record<Fascia, number> = { M: 8, P: 14, N: 20 };
+
+function codiciEffettivi(g: GiornoVista | undefined): string[] {
+  return (g?.voci ?? []).filter((v) => v.stato !== 'ceduto').map((v) => v.codice);
+}
+
+/** "Chi ti dà il cambio": chi sarà sulla mia sede dopo il mio turno (dal quadro; mesi adiacenti caricati se serve). */
+export function CardChiDaIlCambio({ oggi, giorno, esplicito, pubblicato, mesi, cambi, proiezione, sedi, nomi, medicoId }: PropsChiDaIlCambio) {
+  const servizi = useServizi();
+  const [aperto, setAperto] = useState(false);
+  const [quadri, setQuadri] = useState<{ chiavi: string; q: Map<string, QuadroMese | null> } | null>(null);
+
+  const partenza = useMemo(() => {
+    if (!pubblicato) return null;
+    const ieriData = aggiungiGiorni(giorno.data, -1);
+    const s = scomponi(ieriData);
+    const vIeri = costruisciMese({ anno: s.anno, mese: s.mese }, mesi, cambi, proiezione, oggi, false);
+    const mieiCodiciIeri = vIeri.tipo === 'reale' ? codiciEffettivi(vIeri.giorni[s.giorno - 1]) : [];
+    const mieiCodiciOggi = codiciEffettivi(giorno);
+    const d = new Date();
+    const t = turnoDiPartenza({ mieiCodiciIeri, mieiCodiciOggi, ...(esplicito ? {} : { ora: d.getHours() + d.getMinutes() / 60 }) });
+    if (!t) return null;
+    const dataPartenza = t.giorno === 'ieri' ? ieriData : giorno.data;
+    return { fascia: t.fascia, dataPartenza, mieiCodici: t.giorno === 'ieri' ? mieiCodiciIeri : mieiCodiciOggi };
+  }, [pubblicato, giorno, esplicito, mesi, cambi, proiezione, oggi]);
+
+  const date = useMemo(() => (partenza ? [0, 1, 2].map((n) => aggiungiGiorni(partenza.dataPartenza, n)) : []), [partenza]);
+  const chiavi = useMemo(() => [...new Set(date.map((d) => d.slice(0, 7)))], [date]);
+  const idChiavi = chiavi.join(',');
+
+  useEffect(() => {
+    if (chiavi.length === 0) return;
+    let attivo = true;
+    // Un mese non disponibile (non pubblicato o errore) diventa undefined: il dominio lo tratta come giorno sconosciuto.
+    Promise.all(chiavi.map((k) => caricaQuadro(servizi, k).catch(() => null))).then(
+      (r) => attivo && setQuadri({ chiavi: idChiavi, q: new Map(chiavi.map((k, i) => [k, r[i] ?? null])) }),
+    );
+    return () => {
+      attivo = false;
+    };
+  }, [idChiavi, servizi]);
+
+  const risultato = useMemo(() => {
+    if (!partenza || !quadri || quadri.chiavi !== idChiavi) return null;
+    const giorni = date.map((d, i) => {
+      const g = quadri.q.get(d.slice(0, 7))?.giorni[String(Number(d.slice(8)))];
+      // Il mio turno di partenza viene dai miei dati (cambi inclusi), non dall'Excel.
+      return i === 0 ? { ...(g ?? {}), [medicoId]: partenza.mieiCodici } : g;
+    });
+    return chiMiDaIlCambio({ medicoId, giorni, fasciaPartenza: partenza.fascia });
+  }, [partenza, quadri, idChiavi, date, medicoId]);
+
+  if (!risultato) return null;
+  const { sede, cambio } = risultato;
+  const nomeSedeTesto = nomeSede(sedi, sede) ?? `Sede ${sede}`;
+  const testo = cambio
+    ? `${nomi.get(cambio.medicoId) ?? 'collega non in elenco'} · ${nomeSede(sedi, cambio.sede) ?? `Sede ${cambio.sede}`} · ${NOME_FASCIA[cambio.fascia]}${cambio.giorniDopo === 1 ? ' domani' : ''}, ore ${ORA_INIZIO[cambio.fascia]}`
+    : `Nessun collega trovato in ${nomeSedeTesto}`;
+  return (
+    <CardComprimibile
+      titolo="Chi ti dà il cambio"
+      sottotitolo={<span className="card-riassunto">{testo}</span>}
+      aperto={aperto}
+      onToggle={() => setAperto((a) => !a)}
+    >
+      <ul className="chi-elenco" role="list">
+        <li>{cambio ? <b>{testo}</b> : testo}</li>
+      </ul>
+      <p className="nota">
+        <Icona nome="info" piccola /> Secondo l’Excel pubblicato: i cambi dei colleghi non sono inclusi.
+      </p>
+    </CardComprimibile>
+  );
 }
 
 export function CardChiConMe({ oggi, giorno, pubblicato, sedi, nomi, medicoId }: PropsChiConMe) {

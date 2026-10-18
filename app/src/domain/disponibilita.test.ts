@@ -65,3 +65,14 @@ describe('colleghiDisponibili', () => {
     expect(r).toEqual(['c', 'd']);
   });
 });
+
+describe('colleghiDisponibili: assenze nel giorno del turno ceduto', () => {
+  it.each([['F'], ['f'], ['C'], ['-']])('escluso con codice %s nel giorno', (c) => {
+    expect(disp('M', undefined, [c])).toBe(false);
+  });
+  it('assenza il giorno prima o dopo non esclude', () => {
+    expect(disp('M', ['F'])).toBe(true);
+    expect(disp('M', undefined, undefined, ['f'])).toBe(true);
+    expect(disp('P', ['C'], undefined, ['-'])).toBe(true);
+  });
+});

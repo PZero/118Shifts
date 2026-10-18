@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chiConMe, costruisciQuadro } from './quadro';
+import { chiConMe, chiMiDaIlCambio, costruisciQuadro, turnoDiPartenza } from './quadro';
 
 const Q = {
   io: ['M6'],
@@ -67,5 +67,55 @@ describe('chiConMe', () => {
     const r = chiConMe({ io: ['M6', 'RG'], a: ['M1'] }, 'io', ['M6']);
     expect(r[0]!.inTurno.map((x) => x.medicoId)).toEqual(['a']);
     expect(r[0]!.reperibili).toEqual([]);
+  });
+});
+
+describe('chiMiDaIlCambio', () => {
+  it('N che finisce alle 8: cambio M del giorno dopo sulla stessa sede', () => {
+    const r = chiMiDaIlCambio({
+      medicoId: 'io', fasciaPartenza: 'N',
+      giorni: [{ io: ['N3'] }, { zeta: ['M3'], alfa: ['M3'], altro: ['M4'] }],
+    });
+    expect(r).toEqual({ sede: 3, cambio: { medicoId: 'alfa', codice: 'M3', fascia: 'M', sede: 3, giorniDopo: 1 } });
+  });
+  it('MP sulla stessa sede: il cambio è sulla N', () => {
+    const r = chiMiDaIlCambio({ medicoId: 'io', fasciaPartenza: 'M', giorni: [{ io: ['M2', 'P2'], b: ['N2'] }] });
+    expect(r?.cambio).toMatchObject({ medicoId: 'b', fascia: 'N', giorniDopo: 0 });
+  });
+  it('MP in sedi diverse: il cambio di M è il P di un altro', () => {
+    const r = chiMiDaIlCambio({ medicoId: 'io', fasciaPartenza: 'M', giorni: [{ io: ['M2', 'P5'], b: ['P2'] }] });
+    expect(r?.cambio).toMatchObject({ medicoId: 'b', fascia: 'P', sede: 2 });
+  });
+  it('nessuno sullo slot: cambio null', () => {
+    const r = chiMiDaIlCambio({ medicoId: 'io', fasciaPartenza: 'M', giorni: [{ io: ['M2'], b: ['P3', 'RP'] }] });
+    expect(r).toEqual({ sede: 2, cambio: null });
+  });
+  it('escludo me stesso', () => {
+    const r = chiMiDaIlCambio({ medicoId: 'io', fasciaPartenza: 'M', giorni: [{ io: ['M2', 'P2'] }] });
+    expect(r?.cambio).toBeNull();
+  });
+  it('turno senza sede o assente: null', () => {
+    expect(chiMiDaIlCambio({ medicoId: 'io', fasciaPartenza: 'M', giorni: [{ io: ['M'] }] })).toBeNull();
+    expect(chiMiDaIlCambio({ medicoId: 'io', fasciaPartenza: 'P', giorni: [{ io: ['M2'] }] })).toBeNull();
+  });
+  it('giorno successivo non disponibile: cambio null', () => {
+    expect(chiMiDaIlCambio({ medicoId: 'io', fasciaPartenza: 'N', giorni: [{ io: ['N1'] }, undefined] })).toEqual({ sede: 1, cambio: null });
+    expect(chiMiDaIlCambio({ medicoId: 'io', fasciaPartenza: 'N', giorni: [{ io: ['N1'] }] })?.cambio).toBeNull();
+  });
+});
+
+describe('turnoDiPartenza', () => {
+  it('giorno a calendario: primo turno del giorno', () => {
+    expect(turnoDiPartenza({ mieiCodiciOggi: ['RG', 'P2', 'N2'] })).toEqual({ giorno: 'oggi', fascia: 'P' });
+    expect(turnoDiPartenza({ mieiCodiciOggi: ['F'] })).toBeNull();
+  });
+  it('alle 6 dopo una notte: la notte di ieri', () => {
+    expect(turnoDiPartenza({ mieiCodiciIeri: ['N1'], mieiCodiciOggi: ['M1'], ora: 6 })).toEqual({ giorno: 'ieri', fascia: 'N' });
+  });
+  it('alle 10 con MP: M (in corso)', () => {
+    expect(turnoDiPartenza({ mieiCodiciOggi: ['P2', 'M2'], ora: 10 })).toEqual({ giorno: 'oggi', fascia: 'M' });
+  });
+  it('alle 21 con solo P: null', () => {
+    expect(turnoDiPartenza({ mieiCodiciOggi: ['P2'], ora: 21 })).toBeNull();
   });
 });

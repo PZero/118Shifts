@@ -72,3 +72,5 @@
 | 2026-10-14 | Video di presentazione su YouTube, incorporato nella pagina pubblica con facciata (copertina locale, iframe `youtube-nocookie` solo al tocco); MP4 fuori da git | Spark: 360 MB/giorno di hosting, il video (24 MB) li esaurirebbe; nessun cookie né richiesta a YouTube prima del clic |
 | 2026-10-14 | Musica del video sintetizzata da codice, voce neurale edge-tts (Isabella) | Nessun rischio di Content ID/copyright su YouTube |
 | 2026-10-14 | Card "Cosa fa oggi un collega": solo oggi, chiusa all'apertura, dal `quadro` (solo account principali), senza cambi dei colleghi | Richiesta dell'utente; nessuna modifica a modello dati e regole |
+| 2026-10-18 | Card "Chi ti dà il cambio": chi sarà sulla mia sede nella prima fascia dopo il mio blocco di turni (MP stessa sede → la N), per oggi in base all'ora (prima delle 8 la notte di ieri) o per il giorno scelto | Risponde alla domanda reale del medico: chi entra quando esco |
+| 2026-10-18 | Candidati al cambio: esclusi i colleghi con F, f, C o - nel giorno del turno ceduto | Chi è assente quel giorno non può prendere il turno |

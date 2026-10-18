@@ -25,9 +25,9 @@ export const MEDICO_DEMO = 'demo-1';
 
 const NOMI: { id: string; nome: string; alias: string[]; scarto: number; sede: number }[] = [
   { id: 'demo-1', nome: 'Rossi Demo', alias: [], scarto: 0, sede: 6 },
-  { id: 'demo-2', nome: 'Bianchi Demo', alias: ['Bianchi D.'], scarto: 1, sede: 2 },
+  { id: 'demo-2', nome: 'Bianchi Demo', alias: ['Bianchi D.'], scarto: 1, sede: 6 },
   { id: 'demo-3', nome: 'Verdi Demo', alias: [], scarto: 2, sede: 4 },
-  { id: 'demo-4', nome: 'Neri Demo', alias: [], scarto: 3, sede: 1 },
+  { id: 'demo-4', nome: 'Neri Demo', alias: [], scarto: 3, sede: 6 },
   { id: 'demo-5', nome: 'Gialli Demo', alias: [], scarto: 4, sede: 3 },
   { id: 'demo-6', nome: 'Blu Demo', alias: [], scarto: 0, sede: 2 },
   { id: 'demo-7', nome: 'Viola Demo', alias: [], scarto: 1, sede: 5 },

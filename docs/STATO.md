@@ -1,14 +1,14 @@
 # Stato del progetto
 
-**Ultimo aggiornamento:** 2026-10-14 — Fase 1, app online in prova (https://shifts-be876.web.app). Fase 2 (pianificazione assistita) solo come indicazione in `docs/REQUISITI.md`.
+**Ultimo aggiornamento:** 2026-10-18 — Fase 1, app online in prova (https://shifts-be876.web.app). Fase 2 (pianificazione assistita) solo come indicazione in `docs/REQUISITI.md`.
 
 ## Fatto
 - Requisiti, modello dati, decisioni (`docs/`).
-- **Logica turni** `app/src/domain/`: parser Excel, codici e sedi, anagrafica con alias, ore (solo M/P/N, notte 4+8), cambi, festività, weekend, proiezione MP-N-smonto-riposo-riposo, reperibilità, avvisi di import, quadro mensile, disponibilità colleghi (11 ore), mesi ammessi per le indisponibilità, testo della richiesta di cambio, limite giornaliero dei feedback. **165 test**.
+- **Logica turni** `app/src/domain/`: parser Excel, codici e sedi, anagrafica con alias, ore (solo M/P/N, notte 4+8), cambi, festività, weekend, proiezione MP-N-smonto-riposo-riposo, reperibilità, avvisi di import, quadro mensile, disponibilità colleghi (11 ore), mesi ammessi per le indisponibilità, testo della richiesta di cambio, limite giornaliero dei feedback, **chi mi dà il cambio** (sede dopo di me), candidati al cambio senza assenti (F, f, C, -). **181 test**.
 - **Regole Firestore** `firebase/`: ruoli, approvazione, principale unico, mesi pubblicati, ciclo, ultimo accesso, quadro, feedback, presentazione, `ocrModello`, indisponibilità (mese futuro senza turni pubblicati del medico, fino a +12), `limiteFeedback` (3 messaggi/giorno). **143 test** (emulatore, Java 21).
 - **Interfaccia** online:
-  - medico: Oggi e domani, Chi è di turno con me, **Cosa fa oggi un collega** (card chiusa sotto il calendario, tendina, turni di oggi dal quadro), calendario con mesi adiacenti, weekend, ore, reperibilità, cambi, condivisione PNG, indisponibilità con email, feedback;
-  - **Cedi il turno**: "Possono darti il cambio" e **Chiedi il cambio** (messaggio modificabile, Condividi via Web Share / Copia testo; registrazione sempre con Conferma cambio);
+  - medico: Oggi e domani, Chi è di turno con me, **Chi ti dà il cambio** (chi sarà sulla mia sede dopo di me; oggi in base all'ora, es. notte alle 6 → chi entra alle 8; o giorno scelto a calendario; a cavallo di mese), **Cosa fa oggi un collega** (card chiusa sotto il calendario, tendina, turni di oggi dal quadro), calendario con mesi adiacenti, weekend, ore, reperibilità, cambi, condivisione PNG, indisponibilità con email, feedback;
+  - **Cedi il turno**: "Possono darti il cambio" (esclusi ferie, malattia/permessi, corsi, indisponibili nel giorno) e **Chiedi il cambio** (messaggio modificabile, Condividi via Web Share / Copia testo; registrazione sempre con Conferma cambio);
   - gestione: account (con presentazione), medici, calendario del medico, Carica Excel o **screenshot** (OCR nel browser; barra anteprima fissa solo a controllo completato), mesi pubblicati, feedback (solo admin);
   - pagina pubblica con **video di presentazione** (YouTube nocookie, caricato solo al tocco), demo `/demo` (solo sviluppo).
 - **Produzione**: regole pubblicate il 2026-10-13 (impronta allineata), admin, primo Excel reale, login PWA su iPhone, primo import da screenshot riuscito (modello OCR caricato).
@@ -18,7 +18,7 @@
 - **README**: link alla guida, panoramica estesa, collage delle novità (medico e gestione), Fase 2 in roadmap.
 
 ## Prossimi passi
-1. Provare su iPhone: **video nella pagina pubblica**, **Cosa fa oggi un collega**, **feedback con il limite** (frase dei restanti, blocco al 4°), **Condividi** di "Chiedi il cambio", indisponibilità da dicembre (Copia/Apri email).
+1. Provare su iPhone: **Chi ti dà il cambio** (notte alle 6, MP al mattino, fine mese), **video nella pagina pubblica**, **Cosa fa oggi un collega**, **feedback con il limite** (frase dei restanti, blocco al 4°), **Condividi** di "Chiedi il cambio", indisponibilità da dicembre (Copia/Apri email).
 2. **Distribuire guida PDF e video** ai medici non ancora iscritti e approvare i nuovi account.
 3. **Reimportare l'Excel** per creare il quadro: attiva "Chi è di turno con me" e "Possono darti il cambio".
 4. Provare la cessione con suggerimenti a cavallo di mese e il caricamento dell'Excel dall'app.
@@ -31,7 +31,8 @@
 - `giornoPrecedente` (colonna B) non salvato.
 - Mesi oltre 450 operazioni: import in più batch, non atomico.
 - Authentication: secondo account (`UAgEsiNl…`) da verificare/eliminare.
-- Quadro = solo Excel: "Chi è con me" e i suggerimenti di cambio ignorano i cambi dei colleghi.
+- Quadro = solo Excel: "Chi è con me", "Chi ti dà il cambio" e i suggerimenti di cambio ignorano i cambi dei colleghi.
+- "Chi ti dà il cambio" non si aggiorna da sola al passaggio del turno (solo a cambio dati/giorno).
 - Suggerimenti e tendina colleghi non in ordine alfabetico.
 - Messaggio di cambio: saluto con il nome completo dell'anagrafica (manca un campo cognome).
 - Indisponibilità: un medico assente da un mese pubblicato può ancora modificarlo (innocuo).
