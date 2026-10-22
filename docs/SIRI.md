@@ -27,8 +27,8 @@ Tutti i blocchi «Se» sono **uno dopo l'altro, mai uno dentro l'altro**.
 2. **Imposta variabile** → nome `Chiave`.
 
 ### La domanda e il giorno
-3. **Chiedi input** → tipo *Testo*, domanda `Cosa vuoi sapere?`
-4. **Imposta variabile** → nome `Domanda`.
+3. **Richiedi input** (compare come «Richiedi *Testo* con …») → domanda `Cosa vuoi sapere?`; disattiva «Consenti più righe».
+4. **Imposta variabile** → nome `Domanda`, e tocca **Input** (grigio = vuoto) per scegliere l'uscita di «Richiedi» (**Input fornito**): deve diventare blu. Vale per **ogni** «Imposta variabile» della guida: il valore va sempre collegato all'azione sopra.
 5. **Ottieni date** (dall'input) → input: [Domanda].
 6. **Se** → [Date] **ha qualsiasi valore**
    - dentro il «Se»: **Formatta data** → [Date], formato *Personalizzato*, `yyyy-MM-dd`
@@ -65,7 +65,7 @@ Tutti i blocchi «Se» sono **uno dopo l'altro, mai uno dentro l'altro**.
 
     **Come si costruisce un blocco** (esempio della prima riga; poi ripeti per le altre cinque):
     1. Aggiungi l'azione **Se**. Compare un blocco con **Se**, **Altrimenti** e **Fine se**.
-    2. Nella riga «Se»: tocca il primo campo → **Seleziona variabile** → torna su fino all'azione **Chiedi input** (passo 3) e tocca la sua uscita, la bolla **Input fornito**. È già di tipo testo, quindi tra le condizioni c'è **contiene** (con la variabile `Domanda` iOS mostra solo «ha qualsiasi valore / non ha valore»). Scegli **contiene** e nel campo di testo scrivi `turno`. Se anche così non compare «contiene», tocca la bolla «Input fornito» e scegli **Tipo → Testo**.
+    2. Nella riga «Se»: tocca il primo campo → **Seleziona variabile** → torna su fino all'azione **Richiedi** (passo 3) e tocca la sua uscita, la bolla **Input fornito**. È già di tipo testo, quindi tra le condizioni c'è **contiene** (con la variabile `Domanda` iOS mostra solo «ha qualsiasi valore / non ha valore»). Scegli **contiene** e nel campo di testo scrivi `turno`. Se anche così non compare «contiene», tocca la bolla «Input fornito» e scegli **Tipo → Testo**.
     3. Aggiungi l'azione **Testo** e scrivi `diTurno`. Le azioni nuove finiscono in fondo: **trascinala** tra «Se» e «Altrimenti».
     4. Aggiungi **Imposta variabile**, trascinala subito sotto il Testo (sempre prima di «Altrimenti»), scegli la variabile esistente `Voce`: come valore prende il Testo appena sopra.
     5. «Altrimenti» resta vuoto.
