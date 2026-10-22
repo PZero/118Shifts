@@ -74,3 +74,12 @@
 | 2026-10-14 | Card "Cosa fa oggi un collega": solo oggi, chiusa all'apertura, dal `quadro` (solo account principali), senza cambi dei colleghi | Richiesta dell'utente; nessuna modifica a modello dati e regole |
 | 2026-10-18 | Card "Chi ti dà il cambio": chi sarà sulla mia sede nella prima fascia dopo il mio blocco di turni (MP stessa sede → la N), per oggi in base all'ora (prima delle 8 la notte di ieri) o per il giorno scelto | Risponde alla domanda reale del medico: chi entra quando esco |
 | 2026-10-18 | Candidati al cambio: esclusi i colleghi con F, f, C o - nel giorno del turno ceduto | Chi è assente quel giorno non può prendere il turno |
+| 2026-10-22 | CarPlay tramite Siri e Comandi rapidi, non app nativa | Una PWA non può stare su CarPlay; un'app nativa costa 99 €/anno e va mantenuta a parte |
+| 2026-10-22 | Frasi Siri precalcolate dall'app in `siri/{chiave}`, lette senza login con chiave segreta casuale revocabile | Spark senza Cloud Functions; il comando non contiene logica né credenziali Google |
+| 2026-10-22 | Un solo Comando rapido «Turni 118» che chiede «Cosa vuoi sapere?» e sceglie la risposta per parole chiave | Un solo tasto di installazione per i medici; su iOS la domanda non può stare nella frase di attivazione |
+| 2026-10-22 | Chiave incollata alla domanda di importazione del comando; copia condivisa sempre senza chiave, verificata leggendo il file dal link | Meno passi nel comando; il link iCloud è pubblico |
+| 2026-10-22 | Tre significati di "cambio" separati: chi mi darà il cambio (successivo), a chi lo darò (precedente), chi può sostituirmi | Le domande reali dei medici erano ambigue con una sola voce |
+| 2026-10-22 | Parole chiave modificate riscrivendo i testi dei blocchi esistenti, non con un ciclo «Ripeti» (lista `regole` comunque scritta nel documento) | Su iPhone aggiungere e trascinare azioni è lento e rischioso |
+| 2026-10-22 | L'amministratore ha un profilo in `users` e può essere secondario di un medico; con un medico collegato l'app apre "I miei turni" | Caso reale del familiare; nessun dato personale nel codice |
+| 2026-10-22 | Riepilogo del giorno unico per card "Oggi e domani" e Siri; card "Chi ti dà il cambio" rimossa | Una sola sorgente per le frasi; informazione ormai duplicata |
+| 2026-10-22 | Statistiche d'uso come contatori anonimi mensili in Firestore (una volta per sessione), visibili solo all'admin; niente Google Analytics | Niente banner cookie né dati a terzi; trasparenza in guida e README |

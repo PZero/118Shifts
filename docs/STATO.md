@@ -1,53 +1,43 @@
 # Stato del progetto
 
-**Ultimo aggiornamento:** 2026-10-18 — Fase 1, app online in prova (https://shifts-be876.web.app). Fase 2 (pianificazione assistita) solo come indicazione in `docs/REQUISITI.md`.
+**Ultimo aggiornamento:** 2026-10-22 — Fase 1, app online in prova (https://shifts-be876.web.app). Fase 2 (pianificazione assistita) solo come indicazione in `docs/REQUISITI.md`.
 
 ## Fatto
 - Requisiti, modello dati, decisioni (`docs/`).
-- **Logica turni** `app/src/domain/`: parser Excel, codici e sedi, anagrafica con alias, ore (solo M/P/N, notte 4+8), cambi, festività, weekend, proiezione MP-N-smonto-riposo-riposo, reperibilità, avvisi di import, quadro mensile, disponibilità colleghi (11 ore), mesi ammessi per le indisponibilità, testo della richiesta di cambio, limite giornaliero dei feedback, **chi mi dà il cambio** (sede dopo di me), candidati al cambio senza assenti (F, f, C, -). **181 test**.
-- **Regole Firestore** `firebase/`: ruoli, approvazione, principale unico, mesi pubblicati, ciclo, ultimo accesso, quadro, feedback, presentazione, `ocrModello`, indisponibilità (mese futuro senza turni pubblicati del medico, fino a +12), `limiteFeedback` (3 messaggi/giorno). **143 test** (emulatore, Java 21).
+- **Logica turni** `app/src/domain/`: parser Excel, codici e sedi, alias, ore (notte 4+8), cambi, festività, weekend, proiezione, reperibilità, quadro, disponibilità colleghi, indisponibilità, richiesta di cambio, limite feedback, chi do/chi mi dà il cambio, **riepilogo del giorno** (orari dei cambi, smonto, messaggi positivi), **frasi Siri** con parole chiave. **232 test**.
+- **Regole Firestore** `firebase/`: ruoli, approvazione, principale unico, quadro, feedback, OCR, indisponibilità, limite feedback, **`siri/{chiave}`** (get anonimo con chiave segreta, campo `regole`), **`statistiche/{aaaa-mm}`** (contatori anonimi, lettura solo admin). **164 test**. Pubblicate il 2026-10-22 (impronta allineata).
 - **Interfaccia** online:
-  - medico: Oggi e domani, Chi è di turno con me, **Chi ti dà il cambio** (chi sarà sulla mia sede dopo di me; oggi in base all'ora, es. notte alle 6 → chi entra alle 8; o giorno scelto a calendario; a cavallo di mese), **Cosa fa oggi un collega** (card chiusa sotto il calendario, tendina, turni di oggi dal quadro), calendario con mesi adiacenti, weekend, ore, reperibilità, cambi, condivisione PNG, indisponibilità con email, feedback;
-  - **Cedi il turno**: "Possono darti il cambio" (esclusi ferie, malattia/permessi, corsi, indisponibili nel giorno) e **Chiedi il cambio** (messaggio modificabile, Condividi via Web Share / Copia testo; registrazione sempre con Conferma cambio);
-  - gestione: account (con presentazione), medici, calendario del medico, Carica Excel o **screenshot** (OCR nel browser; barra anteprima fissa solo a controllo completato), mesi pubblicati, feedback (solo admin);
-  - pagina pubblica con **video di presentazione** (YouTube nocookie, caricato solo al tocco), demo `/demo` (solo sviluppo).
-- **Produzione**: regole pubblicate il 2026-10-13 (impronta allineata), admin, primo Excel reale, login PWA su iPhone, primo import da screenshot riuscito (modello OCR caricato).
-- **Guida PDF per i medici** `docs/Guida-GestioneTurni.pdf` (2 pagine, QR alla pagina pubblica, "chi vede cosa"; sorgente `docs/guida/guida.html`, generata con Chrome headless dalla scratchpad).
-- **Video di presentazione** (1:08, YouTube `scJRPhcOiV4`, link nel README): voce neurale Isabella, musica sintetizzata originale; sorgenti in `docs/video/sorgente/`, MP4 escluso da git.
-- **Feedback: max 3 messaggi al giorno** per account (contatore `limiteFeedback/{uid}`, imposto dalle regole; frase con i restanti nella pagina).
-- **README**: link alla guida, panoramica estesa, collage delle novità (medico e gestione), Fase 2 in roadmap.
+  - medico: **Oggi e domani con riepilogo** («alle 8 darai il cambio a…, alle 20 ti darà il cambio…», smonto anche nei giorni di festa, messaggio positivo casuale in ferie/riposo), Chi è di turno con me, Cosa fa oggi un collega, calendario, ore, reperibilità, cambi, PNG, indisponibilità, feedback, **card Siri e CarPlay**. Card "Chi ti dà il cambio" **tolta** (assorbita dal riepilogo e da Siri);
+  - gestione: account, medici, carica Excel/screenshot, sedi, feedback e **Utilizzo** (solo admin: classifica card/azioni, confronto mese precedente); schede su più righe su telefono;
+  - pagina pubblica con video e card "Siri e CarPlay".
+- **Siri/CarPlay**: Comando rapido unico «Turni 118» (link iCloud in `LINK_COMANDO_SIRI`, verificato: nessuna chiave, domanda di importazione). Domande: dove, sono di turno, chi lavora con me, chi mi darà il cambio, a chi darò il cambio, chi può sostituirmi, cosa posso chiederti. Frasi precalcolate dall'app (apertura, cambi, pubblicazione Excel). Guida `docs/SIRI.md`.
+- **Admin anche secondario di un medico**: profilo in `users`, all'ingresso apre "I miei turni"; ultimo accesso registrato.
+- **Guida PDF** rigenerata (2 pagine) con la riga sulle statistiche anonime.
 
 ## Prossimi passi
-1. Provare su iPhone: **Chi ti dà il cambio** (notte alle 6, MP al mattino, fine mese), **video nella pagina pubblica**, **Cosa fa oggi un collega**, **feedback con il limite** (frase dei restanti, blocco al 4°), **Condividi** di "Chiedi il cambio", indisponibilità da dicembre (Copia/Apri email).
-2. **Distribuire guida PDF e video** ai medici non ancora iscritti e approvare i nuovi account.
-3. **Reimportare l'Excel** per creare il quadro: attiva "Chi è di turno con me" e "Possono darti il cambio".
-4. Provare la cessione con suggerimenti a cavallo di mese e il caricamento dell'Excel dall'app.
-5. Controllare i medici ancora "Manuale": la data vale come giorno MP.
-6. Raccogliere riscontri. Idee: link alla guida PDF dalla pagina pubblica, export .ics, offline, riepilogo annuale, differenze prima di ripubblicare.
+1. Interrompere la condivisione dei link iCloud di prova (tenere solo `d5201cc6…`), in particolare `929d992f…` (conteneva una chiave, già revocata).
+2. Far provare Siri a qualche medico (Attiva Siri → Aggiungi il comando → incolla chiave) e raccogliere riscontri.
+3. Guardare **Gestione → Utilizzo** dopo qualche settimana per decidere cosa semplificare.
+4. Distribuire guida PDF e video; reimportare l'Excel per il quadro se non fatto.
+5. Idee: conversazione continua con Siri (solo con un Mac per firmare il comando generato), export .ics, offline, riepilogo annuale.
 
 ## Problemi aperti
-- Significato di `C` (MC/PC/NC), `at/att`, `RE`, `E/e/Ex/EU/A/G/SC/CD/REC`: **tbd**. `RNatt` ecc.: 0 ore, tbd.
-- Nomi reali delle sedi: per ora `Sede 1…7`.
-- `giornoPrecedente` (colonna B) non salvato.
-- Mesi oltre 450 operazioni: import in più batch, non atomico.
+- Codici `C` (MC/PC/NC), `at/att`, `RE`, `E/e/Ex/EU/A/G/SC/CD/REC`: **tbd**; `RNatt` 0 ore.
+- Quadro = solo Excel: riepilogo, Siri, "Chi è con me" e suggerimenti di cambio ignorano i cambi dei colleghi.
+- Siri: dopo la pubblicazione dell'Excel le frasi ignorano i cambi del medico finché non riapre l'app; secondari non staff senza nomi dei colleghi; risposta letta ad alta voce solo con «Ehi Siri» e impostazione risposte vocali (da icona solo a schermo); blocco `può ` con spazio finale (non riconosce «…può?» a fine frase).
+- Statistiche: le regole non impongono il +1 (un client approvato potrebbe gonfiare un contatore; solo dati statistici).
+- Mesi oltre 450 operazioni: import non atomico. `giornoPrecedente` non salvato.
 - Authentication: secondo account (`UAgEsiNl…`) da verificare/eliminare.
-- Quadro = solo Excel: "Chi è con me", "Chi ti dà il cambio" e i suggerimenti di cambio ignorano i cambi dei colleghi.
-- "Chi ti dà il cambio" non si aggiorna da sola al passaggio del turno (solo a cambio dati/giorno).
-- Suggerimenti e tendina colleghi non in ordine alfabetico.
-- Messaggio di cambio: saluto con il nome completo dell'anagrafica (manca un campo cognome).
-- Indisponibilità: un medico assente da un mese pubblicato può ancora modificarlo (innocuo).
-- Card con app aperta oltre mezzanotte: dati del giorno prima fino al ricaricamento.
-- Feedback: limite 3/giorno su giorno UTC (si azzera all'1/2 di notte italiane); notifiche solo con badge in app.
-- OCR: '-' su cella rosa letto come vuoto; codici mai visti incerti finché non confermati; un solo screenshot per mese; tesseract ~7 MB alla prima lettura. Modello ≤ ~680 esempi (1 MiB).
+- Card aperte oltre mezzanotte: dati del giorno prima fino al ricaricamento.
+- Feedback: limite su giorno UTC. OCR: '-' su cella rosa letto come vuoto; un solo screenshot per mese.
 - Lint: avvisi preesistenti. Bundle ~290 kB gzip.
 
 ## Note tecniche
-- Test regole: Java 21 non trovato sul PC il 2026-10-14 (c'è solo jdk-11): reinstallarlo prima di modificare le regole.
-- Video: rigenerare da `docs/video/sorgente/` (playwright-core, ffmpeg-static, edge-tts, numpy nella scratchpad); 1920x1080, -14 LUFS.
-- Test regole: Java 21 (`JAVA_HOME` su `jdk-21`; quello di sistema è Java 11).
-- Deploy hosting: automatico con GitHub Action su push in `main`. Se cambia `.env`, aggiornare i segreti.
-- Deploy regole: in PowerShell 5.1 niente `&&`; `cd firebase`, impostare `JAVA_HOME`, poi `npm run deploy:regole` (test, deploy, poi impronta in `firebase/regole-pubblicate.sha256`); `node scripts/impronta-regole.mjs verifica` segnala regole modificate e non pubblicate.
-- Guida PDF: rigenerare da `docs/guida/guida.html` con Chrome headless (playwright-core nella scratchpad, `page.pdf` A4), controllando che ogni `.pagina` non trabocchi.
-- Screenshot README: Chrome headless (`playwright-core` nella scratchpad, mai nel progetto) sulla demo locale, 375x812 a 2x, collage a tre telefoni ~2025x1356; solo dati inventati.
-- Firestore di produzione da CLI bloccato: le operazioni in console le fa l'utente.
-- Su Windows PowerShell 5.1 non usare `Set-Content -Encoding utf8` sui documenti (aggiunge il BOM).
+- Java 21: Temurin in `C:\Program Files\Eclipse Adoptium\jdk-21*` (installato il 2026-10-22). In PowerShell impostare `JAVA_HOME` **e** anteporre `$env:JAVA_HOME\bin` al `Path` (altrimenti vince Java 11).
+- Deploy regole: `cd firebase; npm run deploy:regole` (test, deploy, impronta); lo lancia l'utente. `node scripts/impronta-regole.mjs verifica` segnala regole non pubblicate. Pubblicare le regole **prima** del push se l'app scrive campi nuovi.
+- Deploy hosting: GitHub Action su push in `main`. Prima del push verificare che `npm run build` esca con codice 0.
+- Comando rapido: verificarlo scaricando il file dal link (`www.icloud.com/shortcuts/api/records/<id>` → `downloadURL`) e leggendo il plist: niente chiavi, domanda di importazione sul passo 1, ogni «Imposta Voce» collegato al Testo del proprio blocco.
+- Guida PDF: Chrome headless `--print-to-pdf` da `docs/guida/guida.html`, controllare 2 pagine.
+- Video e screenshot README: strumenti nella scratchpad, mai nel progetto; solo dati inventati.
+- Firestore di produzione da CLI bloccato: operazioni in console le fa l'utente.
+- PowerShell 5.1: niente `&&`; non usare `Set-Content -Encoding utf8` (BOM).
