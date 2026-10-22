@@ -532,6 +532,44 @@ service cloud.firestore {
       }
     }
 
+    // ---------- Siri / Comandi rapidi (lettura senza login con chiave segreta) ----------
+    // siri/{chiave}: la chiave (>= 32 caratteri, casuale, generata nel client) e'
+    // il segreto: chi la conosce fa un get anonimo. Niente list per gli anonimi.
+    // Il documento contiene frasi gia' pronte (nessun dato strutturato).
+    function siriChiaveOk(chiave) {
+      return chiave.size() >= 32 && chiave.size() <= 200;
+    }
+
+    function siriGiorniOk(g) {
+      return g is map && g.size() <= 100;
+    }
+
+    match /siri/{chiave} {
+      allow get: if siriChiaveOk(chiave);
+      // list: staff (where medicoId==X) e proprietario (where uid==auth.uid)
+      allow list: if isStaff()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+
+      allow create: if siriChiaveOk(chiave)
+        && isApprovato()
+        && request.resource.data.keys().hasOnly(['medicoId', 'uid', 'creatoIl', 'giorni', 'aggiornatoIl'])
+        && request.resource.data.keys().hasAll(['medicoId', 'uid', 'creatoIl', 'giorni', 'aggiornatoIl'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.medicoId == myUser().medicoId
+        && request.resource.data.creatoIl == request.time
+        && request.resource.data.aggiornatoIl == request.time
+        && siriGiorniOk(request.resource.data.giorni);
+
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['giorni', 'aggiornatoIl'])
+        && request.resource.data.aggiornatoIl == request.time
+        && siriGiorniOk(request.resource.data.giorni)
+        && ((signedIn() && resource.data.uid == request.auth.uid && isApprovato())
+            || isStaff());
+
+      allow delete: if (signedIn() && resource.data.uid == request.auth.uid)
+        || isAdmin();
+    }
+
     // Nessun'altra raccolta e' accessibile (deny di default).
   }
 }

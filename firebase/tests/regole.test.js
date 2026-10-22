@@ -1127,3 +1127,102 @@ describe("Modello OCR (solo admin e delegati)", () => {
     await assertFails(setDoc(doc(db(UID.admin), "ocrModello/altro"), ocr()));
   });
 });
+
+describe("Siri (get anonimo con chiave segreta)", () => {
+  const K = "k".repeat(40);
+  const K2 = "j".repeat(40);
+  const sdoc = (o = {}) => ({
+    medicoId: "medA",
+    uid: UID.princA,
+    creatoIl: serverTimestamp(),
+    giorni: { "2026-10-05": { testo: "Oggi sei di mattina" } },
+    aggiornatoIl: serverTimestamp(),
+    ...o,
+  });
+  const anon = () => env.unauthenticatedContext().firestore();
+  const seed = async (k = K, o = {}) =>
+    env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), `siri/${k}`), {
+        medicoId: "medA", uid: UID.princA, creatoIl: T0, giorni: {}, aggiornatoIl: T0, ...o,
+      }));
+
+  it("SI1 get anonimo ok, list anonimo negato", async () => {
+    await seed();
+    await assertSucceeds(getDoc(doc(anon(), `siri/${K}`)));
+    await assertFails(getDocs(query(collection(anon(), "siri"), where("medicoId", "==", "medA"))));
+    await assertFails(getDocs(collection(anon(), "siri")));
+  });
+  it("SI2 chiave corta negata (get e create)", async () => {
+    await assertFails(getDoc(doc(anon(), "siri/corta")));
+    await assertFails(setDoc(doc(db(UID.princA), "siri/corta"), sdoc()));
+    await assertSucceeds(setDoc(doc(db(UID.princA), `siri/${K}`), sdoc()));
+  });
+  it("SI3 create: altro medicoId, altro uid, non approvato negati", async () => {
+    await assertFails(setDoc(doc(db(UID.princA), `siri/${K}`), sdoc({ medicoId: "medC" })));
+    await assertFails(setDoc(doc(db(UID.princA), `siri/${K}`), sdoc({ uid: UID.secA })));
+    await assertFails(setDoc(doc(db(UID.attesa), `siri/${K}`), sdoc({ uid: UID.attesa })));
+    await assertFails(setDoc(doc(anon(), `siri/${K}`), sdoc()));
+    await assertFails(setDoc(doc(db(UID.princA), `siri/${K}`), sdoc({ creatoIl: T0 })));
+    await assertFails(setDoc(doc(db(UID.princA), `siri/${K}`), sdoc({ extra: 1 })));
+  });
+  it("SI4 secondario puo' creare; admin come secondario pure", async () => {
+    await assertSucceeds(setDoc(doc(db(UID.secA), `siri/${K}`), sdoc({ uid: UID.secA })));
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), `users/${UID.admin}`), utente({ medicoId: "medA", principale: false })));
+    await assertSucceeds(setDoc(doc(db(UID.admin), `siri/${K2}`), sdoc({ uid: UID.admin })));
+  });
+  it("SI5 giorni: mappa con size <= 100", async () => {
+    const g = {};
+    for (let i = 0; i < 101; i++) g["d" + i] = { testo: "x" };
+    await assertFails(setDoc(doc(db(UID.princA), `siri/${K}`), sdoc({ giorni: g })));
+    await assertFails(setDoc(doc(db(UID.princA), `siri/${K}`), sdoc({ giorni: "x" })));
+  });
+  it("SI6 update: solo giorni/aggiornatoIl; immutabili negati", async () => {
+    await seed();
+    const r = doc(db(UID.princA), `siri/${K}`);
+    await assertSucceeds(updateDoc(r, { giorni: { "2026-10-06": { testo: "ok" } }, aggiornatoIl: serverTimestamp() }));
+    await assertFails(updateDoc(r, { medicoId: "medC", aggiornatoIl: serverTimestamp() }));
+    await assertFails(updateDoc(r, { uid: UID.secA, aggiornatoIl: serverTimestamp() }));
+    await assertFails(updateDoc(r, { creatoIl: serverTimestamp(), aggiornatoIl: serverTimestamp() }));
+    await assertFails(updateDoc(r, { giorni: {} }));
+    await assertFails(updateDoc(doc(db(UID.princC), `siri/${K}`), { giorni: {}, aggiornatoIl: serverTimestamp() }));
+    await assertFails(updateDoc(doc(anon(), `siri/${K}`), { giorni: {}, aggiornatoIl: serverTimestamp() }));
+  });
+  it("SI7 admin e delegato: list per medicoId e update", async () => {
+    await seed();
+    for (const u of [UID.admin, UID.deleg]) {
+      const q = query(collection(db(u), "siri"), where("medicoId", "==", "medA"));
+      await assertSucceeds(getDocs(q));
+      await assertSucceeds(updateDoc(doc(db(u), `siri/${K}`), { giorni: {}, aggiornatoIl: serverTimestamp() }));
+    }
+  });
+  it("SI8 proprietario: list con where uid; altri negati", async () => {
+    await seed();
+    await assertSucceeds(getDocs(query(collection(db(UID.princA), "siri"), where("uid", "==", UID.princA))));
+    await assertFails(getDocs(query(collection(db(UID.princA), "siri"), where("medicoId", "==", "medA"))));
+    await assertFails(getDocs(query(collection(db(UID.princC), "siri"), where("uid", "==", UID.princA))));
+  });
+  it("SI9 delete: proprietario e admin; altri no", async () => {
+    await seed();
+    await assertFails(deleteDoc(doc(anon(), `siri/${K}`)));
+    await assertFails(deleteDoc(doc(db(UID.princC), `siri/${K}`)));
+    await assertFails(deleteDoc(doc(db(UID.deleg), `siri/${K}`)));
+    await assertSucceeds(deleteDoc(doc(db(UID.princA), `siri/${K}`)));
+    await seed();
+    await assertSucceeds(deleteDoc(doc(db(UID.admin), `siri/${K}`)));
+  });
+  it("SI10 admin secondario di medA legge turni, ciclo e cambi di medA", async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const f = ctx.firestore();
+      await setDoc(doc(f, `users/${UID.admin}`), utente({ medicoId: "medA", principale: false }));
+      await setDoc(doc(f, "turni/medA/mesi/2026-10"), { giorni: {}, importId: "i", caricatoIl: T0 });
+      await setDoc(doc(f, "turni/medA/meta/ciclo"), { cicloManuale: false });
+      await setDoc(doc(f, "cambi/medA/voci/c1"), cambio({ creatoIl: T0 }));
+    });
+    const a = db(UID.admin);
+    await assertSucceeds(getDoc(doc(a, "turni/medA/mesi/2026-10")));
+    await assertSucceeds(getDoc(doc(a, "turni/medA/meta/ciclo")));
+    await assertSucceeds(getDoc(doc(a, "cambi/medA/voci/c1")));
+    await assertFails(setDoc(doc(a, "cambi/medA/voci/c2"), cambio()));
+  });
+});

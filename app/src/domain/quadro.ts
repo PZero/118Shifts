@@ -163,3 +163,43 @@ export function turnoDiPartenza(args: {
   const f = oggi.find((x) => FINE_FASCIA[x] > ora);
   return f ? { giorno: 'oggi', fascia: f } : null;
 }
+
+export interface CambioSedePrima {
+  medicoId: string;
+  codice: string;
+  fascia: Fascia;
+  sede: number;
+  /** 0 = stesso giorno del turno di arrivo, 1 = giorno prima, ecc. */
+  giorniPrima: number;
+}
+
+/**
+ * "A chi do il cambio": simmetrica di `chiMiDaIlCambio`. Chi era sulla mia stessa sede nel turno che finisce
+ * quando inizia il mio. `giorni[0]` è il giorno del mio turno di arrivo, `giorni[1]` il giorno prima, ecc.
+ * (undefined = non disponibile). I miei turni consecutivi sulla stessa sede vengono saltati andando a ritroso.
+ * Es. M alle 8: la notte del giorno prima. Restituisce null se non ho un turno con sede nella fascia indicata.
+ */
+export function chiDoIlCambio(args: {
+  medicoId: string;
+  giorni: ReadonlyArray<GiornoQuadro | undefined>;
+  fasciaArrivo: Fascia;
+}): { sede: number; cambio: CambioSedePrima | null } | null {
+  const { medicoId, giorni, fasciaArrivo } = args;
+  const mio = turnoInFascia(giorni[0]?.[medicoId], fasciaArrivo);
+  if (!mio || mio.sede === undefined) return null;
+  const sede = mio.sede;
+  for (let slot = FASCE.indexOf(fasciaArrivo) - 1; ; slot--) {
+    const giorniPrima = 0 - Math.floor(slot / 3);
+    const fascia = FASCE[((slot % 3) + 3) % 3]!;
+    const giorno = giorni[giorniPrima];
+    if (!giorno) return { sede, cambio: null };
+    const io = turnoInFascia(giorno[medicoId], fascia);
+    if (io && io.sede === sede) continue;
+    const altri = Object.keys(giorno).filter((id) => id !== medicoId).sort((a, b) => a.localeCompare(b));
+    for (const id of altri) {
+      const t = turnoInFascia(giorno[id], fascia);
+      if (t && t.sede === sede) return { sede, cambio: { medicoId: id, codice: t.codice, fascia, sede, giorniPrima } };
+    }
+    return { sede, cambio: null };
+  }
+}

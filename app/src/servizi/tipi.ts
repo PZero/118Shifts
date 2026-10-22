@@ -3,6 +3,7 @@
 
 import type { Cambio } from '../domain/cambi';
 import type { LimiteFeedback } from '../domain/feedback';
+import type { FrasiSiri } from '../domain/frasiSiri';
 import type { GiorniQuadro } from '../domain/quadro';
 import type { TipoAvviso } from '../domain/excel';
 import type { GiorniIndisponibili } from '../domain/indisponibilita';
@@ -143,6 +144,12 @@ export interface AutoreFeedback {
   nome: string;
 }
 
+/** siri/{chiave}: frasi lette da Siri/CarPlay tramite il Comando rapido (la chiave è il segreto). */
+export interface ChiaveSiri {
+  chiave: string;
+  giorni: FrasiSiri;
+}
+
 export interface Servizi {
   // --- area medico ---
   turniMedico(medicoId: string): Promise<MeseDoc[]>;
@@ -159,6 +166,15 @@ export interface Servizi {
   indisponibilita(medicoId: string): Promise<Record<string, GiorniIndisponibili>>;
   /** Salva il mese; con `giorni` vuoto cancella il documento. */
   salvaIndisponibilita(medicoId: string, chiaveMese: string, giorni: GiorniIndisponibili): Promise<void>;
+
+  // --- Siri e CarPlay (siri/{chiave}) ---
+  /** Le chiavi dell'utente collegato (una per dispositivo). */
+  siriMie(): Promise<ChiaveSiri[]>;
+  /** Le chiavi di un medico (solo staff). */
+  siriDelMedico(medicoId: string): Promise<ChiaveSiri[]>;
+  siriCrea(medicoId: string, chiave: string, giorni: FrasiSiri): Promise<void>;
+  siriAggiorna(chiave: string, giorni: FrasiSiri): Promise<void>;
+  siriElimina(chiavi: readonly string[]): Promise<void>;
 
   // --- feedback (account approvati e admin; i delegati non vedono le chat altrui) ---
   /** Tempo reale. `uid` = solo le conversazioni di quell'utente; senza `uid` tutte (admin). */

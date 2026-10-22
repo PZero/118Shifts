@@ -26,12 +26,14 @@ import { accessoDiOggi } from '../domain/accessi';
 import { scomponi } from '../domain/date';
 import { anteprima, prossimoContatore } from '../domain/feedback';
 import { normalizzaIndisponibilita } from '../domain/indisponibilita';
+import type { FrasiGiorno, FrasiSiri } from '../domain/frasiSiri';
 import { costruisciQuadro, type GiorniQuadro } from '../domain/quadro';
 import type { GiorniIndisponibili } from '../domain/indisponibilita';
 import { fb } from './firebase';
 import {
   SEDI_PREDEFINITE,
   type CambioDoc,
+  type ChiaveSiri,
   type Conversazione,
   type MedicoAnagrafica,
   type MessaggioFeedback,
@@ -174,6 +176,23 @@ async function aggiornaElenco(db: Firestore): Promise<void> {
   await setDoc(doc(db, 'elencoMedici', 'elenco'), { medici });
 }
 
+function chiaveSiriDaDoc(id: string, d: DocumentData): ChiaveSiri {
+  const giorni: FrasiSiri = {};
+  for (const [k, v] of Object.entries((d.giorni ?? {}) as Record<string, unknown>)) {
+    const t = v as Record<string, unknown> | null;
+    if (!t || typeof t.testo !== 'string') continue;
+    const str = (x: unknown) => (typeof x === 'string' ? x : undefined);
+    // Documenti vecchi senza dove/diTurno: stringa vuota, verranno riscritti alla prima sincronizzazione.
+    const g: FrasiGiorno = { testo: t.testo, dove: str(t.dove) ?? '', diTurno: str(t.diTurno) ?? '' };
+    const p8 = str(t.primaDelle8), cambio = str(t.cambio), conMe = str(t.conMe);
+    if (p8) g.primaDelle8 = p8;
+    if (cambio) g.cambio = cambio;
+    if (conMe) g.conMe = conMe;
+    giorni[k as keyof FrasiSiri] = g;
+  }
+  return { chiave: id, giorni };
+}
+
 export function creaServiziFirestore(): Servizi {
   const { db } = fb();
 
@@ -192,6 +211,32 @@ export function creaServiziFirestore(): Servizi {
         mesi.push({ chiave: s.id, anno: Number(m[1]), mese: Number(m[2]), giorni, importId: d.importId, caricatoIl: data(d.caricatoIl) });
       }
       return mesi.sort((a, b) => a.chiave.localeCompare(b.chiave));
+    },
+
+    async siriMie() {
+      const uid = fb().auth.currentUser?.uid;
+      if (!uid) return [];
+      const snap = await getDocs(query(collection(db, 'siri'), where('uid', '==', uid)));
+      return snap.docs.map((s) => chiaveSiriDaDoc(s.id, s.data()));
+    },
+
+    async siriDelMedico(medicoId) {
+      const snap = await getDocs(query(collection(db, 'siri'), where('medicoId', '==', medicoId)));
+      return snap.docs.map((s) => chiaveSiriDaDoc(s.id, s.data()));
+    },
+
+    async siriCrea(medicoId, chiave, giorni) {
+      const uid = fb().auth.currentUser?.uid;
+      if (!uid) throw new Error('Accesso non disponibile.');
+      await setDoc(doc(db, 'siri', chiave), { medicoId, uid, creatoIl: serverTimestamp(), giorni, aggiornatoIl: serverTimestamp() });
+    },
+
+    async siriAggiorna(chiave, giorni) {
+      await updateDoc(doc(db, 'siri', chiave), { giorni, aggiornatoIl: serverTimestamp() });
+    },
+
+    async siriElimina(chiavi) {
+      await Promise.all(chiavi.map((c) => deleteDoc(doc(db, 'siri', c))));
     },
 
     async quadro(chiave) {

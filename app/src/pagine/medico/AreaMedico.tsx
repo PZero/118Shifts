@@ -4,7 +4,8 @@ import { meseAccettaIndisponibilita } from '../../domain/indisponibilita-mesi';
 import { aggiungiMesi, chiaveMese, confrontaMesi, scomponi, type AnnoMese } from '../../domain/date';
 import { uguali, type GiorniIndisponibili } from '../../domain/indisponibilita';
 import { proiezioneMedico } from '../../domain/proiezione';
-import { useProfilo, useServizi } from '../../sessione/contesto';
+import { isStaff, useProfilo, useServizi } from '../../sessione/contesto';
+import { sincronizzaSiri } from '../../servizi/siri';
 import type { CambioDoc, CicloMedico, MeseDoc, NuovoCambio, Sedi, VoceElenco } from '../../servizi/tipi';
 import { messaggioErroreGenerico } from '../../ui/errori';
 import { useMedia } from '../../ui/media';
@@ -14,6 +15,8 @@ import { dataEstesa, dataNumerica, nomeMese } from '../../ui/etichette';
 import { Calendario } from './Calendario';
 import { CardIndisponibilita, DialogoIndisponibilita } from './Indisponibilita';
 import { costruisciSegni, leggiPreferenzaMostra, salvaPreferenzaMostra, type IndispPerMese } from './indisponibilitaVista';
+import { CardSiri } from './CardSiri';
+import { caricaQuadro } from './quadriCache';
 import { CardChiConMe, CardChiDaIlCambio, CardCollega, CardOggiDomani } from './CardOggiDomani';
 import { DettaglioGiorno } from './DettaglioGiorno';
 import { DialogoCambio, type RichiestaCambio } from './DialoghiCambio';
@@ -123,6 +126,9 @@ function VistaMedico({
   onCambiModificati: () => Promise<void>;
 }) {
   const servizi = useServizi();
+  const profilo = useProfilo();
+  // Le card basate sul quadro (tutti i medici) sono per gli account principali e per lo staff, anche se secondario.
+  const vedeQuadro = principale || isStaff(profilo);
   const params = useParams<{ mese?: string }>();
   const [, naviga] = useLocation();
   const oggi = oggiISO();
@@ -146,6 +152,20 @@ function VistaMedico({
   const meseDoc = dati.mesi.find((m) => m.chiave === vista.chiave);
   const nomi = useMemo(() => new Map(dati.elenco.map((m) => [m.id, m.nome])), [dati.elenco]);
   const colleghi = useMemo(() => dati.elenco.filter((m) => m.id !== medicoId), [dati.elenco, medicoId]);
+
+  // Siri: frasi aggiornate all'apertura e dopo ogni cambio, solo se cambiate (errori ignorati).
+  useEffect(() => {
+    if (soloLettura) return;
+    void sincronizzaSiri(servizi, {
+      medicoId,
+      mesi: dati.mesi,
+      cambi: dati.cambi,
+      elenco: dati.elenco,
+      sedi: dati.sedi,
+      oggi,
+      caricaQuadro: (k) => caricaQuadro(servizi, k),
+    }).catch(() => undefined);
+  }, [servizi, medicoId, soloLettura, dati.mesi, dati.cambi, dati.elenco, dati.sedi, oggi]);
 
   // Indisponibilità: solo account principale, mai nella vista dello staff.
   const gestisceIndisp = principale && !soloLettura;
@@ -310,10 +330,10 @@ function VistaMedico({
       {!soloLettura && (
         <div className="card-riepilogo-alto">
           <CardOggiDomani oggi={oggi} mesi={dati.mesi} cambi={dati.cambi} proiezione={proiezione} sedi={dati.sedi} nomi={nomi} />
-          {principale && (
+          {vedeQuadro && (
             <CardChiConMe oggi={oggi} giorno={giornoCard} pubblicato={pubblicatoCard} sedi={dati.sedi} nomi={nomi} medicoId={medicoId} />
           )}
-          {principale && (
+          {vedeQuadro && (
             <CardChiDaIlCambio
               oggi={oggi}
               giorno={giornoCard}
@@ -425,7 +445,7 @@ function VistaMedico({
           )}
           <Calendario vista={vista} sedi={dati.sedi} nomi={nomi} selezionato={giornoSel.data} onSeleziona={seleziona} segni={segni} inModifica={inModifica} />
           {!desktop && dettaglio}
-          {!soloLettura && principale && <CardCollega oggi={oggi} sedi={dati.sedi} colleghi={colleghi} />}
+          {!soloLettura && vedeQuadro && <CardCollega oggi={oggi} sedi={dati.sedi} colleghi={colleghi} />}
           <Legenda />
         </div>
         {/* Mobile: calendario, weekend e festività, poi i conteggi. */}
@@ -437,6 +457,7 @@ function VistaMedico({
             <CardReperibilita vista={vista} />
           </div>
           {!soloLettura && <CardCambi vista={vista} nomi={nomi} />}
+          {!soloLettura && <CardSiri medicoId={medicoId} oggi={oggi} mesi={dati.mesi} cambi={dati.cambi} elenco={dati.elenco} sedi={dati.sedi} />}
         </aside>
       </div>
 

@@ -9,6 +9,8 @@ import type { AvvisoImport, CategoriaAvviso, FoglioMese, RisultatoImport } from 
 import type { ModelloOcr } from '../../domain/ocr';
 import { useProfilo, useServizi } from '../../sessione/contesto';
 import { SEDI_PREDEFINITE, type AvvisoSalvato, type MedicoAnagrafica, type MesePubblicato, type PianoImport } from '../../servizi/tipi';
+import { aggiornaSiriDopoImport } from '../../servizi/siri';
+import { oggiISO } from '../medico/vista';
 import { Dialogo } from '../../ui/Dialogo';
 import { messaggioErroreGenerico } from '../../ui/errori';
 import { MESI, dataNumerica, etichettaCodice, nomeMese } from '../../ui/etichette';
@@ -244,6 +246,16 @@ export function Import() {
         } catch (e) {
           setAvvisoModello(`I turni sono pubblicati, ma il modello di lettura non è stato aggiornato: ${messaggioErroreGenerico(e)}`);
         }
+      }
+      // Frasi di Siri dei medici che le hanno attivate: un errore qui non annulla la pubblicazione.
+      const nuovi = new Set(calcolo.piano.nuoviMedici.map((n) => n.rif));
+      const esitoSiri = await aggiornaSiriDopoImport(
+        servizi,
+        calcolo.piano.turni.map((t) => t.medico).filter((m) => !nuovi.has(m)),
+        oggiISO(),
+      );
+      if (esitoSiri.errori > 0) {
+        setAvvisoModello((prec) => `${prec ? `${prec} ` : ''}Le frasi di Siri non sono state aggiornate per tutti i medici: si correggono da sole alla prossima apertura dell’app da parte loro.`);
       }
       setFase({ fase: 'fatto', mesi: calcolo.piano.mesi, avvisi: calcolo.piano.avvisi.length });
     } catch (e) {

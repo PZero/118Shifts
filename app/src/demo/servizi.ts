@@ -9,6 +9,7 @@ import { costruisciQuadro } from '../domain/quadro';
 import {
   SEDI_PREDEFINITE,
   type CambioDoc,
+  type ChiaveSiri,
   type Conversazione,
   type MessaggioFeedback,
   type Importazione,
@@ -138,6 +139,7 @@ export function creaServiziDemo(): Servizi {
     if (!prossimo) throw Object.assign(new Error('Missing or insufficient permissions.'), { code: 'permission-denied' });
     limiti.set(uid, prossimo);
   };
+  const chiaviSiri = new Map<string, ChiaveSiri & { medicoId: string }>();
   const ascoltatori = new Set<() => void>();
   const notifica = () => ascoltatori.forEach((f) => f());
   const osserva = (calcola: () => void) => {
@@ -176,6 +178,18 @@ export function creaServiziDemo(): Servizi {
     async eliminaCambio(_id, id) {
       const i = cambi.findIndex((c) => c.id === id);
       if (i >= 0) cambi.splice(i, 1);
+    },
+    siriMie: async () => copia([...chiaviSiri.values()].map(({ chiave, giorni }) => ({ chiave, giorni }))),
+    siriDelMedico: async (medicoId) => [...chiaviSiri.values()].filter((v) => v.medicoId === medicoId).map(({ chiave, giorni }) => ({ chiave, giorni })),
+    async siriCrea(medicoId, chiave, giorni) {
+      chiaviSiri.set(chiave, { chiave, giorni, medicoId });
+    },
+    async siriAggiorna(chiave, giorni) {
+      const v = chiaviSiri.get(chiave);
+      if (v) chiaviSiri.set(chiave, { ...v, giorni });
+    },
+    async siriElimina(chiavi) {
+      chiavi.forEach((c) => chiaviSiri.delete(c));
     },
     elencoMedici: async () => medici.filter((m) => m.attivo).map((m) => ({ id: m.id, nome: m.nome })),
     sedi: async () => ({ ...sedi }),

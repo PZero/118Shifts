@@ -8,6 +8,8 @@
 
 > 📄 **Guida per i medici** (2 pagine, da stampare o condividere): [Guida-GestioneTurni.pdf](docs/Guida-GestioneTurni.pdf). Spiega con parole semplici come entrare (QR code verso la pagina pubblica), cosa fa l'app e, con la massima trasparenza, chi vede quali dati.
 
+> 🗣️ **Siri e CarPlay** (iPhone): con un tocco su «Attiva Siri» nell'app, basta dire «Ehi Siri, Turni 118» e chiedere «Dove lavoro oggi?», «Sarò di turno il 30 maggio?», «Chi mi può dare il cambio il 20 maggio?» o «Chi lavora con me oggi?», anche in auto. Ogni medico riceve risposte solo sui propri turni. Dettagli in [docs/SIRI.md](docs/SIRI.md).
+
 > 🎬 **Video di presentazione** (1 minuto, dati di esempio inventati): [guarda su YouTube](https://youtu.be/scJRPhcOiV4). È visibile anche nella pagina pubblica dell'app.
 
 ---
@@ -93,6 +95,7 @@ Ogni medico vede solo i propri dati. La regola è applicata dal database (regole
 - **Chiedi il cambio**: scelto il collega, l'app compone il messaggio di richiesta (turno, sede e data, senza orari), modificabile, da inviare con **Condividi** (WhatsApp o altre app, tramite il menu di condivisione del telefono) o **Copia testo**. Nessun invio automatico e nessun numero di telefono salvato; il cambio si registra con «Conferma cambio» quando il collega ha accettato.
 - **Indisponibilità** (solo account principali): sul calendario di ogni mese futuro non ancora pubblicato (dal mese dopo l'ultimo caricato, fino a 12 mesi avanti) si segnano i giorni e i turni (M, P, N) in cui non si è disponibili; quando i turni del mese vengono pubblicati le indisponibilità diventano di sola lettura; un pulsante copia il testo dell'email da inviare personalmente (o apre il client di posta). I giorni restano evidenziati anche dopo la pubblicazione dei turni, con avviso se un turno cade in una fascia indisponibile; una spunta li mostra o li nasconde. Visibili solo all'account principale.
 - **Più account per medico**: un account principale (che registra i cambi) e account secondari in sola lettura, per esempio per un familiare.
+- **Siri e CarPlay**: la card «Siri e CarPlay» attiva un Comando rapido iOS (guida in `docs/SIRI.md`): un unico Comando rapido «Turni 118»: «Ehi Siri, Turni 118», poi si chiede «Dove lavoro oggi?», «Sarò di turno il 30 maggio?», «Chi mi può dare il cambio il 20 maggio?» o «Chi lavora con me oggi?» (anche in auto con CarPlay). Le frasi, senza dati anagrafici oltre ai nomi dei colleghi, sono ricalcolate dall'app all'apertura, dopo un cambio e a ogni pubblicazione dell'Excel, e lette senza login tramite una chiave segreta personale, revocabile con «Disattiva Siri».
 - **Condivisione del mese come immagine**: un tocco sull'icona di condivisione crea un'immagine del calendario (titolo del mese e griglia, con i cambi già applicati) da inviare come una foto, per esempio su WhatsApp. Nessun link, nessun nome di colleghi.
 - **Feedback e suggerimenti**: conversazioni riservate con l'amministratore, una per argomento (segnalazioni o proposte di nuove funzionalità), con badge dei messaggi non letti. Ciascuna parte può chiudere e cancellare la conversazione. Aperte anche agli account secondari. **Massimo 3 messaggi al giorno** per account, indicato nella pagina con i messaggi rimasti; il limite è imposto dalle regole Firestore (contatore giornaliero, UTC), non solo dall'interfaccia.
 - **Tema chiaro e scuro**, automatico o a scelta.
@@ -106,7 +109,7 @@ Ogni medico vede solo i propri dati. La regola è applicata dal database (regole
 - **Importazione da screenshot** (admin e delegati, scheda "Da screenshot" in Carica turni): si sceglie mese e immagine, l'app trova la griglia (correggibile toccando due punti), legge le celle con un modello a esempi che migliora a ogni correzione e i cognomi con OCR (tesseract.js, file serviti dall'app stessa), poi mostra le **celle incerte** con il ritaglio ingrandito da confermare o correggere; il pulsante «Vai all'anteprima» resta in fondo alla pagina finché righe e celle non sono tutte confermate, poi diventa fisso in basso. L'anteprima e la pubblicazione sono quelle dell'Excel. L'immagine resta nel browser; la lettura può contenere errori, quindi le celle evidenziate vanno sempre controllate.
 - **Mesi pubblicati**: elenco dei mesi caricati con data e numero di medici.
 - **Calendario di ogni medico** in sola lettura (senza i cambi, che restano privati).
-- **Delegati** nominati dall'amministratore. L'amministratore non è un medico e vede solo l'area di gestione.
+- **Delegati** nominati dall'amministratore. L'amministratore non è un medico e vede l'area di gestione; può però collegare il proprio account come secondario a un medico (per esempio un familiare) e vederne i turni, con anche le card basate sul quadro dei colleghi.
 
 ## Sicurezza e privacy
 - Accesso **solo con account Google** (Firebase Authentication).

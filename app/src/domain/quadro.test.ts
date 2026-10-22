@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chiConMe, chiMiDaIlCambio, costruisciQuadro, turnoDiPartenza } from './quadro';
+import { chiConMe, chiDoIlCambio, chiMiDaIlCambio, costruisciQuadro, turnoDiPartenza } from './quadro';
 
 const Q = {
   io: ['M6'],
@@ -117,5 +117,25 @@ describe('turnoDiPartenza', () => {
   });
   it('alle 21 con solo P: null', () => {
     expect(turnoDiPartenza({ mieiCodiciOggi: ['P2'], ora: 21 })).toBeNull();
+  });
+});
+
+describe('chiDoIlCambio', () => {
+  it('M alle 8: la notte del giorno prima sulla stessa sede', () => {
+    const oggi = { mio: ['M2'] };
+    const ieri = { collega: ['N2'], altro: ['N3'] };
+    const r = chiDoIlCambio({ medicoId: 'mio', giorni: [oggi, ieri], fasciaArrivo: 'M' });
+    expect(r).toEqual({ sede: 2, cambio: { medicoId: 'collega', codice: 'N2', fascia: 'N', sede: 2, giorniPrima: 1 } });
+  });
+  it('P: salta il mio M sulla stessa sede e risale alla notte prima', () => {
+    const oggi = { mio: ['M1', 'P1'] };
+    const ieri = { c: ['N1'] };
+    const r = chiDoIlCambio({ medicoId: 'mio', giorni: [oggi, ieri], fasciaArrivo: 'P' });
+    expect(r?.cambio?.medicoId).toBe('c');
+  });
+  it('giorno prima non disponibile o nessuno: cambio null; senza sede: null', () => {
+    expect(chiDoIlCambio({ medicoId: 'mio', giorni: [{ mio: ['M2'] }], fasciaArrivo: 'M' })).toEqual({ sede: 2, cambio: null });
+    expect(chiDoIlCambio({ medicoId: 'mio', giorni: [{ mio: ['M'] }, {}], fasciaArrivo: 'M' })).toBeNull();
+    expect(chiDoIlCambio({ medicoId: 'mio', giorni: [{ mio: ['N2'], c: ['P2'] }], fasciaArrivo: 'N' })?.cambio?.fascia).toBe('P');
   });
 });
