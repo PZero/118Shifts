@@ -77,12 +77,17 @@ export function SessioneFirebase({ children }: { children: ReactNode }) {
             });
           }
           const base = { uid: user.uid, email: user.email ?? '', nome: nomeDa(user), admin: true, delegato: false, principale: false };
+          let accessoAdmin = false;
           // La sessione parte solo dopo aver letto il profilo: cosi' la pagina iniziale e' gia' "/turni" se collegato.
           smettiProfilo = onSnapshot(
             ref,
             (s) => {
               if (!s.exists()) return setSessione({ tipo: 'attivo', profilo: base });
               const u = utenteDaDoc(s.id, s.data());
+              if (!accessoAdmin) {
+                accessoAdmin = true;
+                registraAccesso(u.uid, u.ultimoAccesso);
+              }
               const collegato = u.stato === 'approvato' && u.medicoId;
               setSessione({
                 tipo: 'attivo',
