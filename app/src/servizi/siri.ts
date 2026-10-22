@@ -13,15 +13,13 @@ import type { MeseDoc, QuadroMese, Servizi, Sedi, VoceElenco } from './tipi';
  */
 export const LINK_COMANDO_SIRI = '';
 
-/** Testo copiato negli appunti: il Comando rapido lo riconosce dal prefisso. */
-export const PREFISSO_CHIAVE = '118siri:';
-
 export const MAX_GIORNI = 100;
 /** Dimensione massima stimata del documento (JSON.stringify), in caratteri. */
 export const MAX_DOCUMENTO = 700_000;
 export const MAX_TESTO = 600;
 
-export const testoAppunti = (chiave: string) => `${PREFISSO_CHIAVE}${chiave}`;
+/** Testo copiato negli appunti: la sola chiave, da incollare quando il Comando rapido la chiede all'installazione. */
+export const testoAppunti = (chiave: string) => chiave;
 
 /** Chiave casuale di 64 caratteri esadecimali (256 bit), richiesta dalle regole (32..200 caratteri). */
 export function generaChiave(): string {

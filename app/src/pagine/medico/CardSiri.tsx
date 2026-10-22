@@ -157,11 +157,12 @@ export function CardSiri({ medicoId, oggi, mesi, cambi, elenco, sedi }: Props) {
           chiavi !== null && (
             <ol className="testo-tenue" style={{ margin: '10px 0 0', paddingLeft: 20 }}>
               {attivo ? (
-                <li>Se non l’hai ancora fatto, tocca «Aggiungi il comando», poi «Aggiungi comando» nell’app Comandi.</li>
+                <li>Se non l’hai ancora fatto, tocca «Aggiungi il comando»: la tua chiave viene copiata e si apre l’app Comandi.</li>
               ) : (
-                <li>Tocca «Attiva Siri», poi «Aggiungi comando» nell’app Comandi.</li>
+                <li>Tocca «Attiva Siri»: la tua chiave viene copiata e si apre l’app Comandi.</li>
               )}
-              <li>Dì «Ehi Siri, Turni 118». La prima volta il comando legge la chiave copiata.</li>
+              <li>In Comandi tocca «Imposta comando», tieni premuto nel campo della chiave, «Incolla», poi «Aggiungi comando».</li>
+              <li>Dì «Ehi Siri, Turni 118» e fai la tua domanda.</li>
             </ol>
           )
         )}
