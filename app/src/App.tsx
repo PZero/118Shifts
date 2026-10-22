@@ -1,6 +1,6 @@
 // Radice dell'app: instradamento in base allo stato e al ruolo della sessione.
 
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { Redirect, Route, Router, Switch, useLocation } from 'wouter';
 import { Caricamento, Disabilitato, Errore, InAttesa } from './pagine/Stati';
 import { AreaGestione } from './pagine/gestione/AreaGestione';
@@ -19,6 +19,20 @@ const Demo = import.meta.env.DEV ? lazy(() => import('./demo/DemoApp')) : null;
 
 function Rotte() {
   const { sessione } = useSessione();
+  const [percorso, vai] = useLocation();
+  const uidAperto = useRef<string | null>(null);
+  const medicoAttivo = sessione.tipo === 'attivo' ? sessione.profilo.medicoId : undefined;
+  const uidAttivo = sessione.tipo === 'attivo' ? sessione.profilo.uid : null;
+  // All'ingresso, chi ha un medico collegato (anche lo staff) parte sempre da "I miei turni".
+  useEffect(() => {
+    if (!uidAttivo) {
+      uidAperto.current = null;
+      return;
+    }
+    if (uidAperto.current === uidAttivo) return;
+    uidAperto.current = uidAttivo;
+    if (medicoAttivo && !percorso.startsWith('/turni')) vai('/turni', { replace: true });
+  }, [uidAttivo, medicoAttivo, percorso, vai]);
   switch (sessione.tipo) {
     case 'caricamento':
       return <Caricamento />;

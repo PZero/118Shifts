@@ -77,11 +77,11 @@ export function SessioneFirebase({ children }: { children: ReactNode }) {
             });
           }
           const base = { uid: user.uid, email: user.email ?? '', nome: nomeDa(user), admin: true, delegato: false, principale: false };
-          setSessione({ tipo: 'attivo', profilo: base });
+          // La sessione parte solo dopo aver letto il profilo: cosi' la pagina iniziale e' gia' "/turni" se collegato.
           smettiProfilo = onSnapshot(
             ref,
             (s) => {
-              if (!s.exists()) return;
+              if (!s.exists()) return setSessione({ tipo: 'attivo', profilo: base });
               const u = utenteDaDoc(s.id, s.data());
               const collegato = u.stato === 'approvato' && u.medicoId;
               setSessione({
@@ -89,7 +89,7 @@ export function SessioneFirebase({ children }: { children: ReactNode }) {
                 profilo: collegato ? { ...base, nome: u.nome, principale: u.principale, medicoId: u.medicoId } : base,
               });
             },
-            () => undefined,
+            () => setSessione({ tipo: 'attivo', profilo: base }),
           );
           return;
         }
