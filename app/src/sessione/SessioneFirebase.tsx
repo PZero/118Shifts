@@ -62,15 +62,37 @@ export function SessioneFirebase({ children }: { children: ReactNode }) {
       setSessione({ tipo: 'caricamento' });
       try {
         const admin = (await getDoc(doc(db, 'admins', user.uid))).exists();
-        if (admin) {
-          setSessione({
-            tipo: 'attivo',
-            profilo: { uid: user.uid, email: user.email ?? '', nome: nomeDa(user), admin: true, delegato: false, principale: false },
-          });
-          return;
-        }
         const ref = doc(db, 'users', user.uid);
         const snap = await getDoc(ref);
+        if (admin) {
+          // Anche l'admin ha un profilo in users: puo' associarsi a un medico (es. come secondario di un familiare).
+          if (!snap.exists()) {
+            await setDoc(ref, {
+              email: user.email ?? '',
+              nome: nomeDa(user),
+              stato: 'attesa',
+              principale: false,
+              delegato: false,
+              creatoIl: serverTimestamp(),
+            });
+          }
+          const base = { uid: user.uid, email: user.email ?? '', nome: nomeDa(user), admin: true, delegato: false, principale: false };
+          setSessione({ tipo: 'attivo', profilo: base });
+          smettiProfilo = onSnapshot(
+            ref,
+            (s) => {
+              if (!s.exists()) return;
+              const u = utenteDaDoc(s.id, s.data());
+              const collegato = u.stato === 'approvato' && u.medicoId;
+              setSessione({
+                tipo: 'attivo',
+                profilo: collegato ? { ...base, nome: u.nome, principale: u.principale, medicoId: u.medicoId } : base,
+              });
+            },
+            () => undefined,
+          );
+          return;
+        }
         if (!snap.exists()) {
           // Primo accesso: solo i campi ammessi dalle regole, in attesa di approvazione.
           await setDoc(ref, {
