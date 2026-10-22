@@ -52,7 +52,7 @@ Tutti i blocchi «Se» sono **uno dopo l'altro, mai uno dentro l'altro**.
 13. (passo eliminato: non serve convertire in minuscolo)
 14. Sei blocchi **Se**, uno dopo l'altro, tutti uguali tranne la parola. Ognuno contiene **Testo** con il nome della voce e **Imposta variabile** → `Voce`:
 
-    | Se [Domanda] contiene | Testo |
+    | Se [Input fornito] contiene | Testo |
     |---|---|
     | `turno` | `diTurno` |
     | `dove` | `dove` |
@@ -65,14 +65,14 @@ Tutti i blocchi «Se» sono **uno dopo l'altro, mai uno dentro l'altro**.
 
     **Come si costruisce un blocco** (esempio della prima riga; poi ripeti per le altre cinque):
     1. Aggiungi l'azione **Se**. Compare un blocco con **Se**, **Altrimenti** e **Fine se**.
-    2. Nella riga «Se»: tocca il primo campo e scegli la variabile [Domanda]. Poi **tocca la bolla «Domanda»** appena inserita e imposta **Tipo → Testo** (altrimenti le condizioni sono solo «ha qualsiasi valore / non ha valore»). Ora tocca la condizione e scegli **contiene**; nel campo di testo scrivi `turno`.
+    2. Nella riga «Se»: tocca il primo campo → **Seleziona variabile** → torna su fino all'azione **Chiedi input** (passo 3) e tocca la sua uscita, la bolla **Input fornito**. È già di tipo testo, quindi tra le condizioni c'è **contiene** (con la variabile `Domanda` iOS mostra solo «ha qualsiasi valore / non ha valore»). Scegli **contiene** e nel campo di testo scrivi `turno`. Se anche così non compare «contiene», tocca la bolla «Input fornito» e scegli **Tipo → Testo**.
     3. Aggiungi l'azione **Testo** e scrivi `diTurno`. Le azioni nuove finiscono in fondo: **trascinala** tra «Se» e «Altrimenti».
     4. Aggiungi **Imposta variabile**, trascinala subito sotto il Testo (sempre prima di «Altrimenti»), scegli la variabile esistente `Voce`: come valore prende il Testo appena sopra.
     5. «Altrimenti» resta vuoto.
 
     Risultato del primo blocco:
     ```
-    Se  [Domanda]  contiene  turno
+    Se  [Input fornito]  contiene  turno
         Testo: diTurno
         Imposta variabile Voce a [Testo]
     Altrimenti
@@ -114,7 +114,7 @@ Su un altro iPhone o iPad: «Attiva su un altro iPhone» (crea una seconda chiav
 
 ## Aggiungere nuove domande in futuro
 1. Nuova voce in `FrasiGiorno` (`app/src/domain/frasiSiri.ts`, frase completa con la data parlata, max 600 caratteri); adegua `limitaFrasi` e `frasiUguali` in `siri.ts` e `docs/MODELLO-DATI.md`.
-2. Nel comando un nuovo blocco **Se** [Domanda] **contiene** `<parola>` al passo 14.
+2. Nel comando un nuovo blocco **Se** [Input fornito] **contiene** `<parola>` al passo 14.
 3. Il comando installato è una copia su ogni telefono: con una domanda nuova va ricondiviso (nuovo link) e reinstallato. I comandi vecchi continuano a funzionare ma non conoscono la domanda nuova.
 
 ## Sicurezza
