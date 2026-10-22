@@ -63,6 +63,7 @@ export function limitaFrasi(frasi: FrasiSiri): FrasiSiri {
     if (f.conMe) g.conMe = taglia(f.conMe);
     if (f.successivo) g.successivo = taglia(f.successivo);
     if (f.precedente) g.precedente = taglia(f.precedente);
+    if (f.aiuto) g.aiuto = taglia(f.aiuto);
     out[data] = g;
   }
   // Documento sotto ~700 KB: se servisse, si riducono i giorni futuri.
@@ -77,7 +78,7 @@ export function frasiUguali(a: FrasiSiri, b: FrasiSiri): boolean {
   return ka.every((k) => {
     const x = a[k as DataISO]!;
     const y = b[k as DataISO];
-    return y !== undefined && x.testo === y.testo && (x.primaDelle8 ?? '') === (y.primaDelle8 ?? '') && x.dove === y.dove && x.diTurno === y.diTurno && (x.cambio ?? '') === (y.cambio ?? '') && (x.conMe ?? '') === (y.conMe ?? '') && (x.successivo ?? '') === (y.successivo ?? '') && (x.precedente ?? '') === (y.precedente ?? '');
+    return y !== undefined && x.testo === y.testo && (x.primaDelle8 ?? '') === (y.primaDelle8 ?? '') && x.dove === y.dove && x.diTurno === y.diTurno && (x.cambio ?? '') === (y.cambio ?? '') && (x.conMe ?? '') === (y.conMe ?? '') && (x.successivo ?? '') === (y.successivo ?? '') && (x.precedente ?? '') === (y.precedente ?? '') && (x.aiuto ?? '') === (y.aiuto ?? '');
   });
 }
 

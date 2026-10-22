@@ -24,8 +24,14 @@ export interface FrasiGiorno {
   successivo?: string;
   /** A chi do il cambio quando entro. Assente se il quadro del mese non è disponibile. */
   precedente?: string;
+  /** Elenco delle domande possibili (uguale per tutti i giorni). */
+  aiuto?: string;
 }
 export const MAX_TESTO_FRASE = 600;
+
+/** Risposta a «Cosa posso chiederti?». */
+export const TESTO_AIUTO =
+  "Puoi chiedermi: dove lavori, se sei di turno, chi lavora con te, chi ti darà il cambio, a chi darai il cambio e chi può sostituirti. Puoi aggiungere un giorno, per esempio domani o il 5 novembre. Se non chiedi niente di preciso, ti dico il riepilogo di oggi.";
 const INIZIO_ORA: Record<Fascia, number> = { M: 8, P: 14, N: 20 };
 const FINE_ORA: Record<Fascia, number> = { M: 14, P: 20, N: 8 };
 
@@ -40,6 +46,7 @@ export const REGOLE_SIRI: readonly { parola: string; voce: keyof FrasiGiorno }[]
   { parola: 'cambio', voce: 'successivo' }, { parola: 'dopo di me', voce: 'successivo' }, { parola: 'Dopo di me', voce: 'successivo' }, { parola: 'smont', voce: 'successivo' },
   { parola: 'darò il cambio', voce: 'precedente' }, { parola: 'do il cambio', voce: 'precedente' }, { parola: 'Darò', voce: 'precedente' }, { parola: 'darò', voce: 'precedente' },
   { parola: 'prima di me', voce: 'precedente' }, { parola: 'Prima di me', voce: 'precedente' },
+  { parola: 'chieder', voce: 'aiuto' }, { parola: 'aiuto', voce: 'aiuto' }, { parola: 'Aiuto', voce: 'aiuto' },
   { parola: 'può', voce: 'cambio' }, { parola: 'possono', voce: 'cambio' }, { parola: 'Può', voce: 'cambio' }, { parola: 'libero', voce: 'cambio' }, { parola: 'liberi', voce: 'cambio' }, { parola: 'sostitu', voce: 'cambio' },
 ];
 
@@ -240,7 +247,7 @@ export function costruisciFrasiSiri(args: ArgomentiFrasiSiri): FrasiSiri {
     const ts = turniDi(turni[data]);
     const r = riepilogoGiorno({ medicoId, turni, quadro, medici, sedi, data });
     const testoBase = testoRiepilogo(r, 'Oggi', messaggioFisso(r, data));
-    const giorno: FrasiGiorno = { testo: oggi.turno ? testoBase : testoBase + prossimoTurno(data), ...frasiGiorno(data, oggi, ts) };
+    const giorno: FrasiGiorno = { testo: oggi.turno ? testoBase : testoBase + prossimoTurno(data), ...frasiGiorno(data, oggi, ts), aiuto: TESTO_AIUTO };
     if (r.smonto) giorno.primaDelle8 = testoBase;
     out[data] = giorno;
   }

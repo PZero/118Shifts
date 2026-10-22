@@ -228,6 +228,8 @@ describe('scegliVoce', () => {
     ["Chi c'è dopo di me?", 'successivo'],
     ['Che turno ho?', 'diTurno'],
     ['Ciao', 'testo'],
+    ['Cosa posso chiederti?', 'aiuto'],
+    ['Che cosa posso chiedere?', 'aiuto'],
   ])('%s -> %s', (d, v) => {
     expect(scegliVoce(d)).toBe(v);
   });

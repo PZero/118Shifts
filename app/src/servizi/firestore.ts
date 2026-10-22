@@ -192,6 +192,8 @@ function chiaveSiriDaDoc(id: string, d: DocumentData): ChiaveSiri {
     const succ = str(t.successivo), prec = str(t.precedente);
     if (succ) g.successivo = succ;
     if (prec) g.precedente = prec;
+    const aiuto = str(t.aiuto);
+    if (aiuto) g.aiuto = aiuto;
     giorni[k as keyof FrasiSiri] = g;
   }
   return { chiave: id, giorni, regoleOk: JSON.stringify(d.regole ?? null) === JSON.stringify(REGOLE_SIRI) };
