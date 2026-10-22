@@ -182,7 +182,7 @@ export function creaServiziDemo(): Servizi {
     siriMie: async () => copia([...chiaviSiri.values()].map(({ chiave, giorni }) => ({ chiave, giorni, regoleOk: true }))),
     siriDelMedico: async (medicoId) => [...chiaviSiri.values()].filter((v) => v.medicoId === medicoId).map(({ chiave, giorni }) => ({ chiave, giorni, regoleOk: true })),
     async siriCrea(medicoId, chiave, giorni) {
-      chiaviSiri.set(chiave, { chiave, giorni, medicoId });
+      chiaviSiri.set(chiave, { chiave, giorni, medicoId, regoleOk: true });
     },
     async siriAggiorna(chiave, giorni) {
       const v = chiaviSiri.get(chiave);
