@@ -49,13 +49,14 @@ Tutti i blocchi «Se» sono **uno dopo l'altro, mai uno dentro l'altro**.
 
 ### Quale risposta
 12. **Testo** → `testo`, poi **Imposta variabile** → nome `Voce`.
-13. **Cambia maiuscole/minuscole** → [Domanda] in *minuscolo*, poi **Imposta variabile** → nome `Q`.
-14. Cinque blocchi **Se**, uno dopo l'altro, tutti uguali tranne la parola. Ognuno contiene **Testo** con il nome della voce e **Imposta variabile** → `Voce`:
+13. (passo eliminato: non serve convertire in minuscolo)
+14. Sei blocchi **Se**, uno dopo l'altro, tutti uguali tranne la parola. Ognuno contiene **Testo** con il nome della voce e **Imposta variabile** → `Voce`:
 
-    | Se [Q] contiene | Testo |
+    | Se [Domanda] contiene | Testo |
     |---|---|
     | `turno` | `diTurno` |
     | `dove` | `dove` |
+    | `Dove` | `dove` |
     | `con me` | `conMe` |
     | `cambio` | `cambio` |
     | `smont` | `primaDelle8` |
@@ -97,7 +98,7 @@ Su un altro iPhone o iPad: «Attiva su un altro iPhone» (crea una seconda chiav
 
 ## Aggiungere nuove domande in futuro
 1. Nuova voce in `FrasiGiorno` (`app/src/domain/frasiSiri.ts`, frase completa con la data parlata, max 600 caratteri); adegua `limitaFrasi` e `frasiUguali` in `siri.ts` e `docs/MODELLO-DATI.md`.
-2. Nel comando un nuovo blocco **Se** [Q] **contiene** `<parola>` al passo 14.
+2. Nel comando un nuovo blocco **Se** [Domanda] **contiene** `<parola>` al passo 14.
 3. Il comando installato è una copia su ogni telefono: con una domanda nuova va ricondiviso (nuovo link) e reinstallato. I comandi vecchi continuano a funzionare ma non conoscono la domanda nuova.
 
 ## Sicurezza
