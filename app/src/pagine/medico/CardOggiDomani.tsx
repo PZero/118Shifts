@@ -2,9 +2,8 @@
 // "Chi è di turno con me" (colleghi dal quadro del mese, solo account principali).
 import { conta, type NomeEvento } from '../../servizi/statistiche';
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { chiConMe, chiMiDaIlCambio, turnoDiPartenza, type GruppoChiConMe } from '../../domain/quadro';
-import { aggiungiGiorni, scomponi, type DataISO } from '../../domain/date';
-import type { Fascia } from '../../domain/codici';
+import { chiConMe, type GruppoChiConMe } from '../../domain/quadro';
+import { scomponi, type DataISO } from '../../domain/date';
 import type { RisultatoProiezione } from '../../domain/proiezione';
 import { messaggioPositivo, riepilogoGiorno, testoRiepilogo, tipoMessaggio } from '../../domain/riepilogoGiorno';
 import type { GiorniQuadro } from '../../domain/quadro';
