@@ -26,7 +26,7 @@ import { accessoDiOggi } from '../domain/accessi';
 import { scomponi } from '../domain/date';
 import { anteprima, prossimoContatore } from '../domain/feedback';
 import { normalizzaIndisponibilita } from '../domain/indisponibilita';
-import type { FrasiGiorno, FrasiSiri } from '../domain/frasiSiri';
+import { REGOLE_SIRI, type FrasiGiorno, type FrasiSiri } from '../domain/frasiSiri';
 import { costruisciQuadro, type GiorniQuadro } from '../domain/quadro';
 import type { GiorniIndisponibili } from '../domain/indisponibilita';
 import { fb } from './firebase';
@@ -188,9 +188,12 @@ function chiaveSiriDaDoc(id: string, d: DocumentData): ChiaveSiri {
     if (p8) g.primaDelle8 = p8;
     if (cambio) g.cambio = cambio;
     if (conMe) g.conMe = conMe;
+    const succ = str(t.successivo), prec = str(t.precedente);
+    if (succ) g.successivo = succ;
+    if (prec) g.precedente = prec;
     giorni[k as keyof FrasiSiri] = g;
   }
-  return { chiave: id, giorni };
+  return { chiave: id, giorni, regoleOk: JSON.stringify(d.regole ?? null) === JSON.stringify(REGOLE_SIRI) };
 }
 
 export function creaServiziFirestore(): Servizi {
@@ -228,11 +231,11 @@ export function creaServiziFirestore(): Servizi {
     async siriCrea(medicoId, chiave, giorni) {
       const uid = fb().auth.currentUser?.uid;
       if (!uid) throw new Error('Accesso non disponibile.');
-      await setDoc(doc(db, 'siri', chiave), { medicoId, uid, creatoIl: serverTimestamp(), giorni, aggiornatoIl: serverTimestamp() });
+      await setDoc(doc(db, 'siri', chiave), { medicoId, uid, creatoIl: serverTimestamp(), giorni, regole: REGOLE_SIRI, aggiornatoIl: serverTimestamp() });
     },
 
     async siriAggiorna(chiave, giorni) {
-      await updateDoc(doc(db, 'siri', chiave), { giorni, aggiornatoIl: serverTimestamp() });
+      await updateDoc(doc(db, 'siri', chiave), { giorni, regole: REGOLE_SIRI, aggiornatoIl: serverTimestamp() });
     },
 
     async siriElimina(chiavi) {

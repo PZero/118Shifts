@@ -1188,6 +1188,17 @@ describe("Siri (get anonimo con chiave segreta)", () => {
     await assertFails(updateDoc(doc(db(UID.princC), `siri/${K}`), { giorni: {}, aggiornatoIl: serverTimestamp() }));
     await assertFails(updateDoc(doc(anon(), `siri/${K}`), { giorni: {}, aggiornatoIl: serverTimestamp() }));
   });
+  it("SI6b regole: create ok, troppo lunghe negate, update solo regole ok, campo estraneo negato", async () => {
+    const reg = (n) => Array.from({ length: n }, (_, i) => ({ parola: "p" + i, voce: "v" + i }));
+    await assertSucceeds(setDoc(doc(db(UID.princA), `siri/${K}`), sdoc({ regole: reg(80) })));
+    await assertFails(setDoc(doc(db(UID.princA), `siri/${K2}`), sdoc({ regole: reg(81) })));
+    await assertFails(setDoc(doc(db(UID.princA), `siri/${K2}`), sdoc({ regole: "x" })));
+    const r = doc(db(UID.princA), `siri/${K}`);
+    await assertSucceeds(updateDoc(r, { regole: reg(3), aggiornatoIl: serverTimestamp() }));
+    await assertFails(updateDoc(r, { regole: reg(81), aggiornatoIl: serverTimestamp() }));
+    await assertFails(updateDoc(r, { extra: 1, aggiornatoIl: serverTimestamp() }));
+    await assertFails(updateDoc(r, { regole: reg(3) }));
+  });
   it("SI7 admin e delegato: list per medicoId e update", async () => {
     await seed();
     for (const u of [UID.admin, UID.deleg]) {

@@ -4,7 +4,7 @@ import { interpretaCodice, type Fascia } from './codici';
 import { doveTurni as doveTurniBase, maiuscola, messaggioFisso, NOME_FASCIA, quadroEffettivo, riepilogoGiorno, testoRiepilogo, turniDi, type MedicoNome as MedicoNomeBase, type TurnoFascia } from './riepilogoGiorno';
 import { aggiungiGiorni, differenzaGiorni, giornoSettimana, scomponi, type DataISO } from './date';
 import { colleghiDisponibili } from './disponibilita';
-import { chiConMe, type GiorniQuadro } from './quadro';
+import { chiConMe, chiDoIlCambio, chiMiDaIlCambio, type GiorniQuadro } from './quadro';
 
 export type MedicoNome = MedicoNomeBase;
 /**
@@ -20,8 +20,35 @@ export interface FrasiGiorno {
   cambio?: string;
   /** Assente se il quadro del mese non è disponibile. */
   conMe?: string;
+  /** Chi entra dopo di me sulla mia sede (e allo smonto). Assente se il quadro del mese non è disponibile. */
+  successivo?: string;
+  /** A chi do il cambio quando entro. Assente se il quadro del mese non è disponibile. */
+  precedente?: string;
 }
 export const MAX_TESTO_FRASE = 600;
+const INIZIO_ORA: Record<Fascia, number> = { M: 8, P: 14, N: 20 };
+const FINE_ORA: Record<Fascia, number> = { M: 14, P: 20, N: 8 };
+
+/**
+ * Regole lette dal Comando rapido: per ogni regola, se la domanda contiene `parola` (maiuscole contano)
+ * allora voce = `voce`; vince l'ultima che corrisponde; default `testo`.
+ */
+export const REGOLE_SIRI: readonly { parola: string; voce: keyof FrasiGiorno }[] = [
+  { parola: 'turno', voce: 'diTurno' }, { parola: 'lavoro', voce: 'diTurno' }, { parola: 'lavorerò', voce: 'diTurno' }, { parola: 'Lavoro', voce: 'diTurno' },
+  { parola: 'dove', voce: 'dove' }, { parola: 'Dove', voce: 'dove' },
+  { parola: 'con me', voce: 'conMe' }, { parola: 'chi lavora', voce: 'conMe' }, { parola: 'Chi lavora', voce: 'conMe' },
+  { parola: 'cambio', voce: 'successivo' }, { parola: 'dopo di me', voce: 'successivo' }, { parola: 'Dopo di me', voce: 'successivo' }, { parola: 'smont', voce: 'successivo' },
+  { parola: 'darò il cambio', voce: 'precedente' }, { parola: 'do il cambio', voce: 'precedente' }, { parola: 'Darò', voce: 'precedente' }, { parola: 'darò', voce: 'precedente' },
+  { parola: 'prima di me', voce: 'precedente' }, { parola: 'Prima di me', voce: 'precedente' },
+  { parola: 'può', voce: 'cambio' }, { parola: 'possono', voce: 'cambio' }, { parola: 'Può', voce: 'cambio' }, { parola: 'libero', voce: 'cambio' }, { parola: 'liberi', voce: 'cambio' }, { parola: 'sostitu', voce: 'cambio' },
+];
+
+/** Applica `REGOLE_SIRI` a una domanda (stessa logica del Comando rapido). */
+export function scegliVoce(domanda: string): keyof FrasiGiorno {
+  let voce: keyof FrasiGiorno = 'testo';
+  for (const r of REGOLE_SIRI) if (domanda.includes(r.parola)) voce = r.voce;
+  return voce;
+}
 const MAX_NOMI = 8;
 export type FrasiSiri = Record<DataISO, FrasiGiorno>;
 
@@ -119,9 +146,37 @@ export function costruisciFrasiSiri(args: ArgomentiFrasiSiri): FrasiSiri {
     const Quando = maiuscola(quando);
     const dove = stato.turno ? `${Quando} sei ${doveTurni(ts)}.` : `${Quando} non lavori: ${stato.frase}.`;
     const diTurno = stato.turno ? `Sì, ${quando} ${stato.frase}.` : `No, ${quando} ${stato.frase}.`;
-    const res: { dove: string; diTurno: string; cambio?: string; conMe?: string } = { dove, diTurno };
+    const res: { dove: string; diTurno: string; cambio?: string; conMe?: string; successivo?: string; precedente?: string } = { dove, diTurno };
     const quadroGiorno = giornoQuadro(data);
     if (!quadroGiorno) return res;
+    // Chi entra dopo di me (anche allo smonto da una notte) e a chi do il cambio quando entro.
+    const giorniDa = (d: DataISO, passo: 1 | -1) => Array.from({ length: 5 }, (_, k) => giornoQuadro(aggiungiGiorni(d, passo * k)));
+    const nome = (id: string | undefined) => (id ? nomi.get(id) : undefined);
+    const inSede = (s: number | undefined) => (s !== undefined ? ` a ${nomeSede(s)}` : '');
+    const ieri = aggiungiGiorni(data, -1);
+    const notteIeri = turniDi(turni[ieri]).find((t) => t.fascia === 'N');
+    const parti: string[] = [];
+    if (notteIeri) {
+      const r = chiMiDaIlCambio({ medicoId, giorni: giorniDa(ieri, 1), fasciaPartenza: 'N' });
+      const chi = nome(r?.cambio?.medicoId);
+      parti.push(`alle 8 smonti dalla notte${inSede(notteIeri.sede)}: ${chi ? `ti dà il cambio ${chi}` : 'nessun collega ti dà il cambio'}`);
+    }
+    if (stato.turno) {
+      const ultima = ts[ts.length - 1]!;
+      const r = chiMiDaIlCambio({ medicoId, giorni: giorniDa(data, 1), fasciaPartenza: ultima.fascia });
+      const chi = nome(r?.cambio?.medicoId);
+      const quando2 = ultima.fascia === 'N' ? 'il mattino dopo alle 8' : `alle ${FINE_ORA[ultima.fascia]}`;
+      parti.push(`${quando2}${inSede(ultima.sede)} ${chi ? `ti darà il cambio ${chi}` : 'nessun collega ti dà il cambio'}`);
+    }
+    res.successivo = parti.length === 0 ? `${Quando} non sei di turno.` : `${Quando} ${parti.join('; ')}.`;
+    if (stato.turno) {
+      const prima = ts[0]!;
+      const r = chiDoIlCambio({ medicoId, giorni: giorniDa(data, -1), fasciaArrivo: prima.fascia });
+      const chi = nome(r?.cambio?.medicoId);
+      res.precedente = `${Quando} alle ${INIZIO_ORA[prima.fascia]}${inSede(prima.sede)} ${chi ? `darai il cambio a ${chi}` : 'non devi dare il cambio a nessuno'}.`;
+    } else {
+      res.precedente = `${Quando} non sei di turno.`;
+    }
     if (!stato.turno) {
       res.cambio = `${Quando} non sei di turno.`;
       res.conMe = `${Quando} non sei di turno.`;

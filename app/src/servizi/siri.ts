@@ -61,6 +61,8 @@ export function limitaFrasi(frasi: FrasiSiri): FrasiSiri {
     if (f.primaDelle8) g.primaDelle8 = taglia(f.primaDelle8);
     if (f.cambio) g.cambio = taglia(f.cambio);
     if (f.conMe) g.conMe = taglia(f.conMe);
+    if (f.successivo) g.successivo = taglia(f.successivo);
+    if (f.precedente) g.precedente = taglia(f.precedente);
     out[data] = g;
   }
   // Documento sotto ~700 KB: se servisse, si riducono i giorni futuri.
@@ -75,7 +77,7 @@ export function frasiUguali(a: FrasiSiri, b: FrasiSiri): boolean {
   return ka.every((k) => {
     const x = a[k as DataISO]!;
     const y = b[k as DataISO];
-    return y !== undefined && x.testo === y.testo && (x.primaDelle8 ?? '') === (y.primaDelle8 ?? '') && x.dove === y.dove && x.diTurno === y.diTurno && (x.cambio ?? '') === (y.cambio ?? '') && (x.conMe ?? '') === (y.conMe ?? '');
+    return y !== undefined && x.testo === y.testo && (x.primaDelle8 ?? '') === (y.primaDelle8 ?? '') && x.dove === y.dove && x.diTurno === y.diTurno && (x.cambio ?? '') === (y.cambio ?? '') && (x.conMe ?? '') === (y.conMe ?? '') && (x.successivo ?? '') === (y.successivo ?? '') && (x.precedente ?? '') === (y.precedente ?? '');
   });
 }
 
@@ -152,7 +154,7 @@ export async function sincronizzaSiri(servizi: Servizi, arg: ArgomentiCalcolo): 
   const chiavi = await servizi.siriMie();
   let n = 0;
   for (const c of chiavi) {
-    if (!frasiUguali(c.giorni, frasi)) {
+    if (!c.regoleOk || !frasiUguali(c.giorni, frasi)) {
       await servizi.siriAggiorna(c.chiave, frasi);
       n++;
     }
@@ -184,7 +186,7 @@ export async function aggiornaSiriDopoImport(servizi: Servizi, medicoIds: readon
         if (chiavi.length === 0) continue;
         const mesi = await servizi.turniMedico(medicoId);
         const frasi = await calcolaFrasi({ medicoId, mesi, cambi: [], elenco, sedi, oggi, caricaQuadro });
-        for (const c of chiavi) if (!frasiUguali(c.giorni, frasi)) await servizi.siriAggiorna(c.chiave, frasi);
+        for (const c of chiavi) if (!c.regoleOk || !frasiUguali(c.giorni, frasi)) await servizi.siriAggiorna(c.chiave, frasi);
         dimenticaSincronizzazione(medicoId);
         aggiornati++;
       } catch {

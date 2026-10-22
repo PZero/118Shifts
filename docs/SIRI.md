@@ -8,7 +8,7 @@ Uso: «Ehi Siri, Turni 118» → Siri chiede «Cosa vuoi sapere?» → «Dove la
 - «Attiva Siri» crea il documento `siri/{chiave}` (chiave casuale di 64 caratteri) con le frasi già pronte, da ieri alla fine dell'ultimo mese pubblicato (max 100 giorni), e copia la chiave negli appunti.
 - Il comando legge il documento con una richiesta web, **senza login**, e mostra la frase giusta: Siri la legge ad alta voce.
 - L'app tiene le frasi aggiornate (apertura, cambi, pubblicazione dell'Excel). «Disattiva Siri» cancella la chiave: il comando smette di rispondere.
-- Voci di ogni giorno (`giorni.<aaaa-mm-gg>`): `testo` (frase completa), `primaDelle8?` (smonto dopo una notte), `dove`, `diTurno`, `cambio?`, `conMe?`. Contratto: riga `siri/{chiave}` di `docs/MODELLO-DATI.md`.
+- Voci di ogni giorno (`giorni.<aaaa-mm-gg>`): `testo` (frase completa), `primaDelle8?` (smonto dopo una notte), `dove`, `diTurno`, `cambio?` (chi può sostituirti), `conMe?`, `successivo?` (chi ti darà il cambio), `precedente?` (a chi darai il cambio). Il documento contiene anche `regole`: la lista parola → voce usata dal comando. Contratto: riga `siri/{chiave}` di `docs/MODELLO-DATI.md`.
 
 ---
 
@@ -48,35 +48,31 @@ Tutti i blocchi «Se» sono **uno dopo l'altro, mai uno dentro l'altro**.
 
 ### Quale risposta
 12. **Testo** → `testo`, poi **Imposta variabile** → nome `Voce`.
-13. (passo eliminato: non serve convertire in minuscolo)
-14. Sei blocchi **Se**, uno dopo l'altro, tutti uguali tranne la parola. Ognuno contiene **Testo** con il nome della voce e **Imposta variabile** → `Voce`:
+13. **Ottieni valore dizionario** → *Valore* per la chiave `fields.regole.arrayValue.values` in [Contenuti URL] (la lista delle parole chiave, scritta dall'app).
+14. **Ripeti con ogni elemento** → in [Valore dizionario]. Dentro la ripetizione, in quest'ordine:
+    1. **Ottieni valore dizionario** → chiave `mapValue.fields.parola.stringValue` in [Elemento ripetizione]; poi **Imposta variabile** → `Parola`.
+    2. **Se** → [Domanda] **contiene** → bolla [Parola] (nel campo di confronto inserisci la variabile, non testo).
+       - **Ottieni valore dizionario** → chiave `mapValue.fields.voce.stringValue` in [Elemento ripetizione]
+       - **Imposta variabile** → `Voce` su [Valore dizionario]
+       - (Altrimenti vuoto) **Fine se**
+    3. **Fine ripetizione**.
 
-    | Se [Input fornito] contiene | Testo |
-    |---|---|
-    | `turno` | `diTurno` |
-    | `dove` | `dove` |
-    | `Dove` | `dove` |
-    | `con me` | `conMe` |
-    | `cambio` | `cambio` |
-    | `smont` | `primaDelle8` |
-
-    L'ordine conta: vince l'ultimo che corrisponde («chi mi dà il cambio allo smonto» → smonto).
-
-    **Come si costruisce un blocco** (esempio della prima riga; poi ripeti per le altre cinque):
-    1. Aggiungi l'azione **Se**. Compare un blocco con **Se**, **Altrimenti** e **Fine se**.
-    2. Nella riga «Se»: tocca il primo campo → **Seleziona variabile** → torna su fino all'azione **Richiedi** (passo 3) e tocca la sua uscita, la bolla **Input fornito**. È già di tipo testo, quindi tra le condizioni c'è **contiene** (con la variabile `Domanda` iOS mostra solo «ha qualsiasi valore / non ha valore»). Scegli **contiene** e nel campo di testo scrivi `turno`. Se anche così non compare «contiene», tocca la bolla «Input fornito» e scegli **Tipo → Testo**.
-    3. Aggiungi l'azione **Testo** e scrivi `diTurno`. Le azioni nuove finiscono in fondo: **trascinala** tra «Se» e «Altrimenti».
-    4. Aggiungi **Imposta variabile**, trascinala subito sotto il Testo (sempre prima di «Altrimenti»), scegli la variabile esistente `Voce`: come valore prende il Testo appena sopra.
-    5. «Altrimenti» resta vuoto.
-
-    Risultato del primo blocco:
+    Risultato:
     ```
-    Se  [Input fornito]  contiene  turno
-        Testo: diTurno
-        Imposta variabile Voce a [Testo]
-    Altrimenti
-    Fine se
+    Ottieni Valore per fields.regole.arrayValue.values in Contenuti URL
+    Ripeti con ogni elemento in Valore dizionario
+        Ottieni Valore per mapValue.fields.parola.stringValue in Elemento ripetizione
+        Imposta la variabile Parola su Valore dizionario
+        Se Domanda contiene Parola
+            Ottieni Valore per mapValue.fields.voce.stringValue in Elemento ripetizione
+            Imposta la variabile Voce su Valore dizionario
+        Altrimenti
+        Fine se
+    Fine ripetizione
     ```
+    Vince l'ultima parola che corrisponde. Le parole e le risposte stanno nell'app (`REGOLE_SIRI` in `app/src/domain/frasiSiri.ts`): per aggiungere domande o sinonimi **non serve toccare il comando**.
+
+    Regole attuali: `turno`, `lavoro` → se sei di turno; `dove` → dove lavori; `con me`, `chi lavora` → chi è in turno con te; `cambio`, `dopo di me`, `smont` → chi ti darà il cambio (successivo); `darò il cambio`, `do il cambio`, `prima di me` → a chi darai il cambio (precedente); `può`, `possono`, `libero`, `sostitu` → chi può sostituirti.
 15. **Ottieni valore dizionario** → *Valore* per la chiave: bolla [Voce] + `.stringValue`, in [Voci].
 16. **Imposta variabile** → nome `Risposta`.
 17. **Se** → [Risposta] **non ha valore**
@@ -112,9 +108,8 @@ La copia condivisa **non deve contenere la tua chiave**.
 Su un altro iPhone o iPad: «Attiva su un altro iPhone» (crea una seconda chiave).
 
 ## Aggiungere nuove domande in futuro
-1. Nuova voce in `FrasiGiorno` (`app/src/domain/frasiSiri.ts`, frase completa con la data parlata, max 600 caratteri); adegua `limitaFrasi` e `frasiUguali` in `siri.ts` e `docs/MODELLO-DATI.md`.
-2. Nel comando un nuovo blocco **Se** [Input fornito] **contiene** `<parola>` al passo 14.
-3. Il comando installato è una copia su ogni telefono: con una domanda nuova va ricondiviso (nuovo link) e reinstallato. I comandi vecchi continuano a funzionare ma non conoscono la domanda nuova.
+1. Nuova voce in `FrasiGiorno` (`app/src/domain/frasiSiri.ts`, frase completa con la data parlata, max 600 caratteri) e le sue parole in `REGOLE_SIRI`; adegua `limitaFrasi`/`frasiUguali` in `siri.ts`, `chiaveSiriDaDoc` in `firestore.ts` e `docs/MODELLO-DATI.md`.
+2. Il comando **non cambia**: legge le regole dal documento. Alla prima apertura dell'app le chiavi dei medici vengono riscritte con le regole nuove.
 
 ## Sicurezza
 Ogni chiave restituisce **solo i turni del medico dell'account che l'ha creata**. Chi la conosce legge quelle frasi: va tenuta riservata. «Disattiva Siri» cancella tutte le chiavi dell'utente; l'amministratore può cancellare il documento dalla console. Il repository non contiene chiavi; il link iCloud del comando non contiene dati personali (la copia condivisa ha il testo segnaposto al posto della chiave).

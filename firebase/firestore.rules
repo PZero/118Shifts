@@ -544,6 +544,10 @@ service cloud.firestore {
       return g is map && g.size() <= 100;
     }
 
+    function siriRegoleOk(d) {
+      return !('regole' in d.keys()) || (d.regole is list && d.regole.size() <= 80);
+    }
+
     match /siri/{chiave} {
       allow get: if siriChiaveOk(chiave);
       // list: staff (where medicoId==X) e proprietario (where uid==auth.uid)
@@ -552,16 +556,18 @@ service cloud.firestore {
 
       allow create: if siriChiaveOk(chiave)
         && isApprovato()
-        && request.resource.data.keys().hasOnly(['medicoId', 'uid', 'creatoIl', 'giorni', 'aggiornatoIl'])
+        && request.resource.data.keys().hasOnly(['medicoId', 'uid', 'creatoIl', 'giorni', 'aggiornatoIl', 'regole'])
         && request.resource.data.keys().hasAll(['medicoId', 'uid', 'creatoIl', 'giorni', 'aggiornatoIl'])
+        && siriRegoleOk(request.resource.data)
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.medicoId == myUser().medicoId
         && request.resource.data.creatoIl == request.time
         && request.resource.data.aggiornatoIl == request.time
         && siriGiorniOk(request.resource.data.giorni);
 
-      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['giorni', 'aggiornatoIl'])
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['giorni', 'aggiornatoIl', 'regole'])
         && request.resource.data.aggiornatoIl == request.time
+        && siriRegoleOk(request.resource.data)
         && siriGiorniOk(request.resource.data.giorni)
         && ((signedIn() && resource.data.uid == request.auth.uid && isApprovato())
             || isStaff());

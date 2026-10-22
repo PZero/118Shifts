@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { costruisciFrasiSiri } from './frasiSiri';
+import { costruisciFrasiSiri, REGOLE_SIRI, scegliVoce } from './frasiSiri';
 
 const medici = [
   { id: 'io', nome: 'Anna Verdi' },
@@ -190,5 +190,48 @@ describe('costruisciFrasiSiri', () => {
       expect(lungo(c, false).cambio).toMatch(/ e altri \d+\.$/);
       expect(lungo(c, true).conMe).toMatch(/ e altri \d+\.$/);
     });
+  });
+});
+
+describe('successivo e precedente', () => {
+  const turni = { '2026-10-21': ['M1'], '2026-10-22': ['N1'], '2026-10-23': [], '2026-10-24': [] };
+  const r = costruisciFrasiSiri({ ...base, turni, da: '2026-10-21', a: '2026-10-24' });
+  it('turno: chi entra dopo e a chi do il cambio', () => {
+    expect(r['2026-10-21']!.successivo).toBe('Mercoledì 21 ottobre alle 14 a Voltri ti darà il cambio Giulia Bianchi.');
+    expect(r['2026-10-21']!.precedente).toBe('Mercoledì 21 ottobre alle 8 a Voltri darai il cambio a Mario Rossi.');
+    expect(r['2026-10-22']!.successivo).toBe('Giovedì 22 ottobre il mattino dopo alle 8 a Voltri ti darà il cambio Giulia Bianchi.');
+    expect(r['2026-10-22']!.precedente).toBe('Giovedì 22 ottobre alle 20 a Voltri darai il cambio a Mario Rossi.');
+  });
+  it('smonto e non di turno', () => {
+    expect(r['2026-10-23']!.successivo).toBe('Venerdì 23 ottobre alle 8 smonti dalla notte a Voltri: ti dà il cambio Giulia Bianchi.');
+    expect(r['2026-10-23']!.precedente).toBe('Venerdì 23 ottobre non sei di turno.');
+    expect(r['2026-10-24']!.successivo).toBe('Sabato 24 ottobre non sei di turno.');
+  });
+  it('assenti senza quadro', () => {
+    const q = costruisciFrasiSiri({ ...base, quadro: {}, turni: { '2026-10-21': ['M1'] }, da: '2026-10-21', a: '2026-10-21' });
+    expect(q['2026-10-21']!.successivo).toBeUndefined();
+    expect(q['2026-10-21']!.precedente).toBeUndefined();
+  });
+  it('testi entro 600 caratteri', () => {
+    for (const g of Object.values(r)) for (const v of [g.successivo, g.precedente]) expect((v ?? '').length).toBeLessThanOrEqual(600);
+  });
+});
+
+describe('scegliVoce', () => {
+  it.each([
+    ['Chi mi darà il cambio stasera quando smonto?', 'successivo'],
+    ['A chi darò il cambio domani?', 'precedente'],
+    ['Chi mi può dare il cambio il 20 maggio?', 'cambio'],
+    ['Chi lavora con me oggi?', 'conMe'],
+    ['Dove lavoro domani?', 'dove'],
+    ['Sarò di turno il 30 maggio?', 'diTurno'],
+    ["Chi c'è dopo di me?", 'successivo'],
+    ['Che turno ho?', 'diTurno'],
+    ['Ciao', 'testo'],
+  ])('%s -> %s', (d, v) => {
+    expect(scegliVoce(d)).toBe(v);
+  });
+  it('le regole puntano a voci esistenti', () => {
+    expect(REGOLE_SIRI.length).toBeGreaterThan(0);
   });
 });

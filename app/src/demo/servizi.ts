@@ -179,8 +179,8 @@ export function creaServiziDemo(): Servizi {
       const i = cambi.findIndex((c) => c.id === id);
       if (i >= 0) cambi.splice(i, 1);
     },
-    siriMie: async () => copia([...chiaviSiri.values()].map(({ chiave, giorni }) => ({ chiave, giorni }))),
-    siriDelMedico: async (medicoId) => [...chiaviSiri.values()].filter((v) => v.medicoId === medicoId).map(({ chiave, giorni }) => ({ chiave, giorni })),
+    siriMie: async () => copia([...chiaviSiri.values()].map(({ chiave, giorni }) => ({ chiave, giorni, regoleOk: true }))),
+    siriDelMedico: async (medicoId) => [...chiaviSiri.values()].filter((v) => v.medicoId === medicoId).map(({ chiave, giorni }) => ({ chiave, giorni, regoleOk: true })),
     async siriCrea(medicoId, chiave, giorni) {
       chiaviSiri.set(chiave, { chiave, giorni, medicoId });
     },

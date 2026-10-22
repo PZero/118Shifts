@@ -148,6 +148,8 @@ export interface AutoreFeedback {
 export interface ChiaveSiri {
   chiave: string;
   giorni: FrasiSiri;
+  /** false se il documento non ha le regole di instradamento attuali (REGOLE_SIRI): va riscritto. */
+  regoleOk: boolean;
 }
 
 export interface Servizi {
