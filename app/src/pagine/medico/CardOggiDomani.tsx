@@ -1,5 +1,6 @@
 // Card in cima all'area medico: "Oggi e domani" (miei turni, cambi applicati) e
 // "Chi è di turno con me" (colleghi dal quadro del mese, solo account principali).
+import { conta, type NomeEvento } from '../../servizi/statistiche';
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { chiConMe, chiMiDaIlCambio, turnoDiPartenza, type GruppoChiConMe } from '../../domain/quadro';
 import { aggiungiGiorni, scomponi, type DataISO } from '../../domain/date';
@@ -64,12 +65,15 @@ function riassunto(g: GiornoCard, sedi: Sedi): string {
   return parti.length ? parti.join(' + ') : 'libero';
 }
 
-function CardComprimibile({ titolo, sottotitolo, aperto, onToggle, children }: { titolo: string; sottotitolo?: ReactNode; aperto: boolean; onToggle: () => void; children: ReactNode }) {
+function CardComprimibile({ evento, titolo, sottotitolo, aperto, onToggle, children }: { evento: NomeEvento; titolo: string; sottotitolo?: ReactNode; aperto: boolean; onToggle: () => void; children: ReactNode }) {
   const id = useId();
   return (
     <section className={`card card-comprimibile ${aperto ? 'aperta' : ''}`} aria-labelledby={`${id}-t`}>
       <h2 className="card-comprimibile-titolo" id={`${id}-t`}>
-        <button type="button" className="card-comprimibile-testa" aria-expanded={aperto} aria-controls={`${id}-c`} onClick={onToggle}>
+        <button type="button" className="card-comprimibile-testa" aria-expanded={aperto} aria-controls={`${id}-c`} onClick={() => {
+            if (!aperto) conta(evento);
+            onToggle();
+          }}>
           <span className="card-comprimibile-testo">
             <span className="card-titolo">{titolo}</span>
             {sottotitolo && <span className="card-comprimibile-sotto">{sottotitolo}</span>}
@@ -137,6 +141,7 @@ export function CardOggiDomani({ oggi, mesi, cambi, proiezione, sedi, nomi, medi
   const nome = (id?: string) => nomi.get(id ?? '') ?? 'collega non in elenco';
   return (
     <CardComprimibile
+      evento="cardOggiDomani"
       titolo="Oggi e domani"
       aperto={aperto}
       onToggle={() => setAperto((a) => !a)}
@@ -274,6 +279,7 @@ export function CardCollega({ oggi, sedi, colleghi }: PropsCollega) {
 
   return (
     <CardComprimibile
+      evento="cardCollega"
       titolo="Cosa fa oggi un collega"
       sottotitolo={
         <span className="card-riassunto">
@@ -395,6 +401,7 @@ export function CardChiDaIlCambio({ oggi, giorno, esplicito, pubblicato, mesi, c
     : `Nessun collega trovato in ${nomeSedeTesto}`;
   return (
     <CardComprimibile
+      evento="cardChiTiDaIlCambio"
       titolo="Chi ti dà il cambio"
       sottotitolo={<span className="card-riassunto">{testo}</span>}
       aperto={aperto}
@@ -495,6 +502,7 @@ export function CardChiConMe({ oggi, giorno, pubblicato, sedi, nomi, medicoId }:
 
   return (
     <CardComprimibile
+      evento="cardChiConMe"
       titolo="Chi è di turno con me"
       sottotitolo={
         <span className="card-riassunto">

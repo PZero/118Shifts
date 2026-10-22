@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { conta } from '../../servizi/statistiche';
 import type { Fascia } from '../../domain/codici';
 import { aggiungiGiorni, scomponi, type DataISO } from '../../domain/date';
 import { colleghiDisponibili } from '../../domain/disponibilita';
@@ -176,6 +177,7 @@ function RiquadroRichiesta({ cognome, turni, data }: { cognome: string; turni: s
 
   const copia = async () => {
     const ok = await copiaNegliAppunti(testo);
+    if (ok) conta('condividiTesto');
     setFallita(!ok);
     setCopiato(ok);
     window.clearTimeout(timer.current);
@@ -187,6 +189,7 @@ function RiquadroRichiesta({ cognome, turni, data }: { cognome: string; turni: s
   const condividi = async () => {
     try {
       await navigator.share({ text: testo });
+      conta('condividiTesto');
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') return;
       void copia();

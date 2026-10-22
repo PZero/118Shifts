@@ -2,6 +2,7 @@
 // avvisi di import, abbinamento dei nomi all'anagrafica e pubblicazione su Firestore.
 // Il file non lascia mai il dispositivo: si pubblicano solo i codici normalizzati.
 
+import { conta } from '../../servizi/statistiche';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { abbinaNome, conAlias, normalizzaNome, pulisciNome, type EsitoAbbinamento } from '../../domain/anagrafica';
 import { aggiungiMesi, chiaveMese, dataISO, giorniNelMese, giornoSettimana, type AnnoMese } from '../../domain/date';
@@ -237,6 +238,7 @@ export function Import() {
     setAvanzamento({ fatto: 0, totale: 1 });
     try {
       await servizi.pubblicaImport(calcolo.piano, profilo.uid, (fatto, totale) => setAvanzamento({ fatto, totale }));
+      conta(origine === 'screenshot' ? 'caricaScreenshot' : 'caricaExcel');
       // Il modello OCR migliorato si salva una sola volta, a pubblicazione riuscita (un errore qui non annulla i turni).
       if (modelloDaSalvare) {
         try {

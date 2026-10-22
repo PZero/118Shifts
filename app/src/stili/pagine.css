@@ -573,3 +573,14 @@ main#contenuto { flex: 1; outline: none; }
 .ocr-chip-vuoto { background: var(--surface-3); color: var(--text-3); }
 .ocr-chip-incerto { border-color: var(--warn); box-shadow: 0 0 0 2px var(--warn-soft); }
 .ocr-chip-sel { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+/* Scheda "Utilizzo" (admin) */
+.uso-elenco { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 14px; }
+.uso-testa { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.uso-nome { color: var(--text); }
+.uso-valore { display: inline-flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+.uso-diff { font-size: 0.8125rem; color: var(--text-3); }
+.uso-diff.su { color: var(--ok); }
+.uso-diff.giu { color: var(--danger); }
+.uso-barra { height: 8px; margin-top: 6px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+.uso-barra span { display: block; height: 100%; border-radius: 4px; background: var(--brand); }

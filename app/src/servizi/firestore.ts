@@ -9,6 +9,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   onSnapshot,
   orderBy,
   query,
@@ -536,6 +537,21 @@ export function creaServiziFirestore(): Servizi {
       await setDoc(doc(db, 'config', 'sedi'), sedi);
     },
 
+    async incrementaEvento(mese, evento) {
+      await setDoc(doc(db, 'statistiche', mese), { eventi: { [evento]: increment(1) } }, { merge: true });
+    },
+    async statistiche(mesi) {
+      const out: Record<string, Record<string, number>> = {};
+      await Promise.all(
+        mesi.map(async (m) => {
+          const snap = await getDoc(doc(db, 'statistiche', m));
+          if (!snap.exists()) return;
+          const ev = (snap.data().eventi ?? {}) as Record<string, unknown>;
+          out[m] = Object.fromEntries(Object.entries(ev).filter(([, v]) => typeof v === 'number')) as Record<string, number>;
+        }),
+      );
+      return out;
+    },
     async ocrModello() {
       const snap = await getDoc(doc(db, 'ocrModello', 'corrente'));
       return snap.exists() ? snap.data() : null;

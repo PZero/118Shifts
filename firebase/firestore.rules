@@ -576,6 +576,39 @@ service cloud.firestore {
         || isAdmin();
     }
 
+    // ---------- Statistiche d'uso anonime (solo conteggi) ----------
+    // statistiche/{aaaa-mm}: { eventi: { nomeEvento: intero } }. Nessun dato personale.
+    // Scrittura incrementale: una chiave alla volta, +1. Lettura solo admin.
+    function statNomeOk(k) {
+      return k is string && k.matches('^[a-z][A-Za-z0-9_]{1,39}$');
+    }
+
+    function statPuoScrivere() {
+      return isApprovato() || isAdmin();
+    }
+
+    match /statistiche/{mese} {
+      allow read: if isAdmin();
+
+      allow create: if mese.matches('^[0-9]{4}-[0-9]{2}$')
+        && statPuoScrivere()
+        && request.resource.data.keys().hasOnly(['eventi'])
+        && request.resource.data.eventi is map
+        && request.resource.data.eventi.size() == 1
+        && statNomeOk(request.resource.data.eventi.keys()[0])
+        && request.resource.data.eventi[request.resource.data.eventi.keys()[0]] == 1;
+
+      allow update: if mese.matches('^[0-9]{4}-[0-9]{2}$')
+        && statPuoScrivere()
+        && request.resource.data.keys().hasOnly(['eventi'])
+        && request.resource.data.eventi is map
+        && request.resource.data.eventi.size() <= 150
+        && request.resource.data.eventi.diff(resource.data.eventi).affectedKeys().size() == 1
+        && request.resource.data.eventi.keys().join(',').matches('^([a-z][A-Za-z0-9_]{1,39},)*[a-z][A-Za-z0-9_]{1,39}$');
+
+      allow delete: if isAdmin();
+    }
+
     // Nessun'altra raccolta e' accessibile (deny di default).
   }
 }

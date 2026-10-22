@@ -16,6 +16,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   query,
   serverTimestamp,
   setDoc,
@@ -1235,5 +1236,77 @@ describe("Siri (get anonimo con chiave segreta)", () => {
     await assertSucceeds(getDoc(doc(a, "turni/medA/meta/ciclo")));
     await assertSucceeds(getDoc(doc(a, "cambi/medA/voci/c1")));
     await assertFails(setDoc(doc(a, "cambi/medA/voci/c2"), cambio()));
+  });
+});
+
+describe("Statistiche d'uso anonime (statistiche/{aaaa-mm})", () => {
+  const M = "2026-10";
+  const anon = () => env.unauthenticatedContext().firestore();
+  const ref = (d) => doc(d, `statistiche/${M}`);
+  const seed = (eventi = { apriApp: 3, altro: 5 }) =>
+    env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), `statistiche/${M}`), { eventi }));
+
+  const vuota = () =>
+    env.withSecurityRulesDisabled((ctx) => deleteDoc(doc(ctx.firestore(), `statistiche/${M}`)));
+
+  it("ST1 anonimo e non approvato negati", async () => {
+    await assertFails(setDoc(ref(anon()), { eventi: { apriApp: 1 } }));
+    await assertFails(setDoc(ref(db(UID.attesa)), { eventi: { apriApp: 1 } }));
+    await assertFails(setDoc(ref(db(UID.disab)), { eventi: { apriApp: 1 } }));
+  });
+  it("ST2 create con 1 evento ok (medico, admin); increment(1) con merge ok", async () => {
+    await assertSucceeds(setDoc(ref(db(UID.princA)), { eventi: { apriApp: 1 } }));
+    await vuota();
+    await assertSucceeds(setDoc(ref(db(UID.admin)), { eventi: { apriApp: 1 } }));
+    await vuota();
+    await assertSucceeds(setDoc(ref(db(UID.secA)), { eventi: { apriApp: increment(1) } }, { merge: true }));
+  });
+  it("ST3 create con valore 2 o 2 chiavi negata", async () => {
+    await assertFails(setDoc(ref(db(UID.princA)), { eventi: { apriApp: 2 } }));
+    await assertFails(setDoc(ref(db(UID.princA)), { eventi: { apriApp: 1, altro: 1 } }));
+    await assertFails(setDoc(ref(db(UID.princA)), { eventi: { apriApp: 1 }, extra: 1 }));
+  });
+  it("ST4 update +1 ok (chiave esistente via increment e nuova); +2 NON verificabile dalle regole (vedi MODELLO-DATI)", async () => {
+    await seed();
+    await assertSucceeds(setDoc(ref(db(UID.princA)), { eventi: { apriApp: increment(1) } }, { merge: true }));
+    await assertSucceeds(setDoc(ref(db(UID.princA)), { eventi: { nuovoEv: increment(1) } }, { merge: true }));
+    await assertSucceeds(updateDoc(ref(db(UID.princA)), { "eventi.apriApp": 5 }));
+  });
+  it("ST5 update di due chiavi negato", async () => {
+    await seed();
+    await assertFails(updateDoc(ref(db(UID.princA)), { "eventi.apriApp": 4, "eventi.altro": 6 }));
+  });
+  it("ST6 nome non valido negato", async () => {
+    await assertFails(setDoc(ref(db(UID.princA)), { eventi: { "Maiuscola": 1 } }));
+    await assertFails(setDoc(ref(db(UID.princA)), { eventi: { a: 1 } }));
+    await assertFails(setDoc(ref(db(UID.princA)), { eventi: { "con-trattino": 1 } }));
+    await seed();
+    await assertFails(updateDoc(ref(db(UID.princA)), { "eventi.Brutto": 1 }));
+  });
+  it("ST7 lettura: solo admin (medico e delegato no)", async () => {
+    await seed();
+    await assertSucceeds(getDoc(ref(db(UID.admin))));
+    await assertSucceeds(getDocs(collection(db(UID.admin), "statistiche")));
+    await assertFails(getDoc(ref(db(UID.princA))));
+    await assertFails(getDoc(ref(db(UID.deleg))));
+    await assertFails(getDocs(collection(db(UID.deleg), "statistiche")));
+    await assertFails(getDoc(ref(anon())));
+  });
+  it("ST8 id non valido negato", async () => {
+    await assertFails(setDoc(doc(db(UID.princA), "statistiche/2026-1"), { eventi: { apriApp: 1 } }));
+    await assertFails(setDoc(doc(db(UID.princA), "statistiche/abcd-ef"), { eventi: { apriApp: 1 } }));
+  });
+  it("ST9 delete solo admin", async () => {
+    await seed();
+    await assertFails(deleteDoc(ref(db(UID.princA))));
+    await assertFails(deleteDoc(ref(db(UID.deleg))));
+    await assertSucceeds(deleteDoc(ref(db(UID.admin))));
+  });
+  it("ST10 limite 150 eventi", async () => {
+    const e = {};
+    for (let i = 0; i < 150; i++) e["ev" + String(i).padStart(3, "0")] = 1;
+    await seed(e);
+    await assertFails(setDoc(ref(db(UID.princA)), { eventi: { nuovoEv: increment(1) } }, { merge: true }));
+    await assertSucceeds(updateDoc(ref(db(UID.princA)), { "eventi.ev001": 2 }));
   });
 });

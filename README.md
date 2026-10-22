@@ -117,6 +117,7 @@ Ogni medico vede solo i propri dati. La regola è applicata dal database (regole
 - Ogni medico legge solo i propri dati; i cambi sono visibili solo ai suoi account.
 - I turni dei colleghi (card «Chi è di turno con me» e «Cosa fa oggi un collega») sono visibili solo agli account principali dei medici, mai ai familiari (account secondari).
 - Le conversazioni di feedback sono leggibili solo dal loro autore e dall'amministratore (delegati esclusi), come garantito dalle regole; le regole limitano i messaggi dei medici a 3 al giorno.
+- L'app conta in forma anonima quante volte vengono usate le funzioni, per capire quali sono utili; nessun dato personale (solo contatori mensili, visibili all'amministratore nella scheda «Utilizzo»).
 - Il file Excel è elaborato **nel browser** di chi lo carica: non transita da server terzi.
 - Nessun dato personale, credenziale o file di turni è presente nel repository.
 

@@ -1,5 +1,6 @@
 // Account: approvazione (associazione a un medico, principale o secondario), disabilitazione, delegati.
 
+import { conta } from '../../servizi/statistiche';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { testoUltimoAccesso } from '../../domain/accessi';
 import { isStaff, useProfilo, useServizi } from '../../sessione/contesto';
@@ -287,6 +288,7 @@ function ModuloAssocia({
     setErrore(undefined);
     try {
       await servizi.associa(utente, medicoId, principale);
+      conta('approvaAccount');
       await onFatto(`${utente.nome} associato a ${medico?.nome ?? 'medico'} come account ${principale ? 'principale' : 'secondario'}.`);
     } catch (err) {
       setErrore(messaggioErroreGenerico(err));

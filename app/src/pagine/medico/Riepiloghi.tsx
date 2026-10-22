@@ -1,3 +1,4 @@
+import { conta } from '../../servizi/statistiche';
 import type { StatoGiorno, Stato } from '../../domain/festivita';
 import { TIPI_REPERIBILITA } from '../../adattatori/reperibilita';
 import { Icona } from '../../ui/Icona';
@@ -182,7 +183,7 @@ export function CardCambi({ vista, nomi }: { vista: MeseVista; nomi: Map<string,
 
 export function Legenda() {
   return (
-    <details className="legenda">
+    <details className="legenda" onToggle={(e) => e.currentTarget.open && conta('cardLegenda')}>
       <summary>Legenda</summary>
       <ul role="list">
         <li><span className="chip chip-M"><b>M</b></span> Mattino 08–14</li>

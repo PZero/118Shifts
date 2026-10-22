@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { cancellaCacheLocale, fb, messaggioErrore } from '../servizi/firebase';
+import { impostaScrittura } from '../servizi/statistiche';
 import { creaServiziFirestore, registraAccesso, utenteDaDoc } from '../servizi/firestore';
 import { SessioneCtx, type ContestoSessione, type Sessione } from './contesto';
 
@@ -39,6 +40,10 @@ export function SessioneFirebase({ children }: { children: ReactNode }) {
       return null;
     }
   }, []);
+
+  useEffect(() => {
+    impostaScrittura(servizi ? (m, e) => servizi.incrementaEvento(m, e) : null);
+  }, [servizi]);
 
   useEffect(() => {
     let auth;

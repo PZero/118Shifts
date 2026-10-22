@@ -1,3 +1,4 @@
+import { conta } from '../../servizi/statistiche';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useParams } from 'wouter';
 import { meseAccettaIndisponibilita } from '../../domain/indisponibilita-mesi';
@@ -208,6 +209,7 @@ function VistaMedico({
     if (uguali(nuovi, salvate.current[k] ?? {})) return;
     try {
       await servizi.salvaIndisponibilita(medicoId, k, nuovi);
+      conta('salvaIndisponibilita');
       salvate.current = { ...salvate.current, [k]: nuovi };
       setErroreIndisp(null);
     } catch (e) {
@@ -246,6 +248,7 @@ function VistaMedico({
   const pubblicatoCard = selEsplicito ? vista.tipo === 'reale' : vistaOggi!.tipo === 'reale';
 
   const vaiA = (am: AnnoMese) => {
+    conta('cambioMese');
     setSelezionato(null);
     naviga(`${base}/${chiaveMese(am)}`);
   };
@@ -259,6 +262,7 @@ function VistaMedico({
       }
       return;
     }
+    conta('dettaglioGiorno');
     const { anno, mese } = scomponi(data);
     if (anno === corrente.anno && mese === corrente.mese) return setSelezionato(data);
     const am = { anno, mese };
@@ -288,6 +292,7 @@ function VistaMedico({
     };
   }, [vista, sediImm, soloLettura]);
   const condividi = () => {
+    conta('condividiPng');
     if (immagine) {
       void condividiFile(immagine);
       return;
@@ -298,6 +303,7 @@ function VistaMedico({
 
   const salvaCambio = async (c: NuovoCambio) => {
     await servizi.aggiungiCambio(medicoId, c);
+    conta('registraCambio');
     await onCambiModificati();
   };
   const annullaCambio = async () => {
@@ -305,6 +311,7 @@ function VistaMedico({
     setAnnullo(true);
     try {
       await servizi.eliminaCambio(medicoId, daAnnullare.id);
+      conta('annullaCambio');
       await onCambiModificati();
       setDaAnnullare(null);
     } finally {
@@ -318,8 +325,14 @@ function VistaMedico({
       sedi={dati.sedi}
       nomi={nomi}
       puoModificare={!soloLettura && principale && vista.tipo !== 'previsione'}
-      onCedi={(giorno, voce) => setRichiesta({ tipo: 'cedi', giorno, voce })}
-      onRicevuto={(giorno) => setRichiesta({ tipo: 'ricevuto', giorno })}
+      onCedi={(giorno, voce) => {
+        conta('chiediCambio');
+        setRichiesta({ tipo: 'cedi', giorno, voce });
+      }}
+      onRicevuto={(giorno) => {
+        conta('chiediCambio');
+        setRichiesta({ tipo: 'ricevuto', giorno });
+      }}
       onAnnulla={setDaAnnullare}
     />
   );

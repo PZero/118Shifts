@@ -1,6 +1,7 @@
 // Feedback e suggerimenti: conversazioni riservate tra gli utenti e l'amministratore.
 // Stesse schermate per due viste: medico (/feedback) e amministratore (/gestione/feedback).
 
+import { conta } from '../../servizi/statistiche';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'wouter';
 import { LIMITI_FEEDBACK, MAX_MESSAGGI_GIORNO, nonLetta, ordinaConversazioni, validaArgomento, validaTestoMessaggio } from '../../domain/feedback';
@@ -165,6 +166,7 @@ function ModuloNuova({ base, onChiudi }: { base: string; onChiudi: () => void })
     setErrore(undefined);
     try {
       const id = await servizi.creaConversazione({ uid: profilo.uid, nome: profilo.nome }, argomento, testo);
+      conta('feedbackInviato');
       onChiudi();
       vai(`${base}/${id}`);
     } catch (e2) {
@@ -253,6 +255,7 @@ function Chat({ id, base }: { id: string; base: string }) {
     setErrore(undefined);
     try {
       await servizi.inviaMessaggio(conv, { uid: profilo.uid, nome: profilo.nome }, testo, comeAdmin);
+      if (!comeAdmin) conta('feedbackInviato');
       setTesto('');
     } catch (e) {
       setErrore(erroreInvio(e));

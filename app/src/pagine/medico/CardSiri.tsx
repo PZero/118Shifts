@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useId, useState } from 'react';
 import type { DataISO } from '../../domain/date';
+import { conta } from '../../servizi/statistiche';
 import { useServizi } from '../../sessione/contesto';
 import type { CambioDoc, ChiaveSiri, MeseDoc, Sedi, VoceElenco } from '../../servizi/tipi';
 import { calcolaFrasi, dimenticaSincronizzazione, generaChiave, LINK_COMANDO_SIRI, testoAppunti } from '../../servizi/siri';
@@ -67,6 +68,7 @@ export function CardSiri({ medicoId, oggi, mesi, cambi, elenco, sedi }: Props) {
     try {
       await servizi.siriCrea(medicoId, chiave, await calcola());
       dimenticaSincronizzazione(medicoId);
+      conta('siriAttiva');
       const ok = await copiata;
       setChiavi(await servizi.siriMie());
       if (LINK_COMANDO_SIRI) {
@@ -109,6 +111,7 @@ export function CardSiri({ medicoId, oggi, mesi, cambi, elenco, sedi }: Props) {
     setErrore(undefined);
     try {
       await servizi.siriElimina((chiavi ?? []).map((c) => c.chiave));
+      conta('siriDisattiva');
       dimenticaSincronizzazione(medicoId);
       setChiavi([]);
       setEsito({ tono: 'info', testo: 'Siri disattivato: i comandi già installati smetteranno di rispondere.' });

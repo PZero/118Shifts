@@ -210,6 +210,10 @@ export interface Servizi {
   /** Sostituisce il modello OCR con una sola scrittura (aggiornatoIl lato server). */
   salvaOcrModello(modello: ModelloSerializzato, autoreUid: string): Promise<void>;
   importazioni(): Promise<Importazione[]>;
+  /** Contatori anonimi di utilizzo: incrementa di 1 `statistiche/{mese}.eventi.{evento}`. */
+  incrementaEvento(mese: string, evento: string): Promise<void>;
+  /** Solo admin: eventi per mese (`aaaa-mm`); i mesi senza documento mancano dal risultato. */
+  statistiche(mesi: readonly string[]): Promise<Record<string, Record<string, number>>>;
   /** Indice dei mesi già pubblicati (per l'avviso "già pubblicato il …, verrà sostituito"). */
   mesiPubblicati(): Promise<MesePubblicato[]>;
   /**

@@ -268,6 +268,8 @@ export function creaServiziDemo(): Servizi {
     async salvaSedi(s) {
       sedi = { ...s };
     },
+    incrementaEvento: async () => undefined,
+    statistiche: async (mesi) => statisticheDemo(mesi),
     ocrModello: async () => ocrDemo,
     async salvaOcrModello(m) {
       ocrDemo = m;
@@ -300,4 +302,19 @@ export function creaServiziDemo(): Servizi {
       return id;
     },
   };
+}
+
+/** Contatori inventati per la scheda "Utilizzo" in demo. */
+function statisticheDemo(mesi: readonly string[]): Record<string, Record<string, number>> {
+  const base: Record<string, number> = {
+    sessione: 412, cardOggiDomani: 268, cardChiTiDaIlCambio: 154, cardCollega: 97, cardChiConMe: 61,
+    cardLegenda: 74, cambioMese: 189, dettaglioGiorno: 233, chiediCambio: 31, registraCambio: 27,
+    annullaCambio: 4, condividiTesto: 52, condividiPng: 19, salvaIndisponibilita: 14, siriAttiva: 9, siriDisattiva: 1,
+    feedbackInviato: 6, caricaExcel: 2, caricaScreenshot: 3, approvaAccount: 5,
+  };
+  const out: Record<string, Record<string, number>> = {};
+  mesi.slice(0, 3).forEach((m, i) => {
+    out[m] = Object.fromEntries(Object.entries(base).map(([k, v], j) => [k, Math.max(1, Math.round(v * (1 - i * 0.18) + ((j * 7 + i * 3) % 11) - 5))]));
+  });
+  return out;
 }

@@ -1,3 +1,4 @@
+import { conta } from '../servizi/statistiche';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import { isStaff, useServizi, useSessione, useProfilo } from '../sessione/contesto';
@@ -51,6 +52,8 @@ function GuscioInterno({ children }: { children: ReactNode }) {
   const inAttesa = useInAttesa(staff);
   const { nonLette } = useFeedback();
   const feedbackAdmin = profilo.admin ? nonLette : 0;
+
+  useEffect(() => conta('sessione'), []);
 
   const voci: VoceNav[] = [];
   if (profilo.medicoId) voci.push({ href: '/turni', etichetta: 'I miei turni', icona: 'calendario' });

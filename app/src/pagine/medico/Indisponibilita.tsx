@@ -2,6 +2,7 @@
 // ed email pronta. Le regole di calcolo stanno in domain/indisponibilita.ts.
 
 import { useEffect, useRef, useState } from 'react';
+import { conta } from '../../servizi/statistiche';
 import { giorniNelMese } from '../../domain/date';
 import {
   FASCE,
@@ -69,11 +70,13 @@ export function CardIndisponibilita({ anno, mese, giorni, ufficiali, modificabil
   const testo = () => testoEmail({ anno, mese, giorni, nomeMedico });
   const copia = async () => {
     if (!(await copiaNegliAppunti(testo()))) return;
+    conta('condividiTesto');
     setCopiato(true);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setCopiato(false), 2500);
   };
   const apriEmail = () => {
+    conta('condividiTesto');
     window.location.href = linkMailto(oggettoEmail(anno, mese), testo());
   };
 
