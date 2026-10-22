@@ -82,8 +82,8 @@ main#contenuto { flex: 1; outline: none; }
 .intestazione-sezione h1 { font-size: 22px; }
 .intestazione-sezione p { margin-top: 2px; max-width: 60ch; }
 .sotto-nav {
-  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
-  scrollbar-width: none;
+  /* Su telefono le voci vanno a capo: tutte visibili, nessuna nascosta fuori schermo. */
+  display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 4px;
 }
 .sotto-nav::-webkit-scrollbar { display: none; }
 .sotto-nav-voce {
