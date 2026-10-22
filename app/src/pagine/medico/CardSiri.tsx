@@ -94,6 +94,16 @@ export function CardSiri({ medicoId, oggi, mesi, cambi, elenco, sedi }: Props) {
     else setErrore('Non riesco a copiare negli appunti: riprova.');
   };
 
+  // Copia la chiave (subito, nel tocco: Safari iOS lo richiede) e apre il link del comando.
+  const aggiungiComando = async () => {
+    const c = chiavi?.[0];
+    if (!c || !LINK_COMANDO_SIRI) return;
+    setErrore(undefined);
+    const ok = await copiaNegliAppunti(testoAppunti(c.chiave));
+    setEsito({ tono: 'ok', testo: ok ? 'Chiave copiata. Apro il Comando rapido…' : 'Apro il Comando rapido: se chiede la chiave, usa «Copia di nuovo la chiave».' });
+    window.location.href = LINK_COMANDO_SIRI;
+  };
+
   const disattiva = async () => {
     setOccupato(true);
     setErrore(undefined);
@@ -139,11 +149,21 @@ export function CardSiri({ medicoId, oggi, mesi, cambi, elenco, sedi }: Props) {
           </blockquote>
         )}
 
-        {!attivo && chiavi !== null && (
-          <ol className="testo-tenue" style={{ margin: '10px 0 0', paddingLeft: 20 }}>
-            <li>Tocca «Attiva Siri», poi «Aggiungi comando».</li>
-            <li>Dì «Ehi Siri, Turni 118». La prima volta il comando legge la chiave copiata.</li>
-          </ol>
+        {!LINK_COMANDO_SIRI ? (
+          <p className="avviso" role="note" style={{ marginTop: 10 }}>
+            <Icona nome="info" /> Il Comando rapido «Turni 118» è in preparazione. Quando sarà pronto, qui comparirà il tasto per aggiungerlo all’iPhone: per ora non devi fare nulla.
+          </p>
+        ) : (
+          chiavi !== null && (
+            <ol className="testo-tenue" style={{ margin: '10px 0 0', paddingLeft: 20 }}>
+              {attivo ? (
+                <li>Se non l’hai ancora fatto, tocca «Aggiungi il comando», poi «Aggiungi comando» nell’app Comandi.</li>
+              ) : (
+                <li>Tocca «Attiva Siri», poi «Aggiungi comando» nell’app Comandi.</li>
+              )}
+              <li>Dì «Ehi Siri, Turni 118». La prima volta il comando legge la chiave copiata.</li>
+            </ol>
+          )
         )}
 
         {errore && (
@@ -160,12 +180,19 @@ export function CardSiri({ medicoId, oggi, mesi, cambi, elenco, sedi }: Props) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
           {chiavi === null ? null : attivo ? (
             <>
+              {LINK_COMANDO_SIRI && (
+                <button type="button" className="btn btn-primario btn-piccolo" onClick={() => void aggiungiComando()} disabled={occupato}>
+                  <Icona nome="piu" piccola /> Aggiungi il comando
+                </button>
+              )}
               <button type="button" className="btn btn-secondario btn-piccolo" onClick={() => void copiaDiNuovo()} disabled={occupato}>
                 <Icona nome="file" piccola /> Copia di nuovo la chiave
               </button>
-              <button type="button" className="btn btn-secondario btn-piccolo" onClick={() => void attiva()} disabled={occupato}>
-                <Icona nome="piu" piccola /> Aggiungi un dispositivo
-              </button>
+              {LINK_COMANDO_SIRI && (
+                <button type="button" className="btn btn-secondario btn-piccolo" onClick={() => void attiva()} disabled={occupato}>
+                  <Icona nome="telefono" piccola /> Attiva su un altro iPhone
+                </button>
+              )}
               <button type="button" className="btn btn-fantasma btn-piccolo testo-pericolo" onClick={() => setConferma(true)} disabled={occupato}>
                 Disattiva Siri
               </button>
