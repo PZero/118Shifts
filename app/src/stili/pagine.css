@@ -438,6 +438,8 @@ main#contenuto { flex: 1; outline: none; }
 .card-comprimibile.aperta .card-comprimibile-freccia { transform: rotate(180deg); }
 .card-comprimibile-corpo { padding-top: 0; display: grid; gap: 12px; }
 .card-comprimibile-corpo[hidden] { display: none; }
+.riepilogo-giorno { margin: 10px 0 0; font-size: 0.9375rem; line-height: 1.45; color: var(--text-2, var(--text-3)); }
+.oggi-domani-giorno + .oggi-domani-giorno { margin-top: 16px; }
 .oggi-domani-giorno .sottotitolo { margin: 4px 0 8px; text-transform: capitalize; }
 .chi-gruppo + .chi-gruppo { margin-top: 10px; }
 .chi-fascia { font-size: 14px; font-weight: 650; margin: 0 0 6px; display: flex; align-items: center; }

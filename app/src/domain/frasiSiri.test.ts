@@ -18,12 +18,13 @@ const quadro = {
   },
 };
 const base = { medicoId: 'io', quadro, medici, sedi };
+const MSG_SMONTO = 'Grazie per la notte di servizio: ora pensa a te.'; // scelto dall'hash della data (fisso)
 
 describe('costruisciFrasiSiri', () => {
   it('turno singolo con cambio dato e ricevuto', () => {
     const r = costruisciFrasiSiri({ ...base, turni: { '2026-10-21': ['M1'] }, da: '2026-10-21', a: '2026-10-21' });
     expect(r['2026-10-21']!.testo).toBe(
-      'Oggi sei di turno di mattina a Voltri. Darai il cambio a Mario Rossi. Quando smonterai ti darà il cambio Giulia Bianchi.',
+      'Oggi lavori a Voltri, di mattina. Alle 8 darai il cambio a Mario Rossi, alle 14 ti darà il cambio Giulia Bianchi.',
     );
     expect(r['2026-10-21']!.primaDelle8).toBeUndefined();
   });
@@ -32,7 +33,7 @@ describe('costruisciFrasiSiri', () => {
     const q = { '2026-10': { '20': { mr: ['N1'] }, '21': { io: ['M1', 'P1'], gb: ['N1'] } } };
     const r = costruisciFrasiSiri({ ...base, quadro: q, turni: { '2026-10-21': ['M1', 'P1'] }, da: '2026-10-21', a: '2026-10-21' });
     expect(r['2026-10-21']!.testo).toBe(
-      'Oggi sei di turno di mattina e pomeriggio a Voltri. Darai il cambio a Mario Rossi. Quando smonterai ti darà il cambio Giulia Bianchi.',
+      'Oggi lavori a Voltri, di mattina e pomeriggio. Alle 8 darai il cambio a Mario Rossi, alle 20 ti darà il cambio Giulia Bianchi.',
     );
   });
 
@@ -40,21 +41,22 @@ describe('costruisciFrasiSiri', () => {
     const turni = { '2026-10-22': ['N1'], '2026-10-23': [], '2026-10-24': ['M2'] };
     const r = costruisciFrasiSiri({ ...base, turni, da: '2026-10-22', a: '2026-10-23' });
     expect(r['2026-10-22']!.testo).toBe(
-      'Oggi sei di turno di notte a Voltri. Darai il cambio a Mario Rossi. Quando smonterai ti darà il cambio Giulia Bianchi.',
+      'Oggi lavori a Voltri, di notte. Alle 20 darai il cambio a Mario Rossi, domattina alle 8 ti darà il cambio Giulia Bianchi.',
     );
     expect(r['2026-10-23']!.primaDelle8).toBe(
-      'Stai smontando dalla notte a Voltri. Ti darà il cambio Giulia Bianchi. Oggi poi sei di riposo dopo la notte.',
+      'Alle 8 smonti dalla notte a Voltri: ti darà il cambio Giulia Bianchi. Oggi sei di riposo. ' + MSG_SMONTO,
     );
-    expect(r['2026-10-23']!.testo).toBe('Oggi sei di riposo dopo la notte. Il prossimo turno è domani, di mattina a Nervi.');
+    expect(r['2026-10-23']!.testo).toBe(r['2026-10-23']!.primaDelle8 + ' Il prossimo turno è domani, di mattina a Nervi.');
   });
 
   it('riposo con prossimo turno dopo qualche giorno e ferie', () => {
     const turni = { '2026-10-20': [], '2026-10-21': ['F'], '2026-10-24': ['N1'], '2026-11-03': ['P2'] };
     const r = costruisciFrasiSiri({ ...base, turni, da: '2026-10-20', a: '2026-10-24' });
-    expect(r['2026-10-20']!.testo).toBe('Oggi sei di riposo. Il prossimo turno è sabato 24, di notte a Voltri.');
-    expect(r['2026-10-21']!.testo).toBe('Oggi sei in ferie. Il prossimo turno è sabato 24, di notte a Voltri.');
+    expect(r['2026-10-20']!.testo).toContain('Oggi sei di riposo.');
+    expect(r['2026-10-20']!.testo).toMatch(/ Il prossimo turno è sabato 24, di notte a Voltri\.$/);
+    expect(r['2026-10-21']!.testo).toMatch(/^Oggi sei in ferie\. .* Il prossimo turno è sabato 24, di notte a Voltri\.$/);
     const r2 = costruisciFrasiSiri({ ...base, turni, da: '2026-10-24', a: '2026-10-25' });
-    expect(r2['2026-10-25']!.testo).toBe('Oggi sei di riposo dopo la notte. Il prossimo turno è martedì 3 novembre, di pomeriggio a Nervi.');
+    expect(r2['2026-10-25']!.testo).toMatch(/^Alle 8 smonti dalla notte a Voltri\..*Oggi sei di riposo\..* Il prossimo turno è martedì 3 novembre, di pomeriggio a Nervi\.$/);
   });
 
   it('cavallo di mese: notte del 31 e smonto il primo', () => {
@@ -65,9 +67,9 @@ describe('costruisciFrasiSiri', () => {
     const turni = { '2026-10-31': ['N1'], '2026-11-01': [] };
     const r = costruisciFrasiSiri({ ...base, quadro: q, turni, da: '2026-10-31', a: '2026-11-01' });
     expect(r['2026-10-31']!.testo).toBe(
-      'Oggi sei di turno di notte a Voltri. Darai il cambio a Mario Rossi. Quando smonterai ti darà il cambio Giulia Bianchi.',
+      'Oggi lavori a Voltri, di notte. Alle 20 darai il cambio a Mario Rossi, domattina alle 8 ti darà il cambio Giulia Bianchi.',
     );
-    expect(r['2026-11-01']!.primaDelle8).toContain('Ti darà il cambio Giulia Bianchi.');
+    expect(r['2026-11-01']!.primaDelle8).toContain('ti darà il cambio Giulia Bianchi.');
   });
 
   it('colleghi mancanti: frasi omesse senza errori', () => {
@@ -78,15 +80,15 @@ describe('costruisciFrasiSiri', () => {
       da: '2026-10-21',
       a: '2026-10-21',
     });
-    expect(r['2026-10-21']!.testo).toBe('Oggi sei di turno di mattina a Voltri.');
+    expect(r['2026-10-21']!.testo).toBe('Oggi lavori a Voltri, di mattina.');
     const r2 = costruisciFrasiSiri({ ...base, medici: [], turni: { '2026-10-21': ['M1'] }, da: '2026-10-21', a: '2026-10-21' });
-    expect(r2['2026-10-21']!.testo).toBe('Oggi sei di turno di mattina a Voltri.');
+    expect(r2['2026-10-21']!.testo).toBe('Oggi lavori a Voltri, di mattina.');
   });
 
   it('assenze, reperibilità e codici sconosciuti', () => {
     const turni = { '2026-10-21': ['f'], '2026-10-22': ['C'], '2026-10-23': ['RG'], '2026-10-24': ['ZZ'], '2026-10-25': ['E'] };
     const r = costruisciFrasiSiri({ ...base, turni, da: '2026-10-21', a: '2026-10-25' });
-    expect(r['2026-10-21']!.testo).toBe('Oggi sei in malattia o in permesso.');
+    expect(r['2026-10-21']!.testo).toBe('Oggi sei in malattia o in permesso. Ti auguro di rimetterti presto.');
     expect(r['2026-10-22']!.testo).toBe('Oggi sei a un corso.');
     expect(r['2026-10-23']!.testo).toBe('Oggi sei reperibile tutto il giorno.');
     expect(r['2026-10-24']!.testo).toBe('Oggi hai il codice ZZ.');
@@ -95,7 +97,7 @@ describe('costruisciFrasiSiri', () => {
 
   it('sede senza nome in config: usa il numero', () => {
     const r = costruisciFrasiSiri({ ...base, sedi: {}, quadro: {}, turni: { '2026-10-21': ['P3'] }, da: '2026-10-21', a: '2026-10-21' });
-    expect(r['2026-10-21']!.testo).toBe('Oggi sei di turno di pomeriggio a sede 3.');
+    expect(r['2026-10-21']!.testo).toBe('Oggi lavori a sede 3, di pomeriggio.');
   });
 
   describe('frasi autonome per data parlata', () => {

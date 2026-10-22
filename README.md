@@ -19,7 +19,7 @@
 ### A cosa serve
 I turni dei medici del 112 di Genova sono decisi a monte e distribuiti come un unico grande file Excel, un foglio per mese, con tutti i medici e tutte le sedi. Per sapere quando e dove si lavora bisogna aprirlo, cercare la propria riga e interpretare i codici. Ricordarsi poi dei cambi concordati con i colleghi e fare i conti delle ore è un lavoro a parte.
 
-118Shifts fa questo lavoro una volta per tutti. Ogni medico apre l'app dal telefono, come una normale applicazione installata sulla schermata Home, e trova **solo il proprio calendario**: turno di oggi e di domani, sede, orari, festività, weekend liberi, ore del mese e i cambi già applicati. Niente fogli condivisi da scorrere, niente codici da decifrare.
+118Shifts fa questo lavoro una volta per tutti. Ogni medico apre l'app dal telefono, come una normale applicazione installata sulla schermata Home, e trova **solo il proprio calendario**: turno di oggi e di domani, sede, orari, festività, weekend liberi, ore del mese e i cambi già applicati, con sotto un breve riepilogo a parole (colleghi del cambio, smonto dalla notte, messaggio gentile nei giorni di riposo, ferie o malattia). Niente fogli condivisi da scorrere, niente codici da decifrare.
 
 ### I turni si caricano una sola volta, per tutti
 L'amministratore (o un delegato) carica il file Excel del mese, o in alternativa uno screenshot della tabella. L'app lo legge **nel browser**, riconosce i medici anche quando il nome è scritto in modi diversi, segnala i codici sconosciuti e mostra un'**anteprima** prima della pubblicazione. Dopo la conferma i turni compaiono subito nel calendario di ogni medico. Se arriva una versione corretta del file basta ricaricarla: il mese viene sostituito per intero.

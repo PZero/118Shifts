@@ -1,11 +1,12 @@
 // Frasi per la sintesi vocale (Siri / Comando rapido iOS): cosa fa il medico in ogni giorno.
 // Logica pura, nessun accesso a Firebase. Testo senza sigle né parentesi.
 import { interpretaCodice, type Fascia } from './codici';
-import { aggiungiGiorni, chiaveMese, differenzaGiorni, giornoSettimana, scomponi, type DataISO } from './date';
+import { doveTurni as doveTurniBase, maiuscola, messaggioFisso, NOME_FASCIA, quadroEffettivo, riepilogoGiorno, testoRiepilogo, turniDi, type MedicoNome as MedicoNomeBase, type TurnoFascia } from './riepilogoGiorno';
+import { aggiungiGiorni, differenzaGiorni, giornoSettimana, scomponi, type DataISO } from './date';
 import { colleghiDisponibili } from './disponibilita';
-import { chiConMe, chiDoIlCambio, chiMiDaIlCambio, type GiornoQuadro, type GiorniQuadro } from './quadro';
+import { chiConMe, type GiorniQuadro } from './quadro';
 
-export interface MedicoNome { id: string; nome: string }
+export type MedicoNome = MedicoNomeBase;
 /**
  * Frasi di un giorno. `dove`, `diTurno`, `cambio` e `conMe` nominano sempre la data parlata
  * (mai "oggi"/"domani"), così restano corrette qualunque sia il giorno in cui si chiede.
@@ -38,25 +39,8 @@ export interface ArgomentiFrasiSiri {
   a: DataISO;
 }
 
-const FASCE: readonly Fascia[] = ['M', 'P', 'N'];
-const NOME_FASCIA: Record<Fascia, string> = { M: 'mattina', P: 'pomeriggio', N: 'notte' };
 const GIORNI = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
 const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
-
-interface TurnoFascia { fascia: Fascia; sede?: number }
-
-function turniDi(codici: readonly string[] | undefined): TurnoFascia[] {
-  const out: TurnoFascia[] = [];
-  for (const c of codici ?? []) {
-    const i = interpretaCodice(c);
-    if (i && i.categoria === 'turno' && i.fascia && !out.some((t) => t.fascia === i.fascia)) {
-      out.push(i.sede !== undefined ? { fascia: i.fascia, sede: i.sede } : { fascia: i.fascia });
-    }
-  }
-  return out.sort((x, y) => FASCE.indexOf(x.fascia) - FASCE.indexOf(y.fascia));
-}
-
-const maiuscola = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 /**
  * Elenco in italiano naturale ("A, B e C"; con `virgolaPrima` "A, B, e C"). Al massimo 8 voci, poi "e altri N";
@@ -80,21 +64,7 @@ export function costruisciFrasiSiri(args: ArgomentiFrasiSiri): FrasiSiri {
   const nomeSede = (n: number) => sedi[String(n)] ?? `sede ${n}`;
   const ultimaData = Object.keys(turni).sort().pop();
 
-  /** Quadro del giorno con i miei codici effettivi al posto degli originali. */
-  function giornoQuadro(data: DataISO): GiornoQuadro | undefined {
-    const { anno, mese, giorno } = scomponi(data);
-    const doc = quadro[chiaveMese({ anno, mese })];
-    if (!doc) return undefined;
-    const base = doc[String(giorno)] ?? {};
-    const miei = turni[data];
-    if (!miei) return base;
-    const altri: Record<string, readonly string[]> = { ...base };
-    delete altri[medicoId];
-    if (miei.length > 0) altri[medicoId] = miei;
-    return altri;
-  }
-  const giorniDa = (data: DataISO, passo: 1 | -1, n = 5) =>
-    Array.from({ length: n }, (_, k) => giornoQuadro(aggiungiGiorni(data, passo * k)));
+  const giornoQuadro = (data: DataISO) => quadroEffettivo({ medicoId, turni, quadro }, data);
 
   function descrTurni(ts: readonly TurnoFascia[]): string {
     if (new Set(ts.map((t) => t.sede)).size > 1) {
@@ -141,12 +111,7 @@ export function costruisciFrasiSiri(args: ArgomentiFrasiSiri): FrasiSiri {
     return `${GIORNI[giornoSettimana(data)]} ${giorno} ${MESI[mese - 1]}`;
   }
 
-  /** "a Voltri, di mattina e pomeriggio" / "a Voltri, di mattina e a Nervi, di notte". */
-  function doveTurni(ts: readonly TurnoFascia[]): string {
-    const parte = (fasce: string, sede: number | undefined) => `${sede !== undefined ? `a ${nomeSede(sede)}, ` : ''}di ${fasce}`;
-    if (new Set(ts.map((t) => t.sede)).size > 1) return ts.map((t) => parte(NOME_FASCIA[t.fascia], t.sede)).join(' e ');
-    return parte(ts.map((t) => NOME_FASCIA[t.fascia]).join(' e '), ts[0]?.sede);
-  }
+  const doveTurni = (ts: readonly TurnoFascia[]) => doveTurniBase(ts, nomeSede);
 
   /** Frasi autonome (con data parlata) di un giorno. `cambio` e `conMe` solo se il quadro del mese c'è. */
   function frasiGiorno(data: DataISO, stato: { frase: string; turno: boolean }, ts: readonly TurnoFascia[]) {
@@ -214,35 +179,14 @@ export function costruisciFrasiSiri(args: ArgomentiFrasiSiri): FrasiSiri {
     return '';
   }
 
-  const nomeDi = (id: string | undefined) => (id ? nomi.get(id) : undefined);
-  const chiRiceve = (data: DataISO, fascia: Fascia) =>
-    nomeDi(chiMiDaIlCambio({ medicoId, giorni: giorniDa(data, 1), fasciaPartenza: fascia })?.cambio?.medicoId);
-  const aChiDo = (data: DataISO, fascia: Fascia) =>
-    nomeDi(chiDoIlCambio({ medicoId, giorni: giorniDa(data, -1), fasciaArrivo: fascia })?.cambio?.medicoId);
-
   const out: FrasiSiri = {};
   for (let data = da; data <= a; data = aggiungiGiorni(data, 1)) {
-    const ieri = aggiungiGiorni(data, -1);
-    const notteIeri = turniDi(turni[ieri]).find((t) => t.fascia === 'N');
-    const oggi = statoOggi(data, notteIeri !== undefined);
+    const oggi = statoOggi(data, turniDi(turni[aggiungiGiorni(data, -1)]).some((t) => t.fascia === 'N'));
     const ts = turniDi(turni[data]);
-
-    let testo = `Oggi ${oggi.frase}.`;
-    if (oggi.turno) {
-      const prima = aChiDo(data, ts[0]!.fascia);
-      const dopo = chiRiceve(data, ts[ts.length - 1]!.fascia);
-      if (prima) testo += ` Darai il cambio a ${prima}.`;
-      if (dopo) testo += ` Quando smonterai ti darà il cambio ${dopo}.`;
-    } else {
-      testo += prossimoTurno(data);
-    }
-
-    const giorno: FrasiGiorno = { testo, ...frasiGiorno(data, oggi, ts) };
-    if (notteIeri) {
-      const sede = notteIeri.sede !== undefined ? ` a ${nomeSede(notteIeri.sede)}` : '';
-      const chi = chiRiceve(ieri, 'N');
-      giorno.primaDelle8 = `Stai smontando dalla notte${sede}.${chi ? ` Ti darà il cambio ${chi}.` : ''} Oggi poi ${oggi.frase}.`;
-    }
+    const r = riepilogoGiorno({ medicoId, turni, quadro, medici, sedi, data });
+    const testoBase = testoRiepilogo(r, 'Oggi', messaggioFisso(r, data));
+    const giorno: FrasiGiorno = { testo: oggi.turno ? testoBase : testoBase + prossimoTurno(data), ...frasiGiorno(data, oggi, ts) };
+    if (r.smonto) giorno.primaDelle8 = testoBase;
     out[data] = giorno;
   }
   return out;

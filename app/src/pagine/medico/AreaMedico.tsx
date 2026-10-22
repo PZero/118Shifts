@@ -329,7 +329,7 @@ function VistaMedico({
       {intestazione}
       {!soloLettura && (
         <div className="card-riepilogo-alto">
-          <CardOggiDomani oggi={oggi} mesi={dati.mesi} cambi={dati.cambi} proiezione={proiezione} sedi={dati.sedi} nomi={nomi} />
+          <CardOggiDomani oggi={oggi} mesi={dati.mesi} cambi={dati.cambi} proiezione={proiezione} sedi={dati.sedi} nomi={nomi} medicoId={medicoId} />
           {vedeQuadro && (
             <CardChiConMe oggi={oggi} giorno={giornoCard} pubblicato={pubblicatoCard} sedi={dati.sedi} nomi={nomi} medicoId={medicoId} />
           )}

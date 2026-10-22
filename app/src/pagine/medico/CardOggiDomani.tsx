@@ -1,11 +1,14 @@
 // Card in cima all'area medico: "Oggi e domani" (miei turni, cambi applicati) e
 // "Chi è di turno con me" (colleghi dal quadro del mese, solo account principali).
-import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { chiConMe, chiMiDaIlCambio, turnoDiPartenza, type GruppoChiConMe } from '../../domain/quadro';
 import { aggiungiGiorni, scomponi, type DataISO } from '../../domain/date';
 import type { Fascia } from '../../domain/codici';
 import type { RisultatoProiezione } from '../../domain/proiezione';
+import { messaggioPositivo, riepilogoGiorno, testoRiepilogo, tipoMessaggio } from '../../domain/riepilogoGiorno';
+import type { GiorniQuadro } from '../../domain/quadro';
 import { useServizi } from '../../sessione/contesto';
+import { caricaQuadri, turniEffettivi } from '../../servizi/siri';
 import type { CambioDoc, MeseDoc, QuadroMese, Sedi } from '../../servizi/tipi';
 import { Icona } from '../../ui/Icona';
 import { NOME_FASCIA, ORARIO_FASCIA, dataEstesa, etichettaCodice, nomeSede } from '../../ui/etichette';
@@ -90,11 +93,47 @@ interface PropsComuni {
   proiezione: RisultatoProiezione;
   sedi: Sedi;
   nomi: Map<string, string>;
+  medicoId: string;
 }
 
-export function CardOggiDomani({ oggi, mesi, cambi, proiezione, sedi, nomi }: PropsComuni) {
+export function CardOggiDomani({ oggi, mesi, cambi, proiezione, sedi, nomi, medicoId }: PropsComuni) {
+  const servizi = useServizi();
   const [aperto, setAperto] = useState(false);
   const giorni = useMemo(() => giorniOggiDomani(oggi, mesi, cambi, proiezione), [oggi, mesi, cambi, proiezione]);
+  const [quadro, setQuadro] = useState<Record<string, GiorniQuadro>>({});
+  // Messaggi positivi: scelti una volta per giorno e tipo, stabili durante la sessione.
+  const messaggi = useRef(new Map<string, string>());
+  const dataDomani = giorni[1]!.data;
+
+  useEffect(() => {
+    let attivo = true;
+    caricaQuadri(oggi, dataDomani, (k) => caricaQuadro(servizi, k)).then((q) => attivo && setQuadro(q));
+    return () => {
+      attivo = false;
+    };
+  }, [servizi, oggi, dataDomani]);
+
+  const testi = useMemo(() => {
+    const turni = turniEffettivi(mesi, cambi);
+    const medici = [...nomi].map(([id, nome]) => ({ id, nome }));
+    let precedente: string | undefined;
+    return giorni.map((g) => {
+      if (!g.pubblicato) return null;
+      const r = riepilogoGiorno({ medicoId, turni, quadro, medici, sedi, data: g.data, prefisso: g.etichetta });
+      const t = tipoMessaggio(r);
+      let msg: string | undefined;
+      if (t) {
+        const chiave = `${g.data}|${t}`;
+        msg = messaggi.current.get(chiave);
+        if (!msg) {
+          msg = messaggioPositivo(t, Math.random, precedente);
+          messaggi.current.set(chiave, msg);
+        }
+        precedente = msg;
+      }
+      return testoRiepilogo(r, g.etichetta, msg);
+    });
+  }, [giorni, mesi, cambi, nomi, medicoId, quadro, sedi]);
   const nome = (id?: string) => nomi.get(id ?? '') ?? 'collega non in elenco';
   return (
     <CardComprimibile
@@ -112,7 +151,7 @@ export function CardOggiDomani({ oggi, mesi, cambi, proiezione, sedi, nomi }: Pr
         </span>
       }
     >
-      {giorni.map((g) => (
+      {giorni.map((g, i) => (
         <div key={g.data} className="oggi-domani-giorno">
           <h3 className="sottotitolo">
             {g.etichetta} <span className="testo-tenue">· {dataEstesa(g.data)}</span>
@@ -146,6 +185,7 @@ export function CardOggiDomani({ oggi, mesi, cambi, proiezione, sedi, nomi }: Pr
               })}
             </ul>
           )}
+          {testi[i] && <p className="riepilogo-giorno">{testi[i]}</p>}
         </div>
       ))}
     </CardComprimibile>

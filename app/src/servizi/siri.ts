@@ -90,12 +90,12 @@ export interface ArgomentiCalcolo {
   caricaQuadro: (chiaveMese: string) => Promise<QuadroMese | null>;
 }
 
-/** Frasi da ieri a fine dati (max 100 giorni). Senza quadro leggibile le frasi non nominano i colleghi. */
-export async function calcolaFrasi(arg: ArgomentiCalcolo): Promise<FrasiSiri> {
-  const intervallo = intervalloFrasi(arg.oggi, arg.mesi);
-  if (!intervallo) return {};
-  const { da, a } = intervallo;
-  // Quadri dal mese precedente a `da` (per chi smonta) fino al mese successivo ad `a`.
+/** Quadri (per mese) da 5 giorni prima di `da` a 5 dopo `a`, per chi smonta e chi dà il cambio. I mesi non leggibili mancano: frasi senza colleghi. */
+export async function caricaQuadri(
+  da: DataISO,
+  a: DataISO,
+  caricaQuadro: (chiaveMese: string) => Promise<QuadroMese | null>,
+): Promise<Record<string, GiorniQuadro>> {
   const chiavi = new Set<string>();
   for (let d = aggiungiGiorni(da, -5); d <= aggiungiGiorni(a, 5); d = aggiungiGiorni(d, 1)) {
     const { anno, mese } = scomponi(d);
@@ -105,13 +105,22 @@ export async function calcolaFrasi(arg: ArgomentiCalcolo): Promise<FrasiSiri> {
   await Promise.all(
     [...chiavi].map(async (k) => {
       try {
-        const q = await arg.caricaQuadro(k);
+        const q = await caricaQuadro(k);
         if (q) quadro[k] = q.giorni;
       } catch {
-        /* quadro non leggibile: frasi senza colleghi */
+        /* quadro non leggibile */
       }
     }),
   );
+  return quadro;
+}
+
+/** Frasi da ieri a fine dati (max 100 giorni). Senza quadro leggibile le frasi non nominano i colleghi. */
+export async function calcolaFrasi(arg: ArgomentiCalcolo): Promise<FrasiSiri> {
+  const intervallo = intervalloFrasi(arg.oggi, arg.mesi);
+  if (!intervallo) return {};
+  const { da, a } = intervallo;
+  const quadro = await caricaQuadri(da, a, arg.caricaQuadro);
   return limitaFrasi(
     costruisciFrasiSiri({
       medicoId: arg.medicoId,
