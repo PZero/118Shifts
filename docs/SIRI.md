@@ -1,6 +1,6 @@
 # Siri e CarPlay: il Comando rapido «Turni 118»
 
-Esiste **un solo Comando rapido**, «Turni 118». Lo costruisce **l'amministratore una volta sola** sul proprio iPhone e lo condivide con un link iCloud. I medici non costruiscono niente: dalla card «Siri e CarPlay» dell'app toccano «Attiva Siri» (la chiave personale viene copiata e si apre l'app Comandi), incollano la chiave quando il comando la chiede e toccano «Aggiungi comando».
+Esiste **un solo Comando rapido**, «Turni 118» (link attuale in `LINK_COMANDO_SIRI`, verificato: nessuna chiave, domanda di importazione sul passo 1). Lo costruisce **l'amministratore una volta sola** sul proprio iPhone e lo condivide con un link iCloud. I medici non costruiscono niente: dalla card «Siri e CarPlay» dell'app toccano «Attiva Siri» (la chiave personale viene copiata e si apre l'app Comandi), incollano la chiave quando il comando la chiede e toccano «Aggiungi comando».
 
 Uso: «Ehi Siri, Turni 118» → Siri chiede «Cosa vuoi sapere?» → «Dove lavoro oggi?», «Sarò di turno il 30 maggio?», «Chi mi può dare il cambio il 20 maggio?», «Chi lavora con me oggi?», «Chi mi dà il cambio allo smonto?». Funziona anche su CarPlay.
 
@@ -30,10 +30,8 @@ Tutti i blocchi «Se» sono **uno dopo l'altro, mai uno dentro l'altro**.
 3. **Richiedi input** (compare come «Richiedi *Testo* con …») → domanda `Cosa vuoi sapere?`; disattiva «Consenti più righe».
 4. **Imposta variabile** → nome `Domanda`, e tocca **Input** (grigio = vuoto) per scegliere l'uscita di «Richiedi» (**Input fornito**): deve diventare blu. Vale per **ogni** «Imposta variabile» della guida: il valore va sempre collegato all'azione sopra.
 5. **Ottieni date** (dall'input) → input: [Domanda].
-6. **Se** → [Date] **ha qualsiasi valore**
-   - dentro il «Se»: **Formatta data** → [Date], formato *Personalizzato*, `yyyy-MM-dd`
-   - in **Altrimenti**: **Data attuale**, poi **Formatta data** → [Data attuale], *Personalizzato*, `yyyy-MM-dd`
-7. Dopo **Fine se**: **Imposta variabile** → nome `Giorno`, valore [Se risultato].
+6. Blocco **Se** → bolla [Date] (con formato *Personalizzato* `yyyy-MM-dd`, toccando la bolla) **ha qualsiasi valore**; rami vuoti. Dopo **Fine se**: **Imposta variabile** `Giorno` su [Risultato Se].
+7. Secondo blocco **Se** → [Giorno] **ha qualsiasi valore**; ramo vuoto; in **Altrimenti**: **Data attuale** e **Formatta data** (*Personalizzato*, `yyyy-MM-dd`). Dopo **Fine se**: **Imposta variabile** `Giorno` su [Risultato Se] (di questo blocco). Così senza data nella domanda si usa oggi.
 
 ### Lettura delle frasi
 8. **Ottieni contenuti dell'URL** → URL: incolla
@@ -101,7 +99,7 @@ La copia condivisa **non deve contenere la tua chiave**.
 
 1. In Comandi tieni premuto **Turni 118** → **Duplica**. Lavora sulla copia, chiamala anch'essa **Turni 118**.
 2. Nella copia, al passo 1, sostituisci la chiave con `incolla qui la chiave`.
-3. Apri i dettagli della copia (tocca il nome in alto → **Dettagli**, o l'icona ⓘ) → **Configura comando** / **Domande di importazione** → **Aggiungi domanda** → scegli il campo **Testo** del passo 1; domanda: `Incolla la chiave copiata dall'app dei turni`.
+3. Nella copia tocca **ⓘ** nella barra in basso → **Configurazione** (o «Domande di importazione») → **Aggiungi domanda** → scegli il campo **Testo** del passo 1; domanda: `Incolla la chiave copiata dall'app dei turni`.
 4. Tieni premuto sulla copia → **Condividi** → **Copia link iCloud**.
 5. Manda il link: va inserito nella costante `LINK_COMANDO_SIRI` in `app/src/servizi/siri.ts` e pubblicato. Da quel momento nella card compaiono le istruzioni e il tasto per aggiungere il comando.
 6. Puoi cancellare la copia; tieni il tuo originale.

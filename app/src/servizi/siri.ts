@@ -11,7 +11,7 @@ import type { MeseDoc, QuadroMese, Servizi, Sedi, VoceElenco } from './tipi';
  * Link iCloud del Comando rapido "Turni 118" (vedi docs/SIRI.md). Vuoto finché il comando
  * non è stato costruito e condiviso: in quel caso l'app mostra "Comando non ancora disponibile".
  */
-export const LINK_COMANDO_SIRI = '';
+export const LINK_COMANDO_SIRI = 'https://www.icloud.com/shortcuts/9b3b0f6520774feba5647f466e450b48';
 
 export const MAX_GIORNI = 100;
 /** Dimensione massima stimata del documento (JSON.stringify), in caratteri. */
