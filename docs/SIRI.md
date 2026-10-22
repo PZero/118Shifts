@@ -18,7 +18,7 @@ Prima: nell'app dei turni tocca **Attiva Siri**, così hai la tua chiave negli a
 
 Apri l'app **Comandi** → **+** in alto a destra → in alto tocca il nome e chiamalo **Turni 118**.
 
-Ogni passo qui sotto è **un'azione**: tocca **Cerca azioni** in basso, scrivi la parola in grassetto e tocca l'azione. Le parole tra [parentesi quadre] sono **variabili**: si inseriscono toccando il campo e scegliendo la variabile dalla barra sopra la tastiera (o «Seleziona variabile»).
+Ogni passo qui sotto è **un'azione**: tocca **Cerca azioni** in basso, scrivi la parola in grassetto e tocca l'azione. Le parole tra [parentesi quadre] sono **variabili**: **non vanno scritte né incollate**. Si inseriscono come **bolla** (pastiglia con icona) toccando il punto del campo e scegliendo la variabile dalla barra sopra la tastiera (o «Seleziona variabile»). Se copi un testo dalla guida, cancella la parte `[...]` e metti la bolla al suo posto.
 
 Tutti i blocchi «Se» sono **uno dopo l'altro, mai uno dentro l'altro**.
 
@@ -36,10 +36,11 @@ Tutti i blocchi «Se» sono **uno dopo l'altro, mai uno dentro l'altro**.
 7. Dopo **Fine se**: **Imposta variabile** → nome `Giorno`, valore [Se risultato].
 
 ### Lettura delle frasi
-8. **Ottieni contenuti dell'URL** → URL:
-   `https://firestore.googleapis.com/v1/projects/shifts-be876/databases/(default)/documents/siri/[Chiave]`
+8. **Ottieni contenuti dell'URL** → URL: incolla
+   `https://firestore.googleapis.com/v1/projects/shifts-be876/databases/(default)/documents/siri/`
+   e subito dopo, senza spazi, inserisci la bolla [Chiave].
 9. **Ottieni valore dizionario** → *Valore* per la chiave
-   `fields.giorni.mapValue.fields.[Giorno].mapValue.fields`
+   `fields.giorni.mapValue.fields.` + bolla [Giorno] + `.mapValue.fields`
    in [Contenuti dell'URL].
 10. **Imposta variabile** → nome `Voci`.
 11. **Se** → [Voci] **non ha valore**
@@ -78,7 +79,7 @@ Tutti i blocchi «Se» sono **uno dopo l'altro, mai uno dentro l'altro**.
     Altrimenti
     Fine se
     ```
-15. **Ottieni valore dizionario** → *Valore* per la chiave `[Voce].stringValue` in [Voci].
+15. **Ottieni valore dizionario** → *Valore* per la chiave: bolla [Voce] + `.stringValue`, in [Voci].
 16. **Imposta variabile** → nome `Risposta`.
 17. **Se** → [Risposta] **non ha valore**
     - **Mostra risultato** → `Questa informazione non è disponibile per quel giorno o per il tuo account.`
