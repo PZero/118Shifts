@@ -18,7 +18,7 @@ import { CardIndisponibilita, DialogoIndisponibilita } from './Indisponibilita';
 import { costruisciSegni, leggiPreferenzaMostra, salvaPreferenzaMostra, type IndispPerMese } from './indisponibilitaVista';
 import { CardSiri } from './CardSiri';
 import { caricaQuadro } from './quadriCache';
-import { CardChiConMe, CardChiDaIlCambio, CardCollega, CardOggiDomani } from './CardOggiDomani';
+import { CardChiConMe, CardCollega, CardOggiDomani } from './CardOggiDomani';
 import { DettaglioGiorno } from './DettaglioGiorno';
 import { DialogoCambio, type RichiestaCambio } from './DialoghiCambio';
 import { CardCambi, CardOre, CardReperibilita, CardWeekend, Legenda } from './Riepiloghi';
@@ -345,20 +345,6 @@ function VistaMedico({
           <CardOggiDomani oggi={oggi} mesi={dati.mesi} cambi={dati.cambi} proiezione={proiezione} sedi={dati.sedi} nomi={nomi} medicoId={medicoId} />
           {vedeQuadro && (
             <CardChiConMe oggi={oggi} giorno={giornoCard} pubblicato={pubblicatoCard} sedi={dati.sedi} nomi={nomi} medicoId={medicoId} />
-          )}
-          {vedeQuadro && (
-            <CardChiDaIlCambio
-              oggi={oggi}
-              giorno={giornoCard}
-              esplicito={!!selEsplicito}
-              pubblicato={pubblicatoCard}
-              mesi={dati.mesi}
-              cambi={dati.cambi}
-              proiezione={proiezione}
-              sedi={dati.sedi}
-              nomi={nomi}
-              medicoId={medicoId}
-            />
           )}
         </div>
       )}
