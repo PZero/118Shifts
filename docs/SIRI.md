@@ -65,7 +65,7 @@ Tutti i blocchi «Se» sono **uno dopo l'altro, mai uno dentro l'altro**.
 
     **Come si costruisce un blocco** (esempio della prima riga; poi ripeti per le altre cinque):
     1. Aggiungi l'azione **Se**. Compare un blocco con **Se**, **Altrimenti** e **Fine se**.
-    2. Nella riga «Se»: tocca il primo campo e scegli la variabile [Domanda]; tocca la condizione e scegli **contiene**; nel campo di testo scrivi `turno`.
+    2. Nella riga «Se»: tocca il primo campo e scegli la variabile [Domanda]. Poi **tocca la bolla «Domanda»** appena inserita e imposta **Tipo → Testo** (altrimenti le condizioni sono solo «ha qualsiasi valore / non ha valore»). Ora tocca la condizione e scegli **contiene**; nel campo di testo scrivi `turno`.
     3. Aggiungi l'azione **Testo** e scrivi `diTurno`. Le azioni nuove finiscono in fondo: **trascinala** tra «Se» e «Altrimenti».
     4. Aggiungi **Imposta variabile**, trascinala subito sotto il Testo (sempre prima di «Altrimenti»), scegli la variabile esistente `Voce`: come valore prende il Testo appena sopra.
     5. «Altrimenti» resta vuoto.
