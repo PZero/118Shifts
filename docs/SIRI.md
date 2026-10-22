@@ -2,7 +2,10 @@
 
 Esiste **un solo Comando rapido**, «Turni 118» (link attuale in `LINK_COMANDO_SIRI`, verificato: nessuna chiave, domanda di importazione sul passo 1). Lo costruisce **l'amministratore una volta sola** sul proprio iPhone e lo condivide con un link iCloud. I medici non costruiscono niente: dalla card «Siri e CarPlay» dell'app toccano «Attiva Siri» (la chiave personale viene copiata e si apre l'app Comandi), incollano la chiave quando il comando la chiede e toccano «Aggiungi comando».
 
-Uso: «Ehi Siri, Turni 118» → Siri chiede «Cosa vuoi sapere?» → «Dove lavoro oggi?», «Sarò di turno il 30 maggio?», «Chi mi può dare il cambio il 20 maggio?», «Chi lavora con me oggi?», «Chi mi dà il cambio allo smonto?». Funziona anche su CarPlay.
+Uso: «Ehi Siri, Turni 118» → Siri chiede «Cosa vuoi sapere?» → «Dove lavoro oggi?», «Sarò di turno il 30 maggio?», «Chi mi può dare il cambio il 20 maggio?», «Chi lavora con me oggi?», «Chi mi darà il cambio stasera?», «A chi darò il cambio?», «Cosa posso chiederti?». Funziona anche su CarPlay.
+
+## Parole chiave del comando attuale
+Sette blocchi «Se [Domanda] contiene», nell'ordine (vince l'ultimo che corrisponde; default `testo`): `chieder` → `aiuto`; `turno` → `diTurno`; `ove ` (con spazio: prende «Dove/dove», non «novembre») → `dove`; `con me` → `conMe`; `cambio` → `successivo`; `darò` → `precedente`; `può` → `cambio`. In ogni blocco «Imposta la variabile Voce» deve puntare al **Testo del proprio blocco** (attenzione dopo un «Duplica»).
 
 ## Come funziona (in breve)
 - «Attiva Siri» crea il documento `siri/{chiave}` (chiave casuale di 64 caratteri) con le frasi già pronte, da ieri alla fine dell'ultimo mese pubblicato (max 100 giorni), e copia la chiave negli appunti.
