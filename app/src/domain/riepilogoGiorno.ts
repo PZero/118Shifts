@@ -60,7 +60,20 @@ export function turniDi(codici: readonly string[] | undefined): TurnoFascia[] {
 
 export const maiuscola = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
-/** Quadro del giorno con i miei codici effettivi al posto degli originali. */
+/** Coppie "fascia@sede" dei turni con sede. */
+function postiTurno(codici: readonly string[] | undefined): Set<string> {
+  const s = new Set<string>();
+  for (const c of codici ?? []) {
+    const i = interpretaCodice(c);
+    if (i && i.categoria === 'turno' && i.fascia && i.sede !== undefined) s.add(`${i.fascia}@${i.sede}`);
+  }
+  return s;
+}
+
+/**
+ * Quadro del giorno con i miei codici effettivi al posto degli originali. Se un cambio mi porta in una
+ * fascia e sede dove l'Excel non mi metteva, chi l'Excel metteva lì è chi me l'ha ceduto: lo tolgo.
+ */
 export function quadroEffettivo(
   a: Pick<ArgomentiRiepilogo, 'medicoId' | 'turni' | 'quadro'>,
   data: DataISO,
@@ -71,8 +84,17 @@ export function quadroEffettivo(
   const base = doc[String(giorno)] ?? {};
   const miei = a.turni[data];
   if (!miei) return base;
-  const altri: Record<string, readonly string[]> = { ...base };
-  delete altri[a.medicoId];
+  const originali = postiTurno(base[a.medicoId]);
+  const ricevuti = [...postiTurno(miei)].filter((p) => !originali.has(p));
+  const altri: Record<string, readonly string[]> = {};
+  for (const [id, codici] of Object.entries(base)) {
+    if (id === a.medicoId) continue;
+    const resto = ricevuti.length === 0 ? codici : codici.filter((c) => {
+      const i = interpretaCodice(c);
+      return !(i && i.categoria === 'turno' && i.fascia && i.sede !== undefined && ricevuti.includes(`${i.fascia}@${i.sede}`));
+    });
+    if (resto.length > 0) altri[id] = resto;
+  }
   if (miei.length > 0) altri[a.medicoId] = miei;
   return altri;
 }

@@ -81,7 +81,7 @@ Ogni medico vede solo i propri dati. La regola è applicata dal database (regole
 
 ### Per i medici
 - **Oggi e domani**: card comprimibile in cima con il proprio turno (sede e orario) di oggi e di domani, cambi già applicati.
-- **Chi è di turno con me** (solo account principali): i colleghi della stessa fascia nelle altre sedi e i reperibili (RM, RP, RN, RG) del giorno selezionato nel calendario (all'avvio oggi), secondo l'Excel pubblicato. I cambi dei colleghi non sono inclusi; vengono mostrati solo nome e sede, nei soli giorni in cui il medico stesso lavora.
+- **Chi è di turno con me** (solo account principali): i colleghi della stessa fascia nelle altre sedi e i reperibili (RM, RP, RN, RG) del giorno selezionato nel calendario (all'avvio oggi), secondo l'Excel pubblicato, tenendo conto dei turni ricevuti dal medico (chi gli ha ceduto il turno non compare). Gli altri cambi dei colleghi non sono inclusi; vengono mostrati solo nome e sede, nei soli giorni in cui il medico stesso lavora.
 - **Chi ti dà il cambio**: non è più una card a sé. L'informazione è nel riepilogo di «Oggi e domani» («alle 8 darai il cambio a…, alle 20 ti darà il cambio…», smonto dalla notte compreso) e in Siri («Chi mi darà il cambio stasera?», «A chi darò il cambio?»).
 - **Cosa fa oggi un collega** (solo account principali): card sotto il calendario, sempre chiusa all'apertura; scelto un collega dalla tendina (in ordine alfabetico) mostra i suoi turni di oggi con orario e sede, reperibilità o assenze, secondo l'Excel pubblicato (cambi dei colleghi esclusi).
 - **Calendario mensile** dei propri turni — Mattino (08–14), Pomeriggio (14–20), Notte (20–08) — con la **sede** di lavoro.

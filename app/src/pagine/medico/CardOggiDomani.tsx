@@ -5,7 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'rea
 import { chiConMe, type GruppoChiConMe } from '../../domain/quadro';
 import { scomponi, type DataISO } from '../../domain/date';
 import type { RisultatoProiezione } from '../../domain/proiezione';
-import { messaggioPositivo, riepilogoGiorno, testoRiepilogo, tipoMessaggio } from '../../domain/riepilogoGiorno';
+import { messaggioPositivo, quadroEffettivo, riepilogoGiorno, testoRiepilogo, tipoMessaggio } from '../../domain/riepilogoGiorno';
 import type { GiorniQuadro } from '../../domain/quadro';
 import { useServizi } from '../../sessione/contesto';
 import { caricaQuadri, turniEffettivi } from '../../servizi/siri';
@@ -397,7 +397,8 @@ export function CardChiConMe({ oggi, giorno, pubblicato, sedi, nomi, medicoId }:
     }
     if (stato.stato !== 'pronto') return <div className="scheletro" style={{ height: 64 }} aria-busy="true" aria-label="Caricamento" />;
     if (!stato.quadro) return nonDisp;
-    const gruppi = chiConMe(stato.quadro.giorni[String(Number(giorno.data.slice(8)))], medicoId, codici);
+    const giornoQ = quadroEffettivo({ medicoId, turni: { [giorno.data]: codici }, quadro: { [chiave]: stato.quadro.giorni } }, giorno.data);
+    const gruppi = chiConMe(giornoQ, medicoId, codici);
     return (
       <>
         {gruppi.length === 0 ? <p className="testo-tenue">Sei libero.</p> : gruppi.map(gruppo)}

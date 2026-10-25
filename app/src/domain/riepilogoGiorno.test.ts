@@ -4,6 +4,7 @@ import {
   MESSAGGI_POSITIVI,
   messaggioFisso,
   messaggioPositivo,
+  quadroEffettivo,
   riepilogoGiorno,
   testoRiepilogo,
   tipoMessaggio,
@@ -94,6 +95,27 @@ describe('riepilogoGiorno', () => {
     expect(r.frase).toBe('lavori a sede 3, di pomeriggio.');
     const s = riepilogoGiorno({ ...base, quadro: {}, turni: { '2026-10-21': ['N1'], '2026-10-22': [] }, data: '2026-10-22' });
     expect(s.smonto).toBe('Alle 8 smonti dalla notte a Voltri.');
+  });
+});
+
+describe('quadroEffettivo', () => {
+  const q = { '2026-10': { '25': { mr: ['M2'], gb: ['M1'], io: ['P1'] } } };
+
+  it("turno ricevuto: chi era in quella fascia e sede nell'Excel (chi l'ha ceduto) sparisce", () => {
+    const g = quadroEffettivo({ medicoId: 'io', turni: { '2026-10-25': ['P1', 'M2'] }, quadro: q }, '2026-10-25');
+    expect(g).toEqual({ gb: ['M1'], io: ['P1', 'M2'] });
+  });
+
+  it('senza cambi: nessun collega tolto, anche se due medici sono nella stessa sede', () => {
+    const q2 = { '2026-10': { '25': { mr: ['M1'], gb: ['M1'], io: ['M1'] } } };
+    const g = quadroEffettivo({ medicoId: 'io', turni: { '2026-10-25': ['M1'] }, quadro: q2 }, '2026-10-25');
+    expect(g).toEqual({ mr: ['M1'], gb: ['M1'], io: ['M1'] });
+  });
+
+  it('il collega che ha ceduto resta con gli altri suoi codici', () => {
+    const q3 = { '2026-10': { '25': { mr: ['M2', 'P2'] } } };
+    const g = quadroEffettivo({ medicoId: 'io', turni: { '2026-10-25': ['M2'] }, quadro: q3 }, '2026-10-25');
+    expect(g).toEqual({ mr: ['P2'], io: ['M2'] });
   });
 });
 

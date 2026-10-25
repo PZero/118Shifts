@@ -83,3 +83,4 @@
 | 2026-10-22 | L'amministratore ha un profilo in `users` e può essere secondario di un medico; con un medico collegato l'app apre "I miei turni" | Caso reale del familiare; nessun dato personale nel codice |
 | 2026-10-22 | Riepilogo del giorno unico per card "Oggi e domani" e Siri; card "Chi ti dà il cambio" rimossa | Una sola sorgente per le frasi; informazione ormai duplicata |
 | 2026-10-22 | Statistiche d'uso come contatori anonimi mensili in Firestore (una volta per sessione), visibili solo all'admin; niente Google Analytics | Niente banner cookie né dati a terzi; trasparenza in guida e README |
+| 2026-10-25 | Nel quadro, un turno ricevuto toglie il collega che l'Excel metteva nella stessa fascia e sede | È per forza chi l'ha ceduto; senza modificare il modello dati né le regole |
